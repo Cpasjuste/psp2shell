@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 3.0)
+
+set(CMAKE_SYSTEM_NAME "Linux")
+
+project(psp2shell_cli)
+
+add_executable(${PROJECT_NAME}
+        source/main.c
+        source/cmd.c
+        source/utility.c
+        ../common/source/binn.c)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+        include
+        ../common/include
+        )
+
+target_link_libraries(${PROJECT_NAME}
+        readline
+        termcap
+        pthread
+        )

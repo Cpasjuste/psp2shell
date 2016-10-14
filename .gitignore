@@ -1,0 +1,16 @@
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+
+*.idea
+build
+psp2shell_cli/build
+
+# psp2shell client
+*.o
+psp2shell_cli/psp2shell_cli
+psp2shell_cli/objs
+release

@@ -1,0 +1,21 @@
+.SUFFIXES:
+.SUFFIXES: .c .o
+
+CC=gcc
+CFLAGS = -g -I./include -I../common/include
+LDFLAGS = -lreadline -lpthread
+
+OBJS = source/cmd.o source/main.o source/utility.o ../common/source/binn.o
+
+psp2shell_cli : $(OBJS)
+	echo Linking psp2shell_cli
+	$(CC) $(CFLAGS) -o psp2shell_cli $(OBJS) $(LDFLAGS)
+
+%.o : %.c
+	echo Compiling $@
+	$(CC) -c $(CFLAGS) $< -o $@
+
+.PHONY : clean
+
+clean :
+	rm -f $(OBJS) psp2shell_cli
