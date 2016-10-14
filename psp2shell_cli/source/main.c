@@ -174,6 +174,7 @@ void *msg_thread(void *unused) {
                     printf("%s", str);
                     break;
             }
+            fflush(stdout);
         }
 
         memset(msg, 0, SIZE_CMD);
