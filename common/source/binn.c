@@ -57,6 +57,7 @@ void  (*free_fn)(void *ptr) = 0;
 #undef htonl
 #undef ntohs
 #undef ntohl
+#undef htonll
 
 BINN_PRIVATE unsigned short htons(unsigned short input) {
 #if __BYTE_ORDER == __BIG_ENDIAN
