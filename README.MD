@@ -38,7 +38,7 @@ Homebrew first. The "readline" provided by Apple is not actually readline.
 * cd psp2shell_cli && mkdir build && cd build && cmake
   -DCMAKE_C_FLAGS="-I/usr/local/opt/readline/include"
   -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/opt/readline/lib"
-  -DCMAKE_INSTALL_PREFIX="$VITASDK"
+  -DCMAKE_INSTALL_PREFIX="$VITASDK" ..
 * make
 * make install
 
