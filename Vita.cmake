@@ -1,4 +1,4 @@
-set(VITASDK "/usr/local/vitasdk")
+set(VITASDK $ENV{VITASDK})
 
 set(CMAKE_SYSTEM_NAME "Generic")
 set(CMAKE_SYSTEM_PROCESSOR "armv7-a")

@@ -39,3 +39,5 @@ add_custom_target(${PROJECT_NAME}.suprx
         DEPENDS ${PROJECT_NAME}_mod.elf
         COMMAND ${VITASDK}/bin/vita-elf-create ${PROJECT_NAME}_mod.elf ${PROJECT_NAME}_mod.velf
         COMMAND ${VITASDK}/bin/vita-make-fself ${PROJECT_NAME}_mod.velf ${PROJECT_NAME}.suprx)
+
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
