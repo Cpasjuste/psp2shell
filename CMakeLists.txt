@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # set vitasdk path variable
-set(VITASDK "/usr/local/vitasdk")
+set(VITASDK $ENV{VITASDK})
 
 # set build date variable
 execute_process(COMMAND "date" "+%Y.%m.%d" OUTPUT_VARIABLE BUILD_DATE OUTPUT_STRIP_TRAILING_WHITESPACE)
