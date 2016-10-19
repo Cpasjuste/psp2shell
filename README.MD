@@ -22,25 +22,34 @@ BUILD (LINUX)
 BUILD (WINDOWS)
 ===============
 
-- seriously ? :)
+You must have your environment set up with msys2.
+
+Library:
+
+ * `mkdir build && cd build && cmake -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=../Vita.cmake -DCMAKE_INSTALL_PREFIX=$VITASDK/arm-vita-eabi ..`
+ * `make`
+ * `make install` - to install to VITASDK
+
+It is not currently possible to build the CLI for Windows.
 
 BUILD (MACOS)
 =============
 
 Library:
 
-* mkdir build && cd build && cmake -DCMAKE_TOOLCHAIN_FILE=../Vita.cmake ..
-* make psp2shell
+* `mkdir build && cd build && cmake -DCMAKE_TOOLCHAIN_FILE=../Vita.cmake -DCMAKE_INSTALL_PREFIX="$VITASDK/arm-vita-eabi" ..`
+* `make`
+* `make install` - to install to VITASDK
 
 Client: In order to build the client on macOS, install `readline` from
 Homebrew first. The "readline" provided by Apple is not actually readline.
 
-* cd psp2shell_cli && mkdir build && cd build && cmake
+* `cd psp2shell_cli && mkdir build && cd build && cmake
   -DCMAKE_C_FLAGS="-I/usr/local/opt/readline/include"
   -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/opt/readline/lib"
-  -DCMAKE_INSTALL_PREFIX="$VITASDK" ..
-* make
-* make install
+  -DCMAKE_INSTALL_PREFIX="$VITASDK" ..`
+* `make`
+* `make install`
 
 USAGE
 =====
