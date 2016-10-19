@@ -41,3 +41,4 @@ add_custom_target(${PROJECT_NAME}.suprx
         COMMAND ${VITASDK}/bin/vita-make-fself ${PROJECT_NAME}_mod.velf ${PROJECT_NAME}.suprx)
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
+install(FILES include/psp2shell.h DESTINATION include)
