@@ -46,10 +46,6 @@ extern int psvDebugScreenPrintf(const char *format, ...);
 
 static void cmd_reset();
 
-int sceAppMgrUmount(char *device);
-
-int sceAppMgrAppMount(char *tid);
-
 static int listen_port = 3333;
 static int quit = 0;
 static s_client **clients;
