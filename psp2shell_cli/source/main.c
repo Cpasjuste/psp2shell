@@ -11,6 +11,7 @@
 #include <signal.h>
 #include <binn.h>
 #include <stdbool.h>
+#include <fcntl.h>
 
 #include "psp2cmd.h"
 #include "cmd.h"
@@ -83,6 +84,13 @@ void sig_handler(int sig) {
     }
 }
 
+void close_socks() {
+    close(msg_sock);
+    close(data_sock);
+    msg_sock = -1;
+    data_sock = -1;
+}
+
 int get_sock(int sock, char *ip, int port, bool verbose) {
 
     struct sockaddr_in addr;
@@ -148,13 +156,56 @@ int connect_psp2(char *address, int port) {
     return 0;
 }
 
+void set_timeout(int socket, int sec) {
+    struct timeval timeout;
+    timeout.tv_sec = sec;
+    timeout.tv_usec = 0;
+    setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+}
+
+// TODO: crappy way to check psp2 disconnection
+bool psp2_alive() {
+
+    bool alive = true;
+
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    set_timeout(sockfd, 1);
+
+    struct sockaddr_in sin;
+    sin.sin_family = AF_INET;
+    sin.sin_port   = htons(65432);
+    inet_pton(AF_INET, _argv[1], &sin.sin_addr);
+    if (connect(sockfd, (struct sockaddr *) &sin, sizeof(sin)) == -1) {
+        if(errno != 111) { // connection refused
+            printf("Error connecting to %s: %d (%s)\n", _argv[1], errno, strerror(errno));
+            close(msg_sock);
+            alive = false;
+        }
+    }
+    close(sockfd);
+
+    return alive;
+}
+
 void *msg_thread(void *unused) {
 
     char *msg = malloc(SIZE_CMD);
-    memset(msg, 0, SIZE_CMD);
+
+    set_timeout(msg_sock, 1);
 
     // receive message from psp2shell
-    while ((recv(msg_sock, msg, SIZE_CMD, 0)) > 0) {
+    while (true) {
+
+        // handle vita network/socket disconnect/timeout
+        memset(msg, 0, SIZE_CMD);
+        ssize_t recv_size = recv(msg_sock, msg, SIZE_CMD, 0);
+        if (recv_size <= 0) {
+            if (((errno != EAGAIN) && (errno != EWOULDBLOCK)) || !psp2_alive()) {
+                break;
+            } else {
+                continue;
+            }
+        }
 
         int type, count, size;
         BOOL is_msg = binn_is_valid(binn_ptr(msg), &type, &count, &size);
@@ -177,7 +228,6 @@ void *msg_thread(void *unused) {
             fflush(stdout);
         }
 
-        memset(msg, 0, SIZE_CMD);
         rl_refresh_line(0, 0);
 
         // send "ok/continue"
@@ -279,6 +329,20 @@ int main(int argc, char **argv) {
                 break;
             }
         } else {
+
+            int error = 0;
+            socklen_t len = sizeof(error);
+            int retval = getsockopt(msg_sock, SOL_SOCKET, SO_ERROR, &error, &len);
+            if (retval != 0 || error != 0) {
+                printf("socket is dead\n");
+                close_socks();
+            }
+            retval = getsockopt(data_sock, SOL_SOCKET, SO_ERROR, &error, &len);
+            if (retval != 0 || error != 0) {
+                printf("socket is dead\n");
+                close_socks();
+            }
+
             FD_ZERO(&fds);
             FD_SET(fileno(stdin), &fds);
             if (select(fileno(stdin) + 1, &fds, NULL, NULL, NULL) < 0) {

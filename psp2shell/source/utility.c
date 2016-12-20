@@ -15,22 +15,30 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
-#include <string.h>
-#include <stdio.h>
-#include <malloc.h>
-#include <sys/errno.h>
+#ifndef __VITA_KERNEL__
+#include <psp2/kernel/threadmgr.h>
+#include <psp2/kernel/processmgr.h>
 #include <psp2/sysmodule.h>
 #include <psp2/net/net.h>
 #include <psp2/net/netctl.h>
 #include <psp2/io/fcntl.h>
 #include <psp2/appmgr.h>
-#include <psp2/kernel/threadmgr.h>
-#include <psp2/kernel/processmgr.h>
+#endif
 #include <main.h>
 #include <psp2cmd.h>
+#ifdef MODULE
+#include "libmodule.h"
+#else
+#include <string.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <malloc.h>
+#include <sys/errno.h>
+#endif
 
 int s_launchAppByUriExit(char *titleid) {
+#ifndef __VITA_KERNEL__
+#ifndef MODULE //TODO:
     char uri[32];
     sprintf(uri, "psgm:play?titleid=%s", titleid);
     sceKernelDelayThread(100000);
@@ -38,13 +46,14 @@ int s_launchAppByUriExit(char *titleid) {
     sceKernelDelayThread(10000);
     sceAppMgrLaunchAppByUri(0xFFFFF, uri);
     sceKernelExitProcess(0);
+#endif
+#endif
     return 0;
 }
 
 void s_netInit() {
-
+#ifndef __VITA_KERNEL__
     sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
-
     int ret = sceNetShowNetstat();
     if (ret == SCE_NET_ERROR_ENOTINIT) {
         SceNetInitParam netInitParam;
@@ -53,8 +62,8 @@ void s_netInit() {
         netInitParam.flags = 0;
         sceNetInit(&netInitParam);
     }
-
     sceNetCtlInit();
+#endif
 }
 
 int s_bind_port(int sock, int port) {
@@ -64,6 +73,7 @@ int s_bind_port(int sock, int port) {
     // create server socket
     char sName[32];
     snprintf(sName, 32, "PSP2SHELLSOCK_%i", port);
+
     sock = sceNetSocket(sName,
                         SCE_NET_AF_INET,
                         SCE_NET_SOCK_STREAM, 0);
@@ -75,12 +85,15 @@ int s_bind_port(int sock, int port) {
 
     // bind
     if (sceNetBind(sock, (SceNetSockaddr *) &serverAddress, sizeof(serverAddress)) < 0) {
-        printf("bind failed\n");
+        printf("sceNetBind failed\n");
         return -1;
     }
 
     // listen
-    sceNetListen(sock, MAX_CLIENT);
+    if (sceNetListen(sock, MAX_CLIENT) < 0) {
+        printf("sceNetListen failed\n");
+        return -1;
+    }
 
     return sock;
 }
@@ -119,15 +132,15 @@ int s_recvall(int sock, void *buffer, int size, int flags) {
     return size;
 }
 
-ssize_t s_recv_file(int sock, SceUID fd, long size) {
+size_t s_recv_file(int sock, SceUID fd, long size) {
 
-    ssize_t len, received = 0, left = size;
+    size_t len, received = 0, left = (size_t) size;
     unsigned char *buffer = malloc(SIZE_BUFFER);
     int bufSize = SIZE_BUFFER;
 
     while (left > 0) {
         if (left < bufSize) bufSize = left;
-        len = s_recvall(sock, buffer, bufSize, 0);
+        len = (size_t) s_recvall(sock, buffer, bufSize, 0);
         sceIoWrite(fd, buffer, (SceSize) len);
         left -= len;
         received += len;

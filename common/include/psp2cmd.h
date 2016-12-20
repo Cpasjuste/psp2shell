@@ -3,8 +3,8 @@
 
 #define SIZE_CHAR 256
 #define SIZE_BUFFER (1024 * 1024)
-#define SIZE_PRINT (10 * 1024)
-#define SIZE_CMD (SIZE_PRINT * 2)
+#define SIZE_PRINT (2 * 1024)
+#define SIZE_CMD (2 * SIZE_PRINT)
 
 enum cmd_t {
     CMD_NONE=0,

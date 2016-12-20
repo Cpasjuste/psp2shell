@@ -24,9 +24,10 @@
 #define TRUE 1
 #define FALSE 0
 
-#define MAX_CLIENT 5
+#define MAX_CLIENT 2
 
 typedef struct {
+    SceUID thid;
     int msg_sock;
     int cmd_sock;
     s_FileList *fileList;

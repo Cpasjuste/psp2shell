@@ -19,11 +19,9 @@ target_link_libraries(${PROJECT_NAME}.elf
         SceDisplay_stub
         SceCtrl_stub
         SceSysmodule_stub
-        SceKernel_stub
         SceNet_stub
         SceNetCtl_stub
         SceAppMgr_stub)
-#SceFios2_stub
 
 add_custom_target(${PROJECT_NAME}.vpk
         DEPENDS ${PROJECT_NAME}.elf

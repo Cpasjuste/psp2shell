@@ -16,13 +16,20 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef __VITA_KERNEL__ // TODO
+#ifndef __VITA_KERNEL__
 #include <psp2/io/dirent.h>
 #include <psp2/io/fcntl.h>
 #include <psp2/io/devctl.h>
+#endif
+#ifndef MODULE
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <binn.h>
+#else
+#include "libmodule.h"
+#endif
+#include "binn.h"
 #include "file.h"
 #include "utility.h"
 
@@ -48,7 +55,9 @@ static char *mount_points[] = {
 #define N_MOUNT_POINTS (sizeof(mount_points) / sizeof(char **))
 
 BOOL s_isDir(char *path) {
-
+#ifdef __VITA_KERNEL__
+    return FALSE;
+#else
     SceIoStat stat;
     memset(&stat, 0, sizeof(SceIoStat));
     int res = sceIoGetstat(path, &stat);
@@ -56,15 +65,20 @@ BOOL s_isDir(char *path) {
         return FALSE;
 
     return SCE_S_ISDIR(stat.st_mode) == 1;
+#endif
 }
 
 BOOL s_exist(char *path) {
+#ifdef __VITA_KERNEL__
+    return FALSE;
+#else
     SceIoStat stat;
     memset(&stat, 0, sizeof(SceIoStat));
     int res = sceIoGetstat(path, &stat);
     if (res < 0)
         return FALSE;
     return TRUE;
+#endif
 }
 
 SceUID s_open(const char *file, int flags, SceMode mode) {
@@ -87,6 +101,9 @@ int s_getFileSize(char *pInputFileName) {
 }
 
 int s_getPathInfo(char *path, uint64_t *size, uint32_t *folders, uint32_t *files) {
+#ifdef __VITA_KERNEL__
+    return -1;
+#else
     SceUID dfd = sceIoDopen(path);
     if (dfd >= 0) {
         int res = 0;
@@ -143,9 +160,13 @@ int s_getPathInfo(char *path, uint64_t *size, uint32_t *folders, uint32_t *files
     }
 
     return 1;
+#endif
 }
 
 int s_removePath(char *path, s_FileProcessParam *param) {
+#ifdef __VITA_KERNEL__
+    return -1;
+#else
     SceUID dfd = sceIoDopen(path);
     if (dfd >= 0) {
         int res = 0;
@@ -232,6 +253,7 @@ int s_removePath(char *path, s_FileProcessParam *param) {
     }
 
     return 1;
+#endif
 }
 
 int s_copyFile(char *src_path, char *dst_path, s_FileProcessParam *param) {
@@ -297,6 +319,9 @@ int s_copyFile(char *src_path, char *dst_path, s_FileProcessParam *param) {
 }
 
 int s_copyPath(char *src_path, char *dst_path, s_FileProcessParam *param) {
+#ifdef __VITA_KERNEL__
+    return -1;
+#else
     // The source and destination paths are identical
     if (strcasecmp(src_path, dst_path) == 0) {
         return -1;
@@ -370,9 +395,13 @@ int s_copyPath(char *src_path, char *dst_path, s_FileProcessParam *param) {
     }
 
     return 1;
+#endif
 }
 
 int s_movePath(char *src_path, char *dst_path, int flags, s_FileProcessParam *param) {
+#ifdef __VITA_KERNEL__
+    return -1;
+#else
     // The source and destination paths are identical
     if (strcasecmp(src_path, dst_path) == 0) {
         return -1;
@@ -463,6 +492,7 @@ int s_movePath(char *src_path, char *dst_path, int flags, s_FileProcessParam *pa
     }
 
     return 1;
+#endif
 }
 
 typedef struct {
@@ -581,6 +611,9 @@ void s_fileListEmpty(s_FileList *list) {
 }
 
 int s_fileListGetMountPointEntries(s_FileList *list) {
+#ifdef __VITA_KERNEL__
+    return -1;
+#else
     int i;
 
     for (i = 0; i < N_MOUNT_POINTS; i++) {
@@ -615,9 +648,13 @@ int s_fileListGetMountPointEntries(s_FileList *list) {
     }
 
     return 0;
+#endif
 }
 
 int s_fileListGetDirectoryEntries(s_FileList *list, char *path) {
+#ifdef __VITA_KERNEL__
+    return -1;
+#else
     SceUID dfd = sceIoDopen(path);
     if (dfd < 0)
         return dfd;
@@ -665,6 +702,7 @@ int s_fileListGetDirectoryEntries(s_FileList *list, char *path) {
     sceIoDclose(dfd);
 
     return 0;
+#endif
 }
 
 int s_fileListGetEntries(s_FileList *list, char *path) {
@@ -673,3 +711,4 @@ int s_fileListGetEntries(s_FileList *list, char *path) {
     }
     return s_fileListGetDirectoryEntries(list, path);
 }
+#endif

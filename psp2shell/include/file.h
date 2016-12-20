@@ -19,6 +19,9 @@
 #ifndef __FILE_H__
 #define __FILE_H__
 
+#ifdef __VITA_KERNEL__
+#include <psp2kern/types.h>
+#endif
 #include <binn.h>
 
 #define MAX_PATH_LENGTH 1024

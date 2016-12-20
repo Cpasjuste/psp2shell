@@ -16,43 +16,46 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef __VITA_KERNEL__
 #include <psp2/kernel/modulemgr.h>
-#include <stdlib.h>
 #include "psp2shell.h"
 #include "module.h"
-
-#define printf psp2shell_print
+#ifdef MODULE
+#include "libmodule.h"
+#else
+#include <stdlib.h>
+#endif
 
 static void printModuleInfo(SceKernelModuleInfo *moduleInfo) {
     int i;
 
     psp2shell_print_color(COL_GREEN, "module_name: %s\n", moduleInfo->module_name);
-    printf("\tpath: %s\n", moduleInfo->path);
-    printf("\thandle: 0x%08X\n", moduleInfo->handle);
-    printf("\tflags: 0x%08X\n", moduleInfo->flags);
-    printf("\tmodule_start: 0x%08X\n", moduleInfo->module_start);
-    printf("\tmodule_stop: 0x%08X\n", moduleInfo->module_stop);
-    printf("\texidxTop: 0x%08X\n", moduleInfo->exidxTop);
-    printf("\texidxBtm: 0x%08X\n", moduleInfo->exidxBtm);
-    printf("\ttlsInit: 0x%08X\n", moduleInfo->tlsInit);
-    printf("\ttlsInitSize: 0x%08X\n", moduleInfo->tlsInitSize);
-    printf("\ttlsAreaSize: 0x%08X\n", moduleInfo->tlsAreaSize);
-    printf("\ttype: %i\n", moduleInfo->type);
-    printf("\tunk28: 0x%08X\n", moduleInfo->unk28);
-    printf("\tunk30: 0x%08X\n", moduleInfo->unk30);
-    printf("\tunk40: 0x%08X\n", moduleInfo->unk40);
-    printf("\tunk44: 0x%08X\n", moduleInfo->unk44);
+    psp2shell_print("\tpath: %s\n", moduleInfo->path);
+    psp2shell_print("\thandle: 0x%08X\n", moduleInfo->handle);
+    psp2shell_print("\tflags: 0x%08X\n", moduleInfo->flags);
+    psp2shell_print("\tmodule_start: 0x%08X\n", moduleInfo->module_start);
+    psp2shell_print("\tmodule_stop: 0x%08X\n", moduleInfo->module_stop);
+    psp2shell_print("\texidxTop: 0x%08X\n", moduleInfo->exidxTop);
+    psp2shell_print("\texidxBtm: 0x%08X\n", moduleInfo->exidxBtm);
+    psp2shell_print("\ttlsInit: 0x%08X\n", moduleInfo->tlsInit);
+    psp2shell_print("\ttlsInitSize: 0x%08X\n", moduleInfo->tlsInitSize);
+    psp2shell_print("\ttlsAreaSize: 0x%08X\n", moduleInfo->tlsAreaSize);
+    psp2shell_print("\ttype: %i\n", moduleInfo->type);
+    psp2shell_print("\tunk28: 0x%08X\n", moduleInfo->unk28);
+    psp2shell_print("\tunk30: 0x%08X\n", moduleInfo->unk30);
+    psp2shell_print("\tunk40: 0x%08X\n", moduleInfo->unk40);
+    psp2shell_print("\tunk44: 0x%08X\n", moduleInfo->unk44);
     for (i = 0; i < 4; ++i) {
         if (moduleInfo->segments[i].memsz <= 0) {
             continue;
         }
-        printf("\tsegment[%i].perms: 0x%08X\n", i, moduleInfo->segments[i].perms);
-        printf("\tsegment[%i].vaddr: 0x%08X\n", i, moduleInfo->segments[i].vaddr);
-        printf("\tsegment[%i].memsz: 0x%08X\n", i, moduleInfo->segments[i].memsz);
-        printf("\tsegment[%i].flags: 0x%08X\n", i, moduleInfo->segments[i].flags);
-        printf("\tsegment[%i].res: %i\n", i, moduleInfo->segments[i].res);
+        psp2shell_print("\tsegment[%i].perms: 0x%08X\n", i, moduleInfo->segments[i].perms);
+        psp2shell_print("\tsegment[%i].vaddr: 0x%08X\n", i, moduleInfo->segments[i].vaddr);
+        psp2shell_print("\tsegment[%i].memsz: 0x%08X\n", i, moduleInfo->segments[i].memsz);
+        psp2shell_print("\tsegment[%i].flags: 0x%08X\n", i, moduleInfo->segments[i].flags);
+        psp2shell_print("\tsegment[%i].res: %i\n", i, moduleInfo->segments[i].res);
     }
-    printf("\n\n");
+    psp2shell_print("\n\n");
 }
 
 int ps_moduleList() {
@@ -65,7 +68,7 @@ int ps_moduleList() {
         psp2shell_print_color(COL_RED, "modls failed: %i\n", res);
         return res;
     } else {
-        printf("\tmodules count: %i\n\n", count);
+        psp2shell_print("\tmodules count: %i\n\n", count);
 
         SceKernelModuleInfo *moduleInfo;
         moduleInfo = malloc(count * sizeof(SceKernelModuleInfo));
@@ -74,7 +77,7 @@ int ps_moduleList() {
             moduleInfo[i].size = sizeof(SceKernelModuleInfo);
             res = sceKernelGetModuleInfo(ids[i], &moduleInfo[i]);
             if (res != 0) {
-                printf("getting modinfo of %i failed\n", ids[i]);
+                psp2shell_print_color(COL_RED, "getting modinfo of %i failed\n", ids[i]);
                 continue;
             } else {
                 printModuleInfo(&moduleInfo[i]);
@@ -91,6 +94,8 @@ int ps_moduleLoadStart(char *modulePath) {
     int res = sceKernelLoadStartModule(modulePath, 0, NULL, 0, 0, 0);
     if (res != 0) {
         psp2shell_print_color(COL_RED, "modld failed: %i\n", res);
-        return res;
     }
+    return res;
 }
+
+#endif // __VITA_KERNEL__

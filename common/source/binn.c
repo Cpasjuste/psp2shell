@@ -1,7 +1,11 @@
+#include <stdint.h>
+#ifdef MODULE
+#include "libmodule.h"
+#else
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
+#endif
 #include "binn.h"
 
 #define UNUSED(x) (void)(x)
@@ -124,7 +128,9 @@ BINN_PRIVATE uint64 htonll(uint64 input) {
 void APIENTRY binn_set_alloc_functions(void* (*new_malloc)(size_t), void* (*new_realloc)(void*,size_t), void (*new_free)(void*)) {
 
   malloc_fn = new_malloc;
+#ifndef MODULE
   realloc_fn = new_realloc;
+#endif
   free_fn = new_free;
 
 }
@@ -134,7 +140,9 @@ void APIENTRY binn_set_alloc_functions(void* (*new_malloc)(size_t), void* (*new_
 BINN_PRIVATE void check_alloc_functions() {
 
   if (malloc_fn == 0) malloc_fn = &malloc;
+#ifndef MODULE
   if (realloc_fn == 0) realloc_fn = &realloc;
+#endif
   if (free_fn == 0) free_fn = &free;
 
 }
@@ -415,7 +423,11 @@ BINN_PRIVATE BOOL CheckAllocation(binn *item, int add_size) {
   if (item->used_size + add_size > item->alloc_size) {
     if (item->pre_allocated) return FALSE;
     alloc_size = CalcAllocation(item->used_size + add_size, item->alloc_size);
+#ifdef MODULE
+    ptr = _realloc(item->pbuf, item->used_size, alloc_size);
+#else
     ptr = realloc_fn(item->pbuf, alloc_size);
+#endif
     if (ptr == NULL) return FALSE;
     item->pbuf = ptr;
     item->alloc_size = alloc_size;
@@ -669,8 +681,8 @@ BINN_PRIVATE BOOL binn_map_set_raw(binn *item, int id, int type, void *pvalue, i
 
 BINN_PRIVATE void * compress_int(int *pstorage_type, int *ptype, void *psource) {
   int storage_type, storage_type2, type, type2=0;
-  int64  vint;
-  uint64 vuint;
+  int64  vint = 0;
+  uint64 vuint = 0;
   char *pvalue;
 #if __BYTE_ORDER == __BIG_ENDIAN
   int size1, size2;
@@ -1484,8 +1496,8 @@ BOOL APIENTRY binn_list_get_value(void* ptr, int pos, binn *value) {
 
 BINN_PRIVATE BOOL binn_read_pair(int expected_type, void *ptr, int pos, int *pid, char *pkey, binn *value) {
   int  type, count, size, header_size;
-  int  i, int32, id, counter=0;
-  unsigned char *p, *plimit, *key, len;
+  int  i, int32, id=0, counter=0;
+  unsigned char *p, *plimit, *key = NULL, len = 0;
 
   ptr = binn_ptr(ptr);
 
@@ -2067,7 +2079,7 @@ BINN_PRIVATE BOOL copy_raw_value(void *psource, void *pdest, int data_store) {
 /*************************************************************************************/
 
 BINN_PRIVATE BOOL copy_int_value(void *psource, void *pdest, int source_type, int dest_type) {
-  uint64 vuint64; int64 vint64;
+  uint64 vuint64 = 0; int64 vint64 = 0;
 
   switch (source_type) {
   case BINN_INT8:
@@ -3130,7 +3142,7 @@ BOOL APIENTRY binn_get_int32(binn *value, int *pint) {
 }
 
 /*************************************************************************************/
-
+#ifndef MODULE
 BOOL APIENTRY binn_get_int64(binn *value, int64 *pint) {
 
   if (value == NULL || pint == NULL) return FALSE;
@@ -3203,6 +3215,7 @@ BOOL APIENTRY binn_get_double(binn *value, double *pfloat) {
 
   return TRUE;
 }
+#endif
 
 /*************************************************************************************/
 

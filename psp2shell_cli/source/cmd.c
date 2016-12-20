@@ -15,6 +15,7 @@
 #include "binn.h"
 
 extern void close_terminal();
+extern void close_socks();
 
 bool response_ok(int sock) {
     char buf[2];
@@ -286,6 +287,7 @@ int cmd_help(int argc, char **argv) {
 
 int cmd_exit(int argc, char **argv) {
     close_terminal();
+    close_socks();
     exit(0);
 }
 
