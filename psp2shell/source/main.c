@@ -420,33 +420,33 @@ static void cmd_parse(int client_id, char *buffer) {
 
 #ifndef __VITA_KERNEL__ // TODO
             case CMD_CD:
-                cmd_cd(client_id, binn_object_str(buffer, "0"));
+                cmd_cd(&clients[client_id], binn_object_str(buffer, "0"));
                 break;
 
             case CMD_LS:
-                cmd_ls(client_id, binn_object_str(buffer, "0"));
+                cmd_ls(&clients[client_id], binn_object_str(buffer, "0"));
                 break;
 
             case CMD_PWD:
-                cmd_pwd(client_id);
+                cmd_pwd(&clients[client_id]);
                 break;
 
             case CMD_RM:
-                cmd_rm(client_id, binn_object_str(buffer, "0"));
+                cmd_rm(&clients[client_id], binn_object_str(buffer, "0"));
                 break;
 
             case CMD_RMDIR:
-                cmd_rmdir(client_id, binn_object_str(buffer, "0"));
+                cmd_rmdir(&clients[client_id], binn_object_str(buffer, "0"));
                 break;
 
             case CMD_MV:
-                cmd_mv(client_id,
+                cmd_mv(&clients[client_id],
                        binn_object_str(buffer, "0"),
                        binn_object_str(buffer, "1"));
                 break;
 
             case CMD_PUT:
-                cmd_put(client_id,
+                cmd_put(&clients[client_id],
                         (long) binn_object_int64(buffer, "0"),
                         binn_object_str(buffer, "1"),
                         binn_object_str(buffer, "2"));
@@ -501,13 +501,15 @@ int cmd_thread(SceSize args, void *argp) {
     int client_id = *((int *) argp);
     char *buf = malloc(SIZE_CMD);
 
+    // init client file listing memory
 #ifndef __VITA_KERNEL__
     printf("client->fileList malloc\n");
-    client->fileList = malloc(sizeof(s_FileList));
-    memset(client->fileList, 0, sizeof(s_FileList));
-    strcpy(client->fileList->path, HOME_PATH);
-    s_fileListGetEntries(client->fileList, HOME_PATH);
+    clients[client_id].fileList = malloc(sizeof(s_FileList));
+    memset(clients[client_id].fileList, 0, sizeof(s_FileList));
+    strcpy(clients[client_id].fileList->path, HOME_PATH);
+    s_fileListGetEntries(clients[client_id].fileList, HOME_PATH);
 #endif
+
     // Welcome!
     printf("welcome client %i\n", client_id);
     welcome();
@@ -531,24 +533,22 @@ int cmd_thread(SceSize args, void *argp) {
         }
     }
 
-    /*
     printf("closing connection\n");
-
-     free(buf);
+    free(buf);
 #ifndef __VITA_KERNEL__
-    s_fileListEmpty(client->fileList);
-    free(client->fileList);
+    s_fileListEmpty(clients[client_id].fileList);
+    free(clients[client_id].fileList);
 #endif
 
-    sceNetSocketClose(client->cmd_sock);
-    client->cmd_sock = -1;
-    sceNetSocketClose(client->msg_sock);
-    client->msg_sock = -1;
+    sceNetSocketClose(clients[client_id].cmd_sock);
+    clients[client_id].cmd_sock = -1;
+    sceNetSocketClose(clients[client_id].msg_sock);
+    clients[client_id].msg_sock = -1;
 
 #ifndef __VITA_KERNEL__ // TODO
     sceKernelExitDeleteThread(0);
 #endif
-    */
+
     return 0;
 }
 
@@ -674,22 +674,6 @@ int psp2shell_init(int port, int delay) {
     // load network modules
     s_netInit();
 
-    open_con();
-
-    int client_sock = s_get_sock(server_sock_msg);
-    if (client_sock <= 0) {
-        printf("err: client_sock: %i\n", client_sock);
-    }
-
-    char msg[16];
-    memset(msg, 0, 16);
-    sceNetSend(client_sock, "hello\n", 6, 0);
-    int ret = sceNetRecv(client_sock, msg, sizeof(msg), 0);
-    printf("sceNetRecv: %s | 0x%x (%i)\n", msg, ret, ret);
-    sceNetSocketClose(client_sock);
-
-    return SCE_KERNEL_START_NO_RESIDENT;
-    /*
     thid_wait = sceKernelCreateThread("thread_wait_client", thread_wait, 64, 0x4000, 0, 0x10000, 0);
     if (thid_wait >= 0) {
         sceKernelStartThread(thid_wait, 0, NULL);
@@ -701,7 +685,6 @@ int psp2shell_init(int port, int delay) {
 #else
     return SCE_KERNEL_START_SUCCESS;
 #endif
-     */
 }
 
 #ifdef MODULE

@@ -8,6 +8,7 @@ CTestTestfile.cmake
 *.idea
 build
 psp2shell_cli/build
+cmake-build-debug
 
 # psp2shell client
 *.o

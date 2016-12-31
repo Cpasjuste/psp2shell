@@ -10,10 +10,10 @@
 #include <libk/stdlib.h>
 #include <libk/stdio.h>
 #include <libk/stdarg.h>
-#include <psp2kern/net/net.h>
 
 #ifdef __VITA_KERNEL__
 #include <psp2kern/types.h>
+#include <psp2kern/net/net.h>
 #else
 #include <psp2/types.h>
 #endif
