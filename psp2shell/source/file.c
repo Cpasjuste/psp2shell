@@ -17,6 +17,7 @@
 */
 
 #ifndef __VITA_KERNEL__ // TODO
+
 #ifndef __VITA_KERNEL__
 #include <psp2/io/dirent.h>
 #include <psp2/io/fcntl.h>

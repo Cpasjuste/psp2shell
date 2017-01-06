@@ -539,7 +539,6 @@ int cmd_thread(SceSize args, void *argp) {
     s_fileListEmpty(clients[client_id].fileList);
     free(clients[client_id].fileList);
 #endif
-
     sceNetSocketClose(clients[client_id].cmd_sock);
     clients[client_id].cmd_sock = -1;
     sceNetSocketClose(clients[client_id].msg_sock);

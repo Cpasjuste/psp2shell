@@ -9,7 +9,7 @@ set(INC_FILES
 		include
 )
 
-set(CFLAGS ${CMAKE_C_FLAGS} -O3 -DVERSION=\"${BUILD_DATE}\")
+set(CFLAGS -O3 -DVERSION=\"${BUILD_DATE}\")
 
 add_executable(${PROJECT_NAME}.elf source/main.c)
 target_include_directories(${PROJECT_NAME}.elf PRIVATE ${INC_FILES})

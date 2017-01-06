@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.0)
 
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    if(DEFINED ENV{VITASDK})
+        set(CMAKE_TOOLCHAIN_FILE "$ENV{VITASDK}/share/vita.toolchain.cmake" CACHE PATH "toolchain file")
+    else()
+        message(FATAL_ERROR "Please define VITASDK to point to your SDK path!")
+    endif()
+endif()
+
 project(psp2shell)
+include("${VITASDK}/share/vita.cmake" REQUIRED)
+
 set(TITLE_ID "PSP2SHELL")
 
 set(INC_FILES
@@ -8,7 +18,7 @@ set(INC_FILES
         ../common/include
         include)
 
-set(CFLAGS ${CMAKE_C_FLAGS} -O3 -DVERSION=\"${BUILD_DATE}\")
+set(CFLAGS -O3 -DVERSION=\"${BUILD_DATE}\")
 
 add_executable(${PROJECT_NAME}.elf source/main.c)
 target_include_directories(${PROJECT_NAME}.elf PRIVATE ${INC_FILES})
@@ -23,9 +33,8 @@ target_link_libraries(${PROJECT_NAME}.elf
         SceNetCtl_stub
         SceAppMgr_stub)
 
-add_custom_target(${PROJECT_NAME}.vpk
-        DEPENDS ${PROJECT_NAME}.elf
-        COMMAND ${VITASDK}/bin/vita-elf-create ${PROJECT_NAME}.elf ${PROJECT_NAME}.velf
-        COMMAND ${VITASDK}/bin/vita-make-fself ${PROJECT_NAME}.velf eboot.bin
-        COMMAND ${VITASDK}/bin/vita-mksfoex -s TITLE_ID=${TITLE_ID} "${PROJECT_NAME}" param.sfo
-        COMMAND ${VITASDK}/bin/vita-pack-vpk -s param.sfo -b eboot.bin ${PROJECT_NAME}.vpk)
+vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME}.elf)
+vita_create_vpk(${PROJECT_NAME}.vpk ${TITLE_ID} ${PROJECT_NAME}.self
+        VERSION ${VITA_VERSION}
+        NAME ${PROJECT_NAME}
+        )

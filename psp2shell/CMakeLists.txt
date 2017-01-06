@@ -1,6 +1,15 @@
 cmake_minimum_required(VERSION 3.0)
 
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    if(DEFINED ENV{VITASDK})
+        set(CMAKE_TOOLCHAIN_FILE "$ENV{VITASDK}/share/vita.toolchain.cmake" CACHE PATH "toolchain file")
+    else()
+        message(FATAL_ERROR "Please define VITASDK to point to your SDK path!")
+    endif()
+endif()
+
 project(psp2shell)
+include("${VITASDK}/share/vita.cmake" REQUIRED)
 
 set(SRC_FILES
         source/main.c
@@ -17,7 +26,7 @@ set(INC_FILES
         ../common/include
         include)
 
-set(CFLAGS ${CMAKE_C_FLAGS} -Wall -O2 -std=c99
+set(CFLAGS -Wall -O2 -std=c99
         -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format
         -Wno-strict-aliasing -Wno-attributes -ffreestanding
         -DVERSION=\"${BUILD_DATE}\")
@@ -46,11 +55,7 @@ target_link_libraries(${PROJECT_NAME}_user.elf
         SceAppMgr_stub
         gcc
         -nostdlib)
-
-add_custom_target(${PROJECT_NAME}.suprx
-        DEPENDS ${PROJECT_NAME}_user.elf
-        COMMAND ${VITASDK}/bin/vita-elf-create -e ${CMAKE_SOURCE_DIR}/psp2shell/psp2shell.yml ${PROJECT_NAME}_user.elf ${PROJECT_NAME}_user.velf ${CMAKE_SOURCE_DIR}/common/taihen.json
-        COMMAND ${VITASDK}/bin/vita-make-fself ${PROJECT_NAME}_user.velf ${PROJECT_NAME}.suprx)
+vita_create_self(${PROJECT_NAME}.suprx ${PROJECT_NAME}_user.elf UNSAFE)
 
 # kernel module
 add_executable(${PROJECT_NAME}_kernel.elf ${SRC_FILES})
@@ -66,11 +71,7 @@ target_link_libraries(${PROJECT_NAME}_kernel.elf
         SceNetPsForDriver_stub
         gcc
         -nostdlib)
-
-add_custom_target(${PROJECT_NAME}.skprx
-        DEPENDS ${PROJECT_NAME}_kernel.elf
-        COMMAND ${VITASDK}/bin/vita-elf-create -e ${CMAKE_SOURCE_DIR}/psp2shell/psp2shell.yml ${PROJECT_NAME}_kernel.elf ${PROJECT_NAME}_kernel.velf ${CMAKE_SOURCE_DIR}/common/taihen.json
-        COMMAND ${VITASDK}/bin/vita-make-fself ${PROJECT_NAME}_kernel.velf ${PROJECT_NAME}.skprx)
+vita_create_self(${PROJECT_NAME}.skprx ${PROJECT_NAME}_kernel.elf UNSAFE)
 
 # library
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
