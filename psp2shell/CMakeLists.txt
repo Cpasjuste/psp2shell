@@ -29,7 +29,8 @@ set(INC_FILES
 set(CFLAGS -Wall -O2 -std=c99
         -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format
         -Wno-strict-aliasing -Wno-attributes -ffreestanding
-        -DVERSION=\"${BUILD_DATE}\")
+        -DVERSION=\"${BUILD_DATE}\"
+        )
 #-DDEBUG=1
 
 # library
@@ -60,7 +61,7 @@ vita_create_self(${PROJECT_NAME}.suprx ${PROJECT_NAME}_user.elf UNSAFE)
 # kernel module
 add_executable(${PROJECT_NAME}_kernel.elf ${SRC_FILES})
 target_include_directories(${PROJECT_NAME}_kernel.elf PRIVATE ${INC_FILES})
-target_compile_options(${PROJECT_NAME}_kernel.elf PRIVATE ${CFLAGS} -DMODULE -D__VITA_KERNEL__ -DDEBUG)
+target_compile_options(${PROJECT_NAME}_kernel.elf PRIVATE ${CFLAGS} -DMODULE -D__VITA_KERNEL__)
 target_link_libraries(${PROJECT_NAME}_kernel.elf
         k
         taihenForKernel_stub

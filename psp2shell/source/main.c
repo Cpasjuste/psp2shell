@@ -42,7 +42,7 @@
 #include <stdarg.h>
 #include <taihen.h>
 
-#ifdef DEBUG
+#ifdef DEBUG_SCREEN
 extern int psvDebugScreenPrintf(const char *format, ...);
 #define printf psvDebugScreenPrintf
 #else
