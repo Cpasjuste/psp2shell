@@ -12,7 +12,7 @@ BUILD (LINUX)
 =============
 
 - library :
-    - mkdir build && cd build && cmake -DCMAKE_TOOLCHAIN_FILE=../Vita.cmake ../
+    - mkdir build && cd build && cmake -DCMAKE_TOOLCHAIN_FILE="$VITASDK/share/vita.toolchain.cmake" ../
     - make psp2shell
 
 - client :
@@ -26,7 +26,7 @@ You must have your environment set up with msys2.
 
 Library:
 
- * `mkdir build && cd build && cmake -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=../Vita.cmake -DCMAKE_INSTALL_PREFIX=$VITASDK/arm-vita-eabi ..`
+ * `mkdir build && cd build && cmake -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake -DCMAKE_INSTALL_PREFIX=$VITASDK/arm-vita-eabi ..`
  * `make`
  * `make install` - to install to VITASDK
 
