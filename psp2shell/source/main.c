@@ -210,8 +210,9 @@ static int cmd_umount(char *device) {
     }
 
     int res = sceAppMgrUmount(device);
-    if (res != 0) {
-        psp2shell_print_color(COL_RED, "could not umount device: %s (err=%i)\n", device, res);
+    // 0x80800002: Not mounted
+    if (res != 0x80800002 && res != 0) {
+        psp2shell_print_color(COL_RED, "could not umount device: %s (err=%x)\n", device, res);
         return -1;
     }
 #endif
