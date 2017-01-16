@@ -1,6 +1,6 @@
 {
     "taihen": {
-        "nid": 596811913,
+        "nid": 910080232,
         "modules": {
             "taihen": {
                 "nid": 540875304,
@@ -15,26 +15,8 @@
                     "taiInjectDataForUser": 3458578876,
                     "taiInjectRelease": 564447398
                 },
-                "variables": {}
-            },
-            "taihenUnsafe": {
-                "nid": 2998301478,
-                "kernel": false,
-                "functions": {
-                    "taiLoadKernelModule": 3603990244,
-                    "taiStartKernelModuleForUser": 2850755214,
-                    "taiLoadStartKernelModuleForUser": 2559617235,
-                    "taiLoadStartModuleForPidForUser": 3897797579,
-                    "taiStopKernelModuleForUser": 481663624,
-                    "taiUnloadKernelModule": 1275696130,
-                    "taiStopUnloadKernelModuleForUser": 1277030648,
-                    "taiStopModuleForPidForUser": 748497445,
-                    "taiUnloadModuleForPid": 4106888249,
-                    "taiStopUnloadModuleForPidForUser": 1630160410,
-                    "taiMemcpyUserToKernel": 4138861294,
-                    "taiMemcpyKernelToUser": 2310758437
-                },
-                "variables": {}
+                "variables": {
+                }
             },
             "taihenForKernel": {
                 "nid": 3487819968,
@@ -51,7 +33,24 @@
                     "taiInjectReleaseForKernel": 1371225801,
                     "taiLoadPluginsForTitleForKernel": 2621581546
                 },
-                "variables": {}
+                "variables": {
+                }
+            },
+            "taihenUnsafe": {
+                "nid": 2998301478,
+                "kernel": false,
+                "functions": {
+                    "taiLoadKernelModule": 3603990244,
+                    "taiStartKernelModuleForUser": 2850755214,
+                    "taiLoadStartKernelModuleForUser": 2559617235,
+                    "taiLoadStartModuleForPidForUser": 3897797579,
+                    "taiStopUnloadKernelModuleForUser": 1277030648,
+                    "taiUnloadKernelModule": 1275696130,
+                    "taiMemcpyUserToKernel": 4138861294,
+                    "taiMemcpyKernelToUser": 2310758437
+                },
+                "variables": {
+                }
             }
         }
     }
