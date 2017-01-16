@@ -29,28 +29,33 @@ void mdebug(const char *fmt, ...);
 #include <psp2kern/kernel/modulemgr.h>
 #include <psp2kern/io/fcntl.h>
 #include <psp2/io/stat.h>
-#define sceKernelWaitThreadEnd sceKernelWaitThreadEndForKernel
-#define sceKernelDeleteThread sceKernelDeleteThreadForKernel
-#define sceKernelCreateThread sceKernelCreateThreadForKernel
-#define sceKernelStartThread sceKernelStartThreadForKernel
-#define sceKernelDelayThread sceKernelDelayThreadForKernel
-#define sceIoOpen sceIoOpenForDriver
-#define sceIoRead sceIoReadForDriver
-#define sceIoWrite sceIoWriteForDriver
-#define sceIoLseek sceIoLseekForDriver
-#define sceIoClose sceIoCloseForDriver
-#define sceIoRename sceIoRenameForDriver
-#define sceIoRemove sceIoRemoveForDriver
+#define sceKernelWaitThreadEnd ksceKernelWaitThreadEnd
+#define sceKernelDeleteThread ksceKernelDeleteThread
+#define sceKernelCreateThread ksceKernelCreateThread
+#define sceKernelStartThread ksceKernelStartThread
+#define sceKernelDelayThread ksceKernelDelayThread
+#define sceIoOpen ksceIoOpen
+#define sceIoRead ksceIoRead
+#define sceIoWrite ksceIoWrite
+#define sceIoLseek ksceIoLseek
+#define sceIoClose ksceIoClose
+#define sceIoRename ksceIoRename
+#define sceIoRemove ksceIoRemove
 
-#define sceNetSocketClose sceNetSocketCloseForDriver
-#define sceNetSocket sceNetSocketForDriver
-#define sceNetBind sceNetBindForDriver
-#define sceNetListen sceNetListenForDriver
-#define sceNetAccept sceNetAcceptForDriver
-#define sceNetSend sceNetSendForDriver
-#define sceNetRecv sceNetRecvForDriver
-#define sceNetHtons sceNetHtonsForDriver
-#define sceNetHtonl sceNetHtonlForDriver
+#define sceNetSocketClose ksceNetSocketClose
+#define sceNetSocket ksceNetSocket
+#define sceNetBind ksceNetBind
+#define sceNetListen ksceNetListen
+#define sceNetAccept ksceNetAccept
+#define sceNetSend ksceNetSend
+#define sceNetRecv ksceNetRecv
+#define sceNetHtons ksceNetHtons
+#define sceNetHtonl ksceNetHtonl
+
+#define sceKernelMemPoolAlloc ksceKernelMemPoolAlloc
+#define sceKernelMemPoolCreate ksceKernelMemPoolCreate
+#define sceKernelMemPoolFree ksceKernelMemPoolFree
+
 #endif
 
 void *malloc(size_t size);
