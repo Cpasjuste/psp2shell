@@ -56,8 +56,6 @@ extern int psvDebugScreenPrintf(const char *format, ...);
 
 #define PRINT_ERR(...) psp2shell_print_color(COL_RED, __VA_ARGS__)
 
-static void cmd_reset();
-
 #ifndef MODULE //TODO
 
 int sceAppMgrAppMount(char *tid);
@@ -70,6 +68,9 @@ static s_client clients[MAX_CLIENT];
 static int server_sock_msg;
 static int server_sock_cmd;
 
+#ifndef __VITA_KERNEL__
+static void cmd_reset();
+
 static void sendOK(int sock) {
     sceNetSend(sock, "1\n", 2, 0);
 }
@@ -77,6 +78,7 @@ static void sendOK(int sock) {
 static void sendNOK(int sock) {
     sceNetSend(sock, "0\n", 2, 0);
 }
+#endif
 
 void psp2shell_print_color(int color, const char *fmt, ...) {
 
@@ -189,7 +191,7 @@ static int cmd_mount(char *tid) {
 #ifndef MODULE
     int res = sceAppMgrAppMount(tid);
     if (res != 0) {
-        psp2shell_print_color(COL_RED, "could not mount title: %s (err=%i)\n", tid, res);
+        PRINT_ERR("could not mount title: %s (err=%i)\n", tid, res);
         return -1;
     }
 #endif
@@ -212,7 +214,7 @@ static int cmd_umount(char *device) {
     int res = sceAppMgrUmount(device);
     // 0x80800002: Not mounted
     if (res != 0x80800002 && res != 0) {
-        psp2shell_print_color(COL_RED, "could not umount device: %s (err=%x)\n", device, res);
+        PRINT_ERR("could not umount device: %s (err=%x)\n", device, res);
         return -1;
     }
 #endif
@@ -228,7 +230,8 @@ static void cmd_reload(int sock, long size) {
     sprintf(eboot_path, "ux0:/app/%s/eboot.bin", title_id);
 
     if (cmd_umount("app0:") != 0) {
-        psp2shell_print_color(COL_RED, "reload failed: can't umount app0\n");
+        sendNOK(sock);
+        PRINT_ERR("reload failed: can't umount app0\n");
         return;
     }
 
@@ -238,6 +241,7 @@ static void cmd_reload(int sock, long size) {
         PRINT_ERR("could not open file for writing: %s\n", eboot_path);
         return;
     }
+
     sendOK(sock);
 
     ssize_t received = s_recv_file(sock, fd, size);

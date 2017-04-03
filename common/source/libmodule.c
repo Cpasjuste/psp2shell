@@ -32,10 +32,14 @@ void mdebug(const char *fmt, ...) {
 void *malloc(size_t size) {
 #ifdef __VITA_KERNEL__
     if(g_pool < 0) {
-        SceKernelMemPoolCreateOpt opt;
-        memset(&opt, 0, sizeof(opt));
-        opt.size = sizeof(opt);
-        opt.uselock = 1;
+        SceKernelHeapCreateOpt opt;
+        opt.size = 0x1C;
+        opt.uselock = 0x100;
+        opt.field_8 = 0x10000;
+        opt.field_C = 0;
+        opt.field_10 = 0;
+        opt.field_14 = 0;
+        opt.field_18 = 0;
         g_pool = sceKernelMemPoolCreate("m", 1024*10, &opt);
         if (g_pool < 0) {
             return NULL;

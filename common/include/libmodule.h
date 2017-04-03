@@ -15,6 +15,7 @@
 #include <psp2kern/types.h>
 #include <psp2kern/net/net.h>
 #else
+#include <psp2/io/fcntl.h>
 #include <psp2/types.h>
 #endif
 
@@ -52,9 +53,9 @@ void mdebug(const char *fmt, ...);
 #define sceNetHtons ksceNetHtons
 #define sceNetHtonl ksceNetHtonl
 
-#define sceKernelMemPoolAlloc ksceKernelMemPoolAlloc
-#define sceKernelMemPoolCreate ksceKernelMemPoolCreate
-#define sceKernelMemPoolFree ksceKernelMemPoolFree
+#define sceKernelMemPoolAlloc ksceKernelAllocHeapMemory
+#define sceKernelMemPoolCreate ksceKernelCreateHeap
+#define sceKernelMemPoolFree ksceKernelFreeHeapMemory
 
 #endif
 
