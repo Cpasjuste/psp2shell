@@ -24,6 +24,7 @@
 #define THREADS_START 0x40010000
 #define THREADS_RANGE 0x100000
 
+/*
 static void printThreadInfoFull(SceKernelThreadInfo *threadInfo, int thid) {
 
     psp2shell_print_color(COL_GREEN, "thread_name: %s\n", threadInfo->name);
@@ -48,6 +49,7 @@ static void printThreadInfoFull(SceKernelThreadInfo *threadInfo, int thid) {
     psp2shell_print("\tfNotifyCallback: %08X\n", threadInfo->fNotifyCallback);
     psp2shell_print("\n\n");
 }
+*/
 
 static void printThreadInfo(SceKernelThreadInfo *threadInfo, int thid) {
 

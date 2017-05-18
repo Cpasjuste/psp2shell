@@ -26,12 +26,15 @@ target_compile_options(${PROJECT_NAME}.elf PRIVATE ${CFLAGS})
 
 target_link_libraries(${PROJECT_NAME}.elf
         psp2shell
+        taihen_stub
         SceDisplay_stub
         SceCtrl_stub
         SceSysmodule_stub
         SceNet_stub
         SceNetCtl_stub
-        SceAppMgr_stub)
+        SceAppMgr_stub
+        ScePower_stub
+        )
 
 vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME}.elf UNSAFE)
 vita_create_vpk(${PROJECT_NAME}.vpk ${TITLE_ID} ${PROJECT_NAME}.self

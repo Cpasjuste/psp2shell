@@ -27,6 +27,7 @@
 
 #endif
 
+/*
 static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
     int i;
 
@@ -58,6 +59,7 @@ static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
     }
     psp2shell_print("\n\n");
 }
+*/
 
 static void printModuleInfo(SceKernelModuleInfo *moduleInfo) {
 

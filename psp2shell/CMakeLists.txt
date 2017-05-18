@@ -65,20 +65,20 @@ vita_create_self(${PROJECT_NAME}.suprx ${PROJECT_NAME}_user.elf
         UNSAFE)
 
 # kernel module
-add_executable(${PROJECT_NAME}_kernel.elf ${SRC_FILES})
-target_include_directories(${PROJECT_NAME}_kernel.elf PRIVATE ${INC_FILES})
-target_compile_options(${PROJECT_NAME}_kernel.elf PRIVATE ${CFLAGS} -DMODULE -D__VITA_KERNEL__)
-target_link_libraries(${PROJECT_NAME}_kernel.elf
-        k
-        taihenForKernel_stub
-        SceSysclibForDriver_stub
-        SceSysmemForDriver_stub
-        SceThreadmgrForDriver_stub
-        SceIofilemgrForDriver_stub
-        SceNetPsForDriver_stub
-        gcc
-        -nostdlib)
-vita_create_self(${PROJECT_NAME}.skprx ${PROJECT_NAME}_kernel.elf UNSAFE)
+#add_executable(${PROJECT_NAME}_kernel.elf ${SRC_FILES})
+#target_include_directories(${PROJECT_NAME}_kernel.elf PRIVATE ${INC_FILES})
+#target_compile_options(${PROJECT_NAME}_kernel.elf PRIVATE ${CFLAGS} -DMODULE -D__VITA_KERNEL__)
+#target_link_libraries(${PROJECT_NAME}_kernel.elf
+#        k
+#        taihenForKernel_stub
+#        SceSysclibForDriver_stub
+#        SceSysmemForDriver_stub
+#        SceThreadmgrForDriver_stub
+#        SceIofilemgrForDriver_stub
+#        SceNetPsForDriver_stub
+#        gcc
+#        -nostdlib)
+#vita_create_self(${PROJECT_NAME}.skprx ${PROJECT_NAME}_kernel.elf UNSAFE)
 
 # library
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)

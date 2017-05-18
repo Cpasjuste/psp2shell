@@ -25,11 +25,20 @@ int sceClibPrintf_patched(const char *fmt, ...) {
 
 void hooks_init() {
 #ifndef __VITA_KERNEL__
+
     sceClibPrintf_uid = taiHookFunctionImport(&sceClibPrintf_hook,
                                               TAI_MAIN_MODULE,
                                               TAI_ANY_LIBRARY,
                                               0xFA26BC62,
                                               sceClibPrintf_patched);
+
+    /*
+    sceClibPrintf_uid = taiHookFunctionExport(&sceClibPrintf_hook,
+                                              "SceLibKernel",
+                                              0xF9C9C52F,
+                                              0xFA26BC62,
+                                              sceClibPrintf_patched);
+    */
 #endif
 }
 
