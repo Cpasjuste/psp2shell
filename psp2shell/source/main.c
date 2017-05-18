@@ -17,13 +17,13 @@
 */
 
 #include <psp2/appmgr.h>
-#include "binn.h"
 #include "main.h"
 #include "utility.h"
 #include "psp2cmd.h"
 #include "psp2shell.h"
 #include "module.h"
 #include "thread.h"
+#include "pool.h"
 
 #ifndef __VITA_KERNEL__
 
@@ -40,19 +40,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <taihen.h>
 
-#ifdef DEBUG_SCREEN
+#ifdef DEBUG
+
 extern int psvDebugScreenPrintf(const char *format, ...);
+
 #define printf psvDebugScreenPrintf
 #else
 #define printf(...)
 #endif
 #else
-#include <taihen.h>
+
 #include "libmodule.h"
 #include "hooks.h"
+
 #endif
+
 
 #define PRINT_ERR(...) psp2shell_print_color(COL_RED, __VA_ARGS__)
 
@@ -69,6 +72,7 @@ static int server_sock_msg;
 static int server_sock_cmd;
 
 #ifndef __VITA_KERNEL__
+
 static void cmd_reset();
 
 static void sendOK(int sock) {
@@ -78,6 +82,7 @@ static void sendOK(int sock) {
 static void sendNOK(int sock) {
     sceNetSend(sock, "0\n", 2, 0);
 }
+
 #endif
 
 void psp2shell_print_color(int color, const char *fmt, ...) {
@@ -89,23 +94,17 @@ void psp2shell_print_color(int color, const char *fmt, ...) {
     vsnprintf(msg, SIZE_PRINT, fmt, args);
     va_end(args);
 
-    binn *bin = binn_object();
-    binn_object_set_int32(bin, "c", color);
-    binn_object_set_str(bin, "0", msg);
+    sprintf(msg + strlen(msg), "%i", color);
 
     for (int i = 0; i < MAX_CLIENT; i++) {
         if (clients[i].msg_sock > 0) {
-            sceNetSend(clients[i].msg_sock, binn_ptr(bin), (size_t) binn_size(bin), 0);
+            sceNetSend(clients[i].msg_sock, msg, SIZE_PRINT, 0);
             int ret = sceNetRecv(clients[i].msg_sock, msg, 1, 0);
-            if(ret < 0) { // wait for answer
+            if (ret < 0) { // wait for answer
                 printf("psp2shell_print: sceNetRecv failed: %i\n", ret);
-            } else {
-                printf("psp2shell_print: sceNetRecv ok: %i\n", ret);
             }
         }
     }
-
-    binn_free(bin);
 }
 
 void psp2shell_print(const char *fmt, ...) {
@@ -137,28 +136,22 @@ static void welcome() {
 
 static char *toAbsolutePath(s_FileList *fileList, char *path) {
 
-    char *new_path;
-
     s_removeEndSlash(path);
     char *p = strrchr(path, '/');
     if (!p) { // relative path
-        new_path = malloc(strlen(fileList->path) + strlen(path) + 1);
-        sprintf(new_path, "%s/%s", fileList->path, path);
-    } else {
-        new_path = malloc(strlen(path));
-        strcpy(new_path, path);
+        sprintf(path, "%s/%s", fileList->path, path);
     }
 
-    return new_path;
+    return path;
 }
 
 static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
 
     char *new_path;
     if (strncmp(dst, "0", 1) == 0) {
-        new_path = toAbsolutePath(client->fileList, client->fileList->path);
+        new_path = toAbsolutePath(&client->fileList, client->fileList.path);
     } else {
-        new_path = toAbsolutePath(client->fileList, dst);
+        new_path = toAbsolutePath(&client->fileList, dst);
     }
 
     // if dest is a directory, append source filename
@@ -171,7 +164,6 @@ static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
     if (fd < 0) {
         sendNOK(client->cmd_sock);
         PRINT_ERR("could not open file for writing: %s\n", new_path);
-        free(new_path);
         return -1;
     }
     sendOK(client->cmd_sock);
@@ -180,8 +172,6 @@ static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
     s_close(fd);
 
     psp2shell_print_color(COL_GREEN, "sent `%s` to `%s` (%i)", name, new_path, received);
-
-    free(new_path);
 
     return received;
 }
@@ -270,41 +260,41 @@ static void cmd_cd(s_client *client, char *path) {
     strncpy(oldPath, path, 1024);
 
     s_removeEndSlash(path);
-    s_removeEndSlash(client->fileList->path);
+    s_removeEndSlash(client->fileList.path);
 
     if (strcmp(path, "..") == 0) {
-        char *p = strrchr(client->fileList->path, '/');
+        char *p = strrchr(client->fileList.path, '/');
         if (p) {
             p[1] = '\0';
         } else {
-            p = strrchr(client->fileList->path, ':');
+            p = strrchr(client->fileList.path, ':');
             if (p) {
-                if (strlen(client->fileList->path) - ((p + 1) - client->fileList->path) > 0) {
+                if (strlen(client->fileList.path) - ((p + 1) - client->fileList.path) > 0) {
                     p[1] = '\0';
                 } else {
-                    strcpy(client->fileList->path, HOME_PATH);
+                    strcpy(client->fileList.path, HOME_PATH);
                 }
             } else {
-                strcpy(client->fileList->path, HOME_PATH);
+                strcpy(client->fileList.path, HOME_PATH);
             }
         }
     } else if (s_exist(path)) {
-        strcpy(client->fileList->path, path);
+        strcpy(client->fileList.path, path);
     } else {
         char tmp[1024];
-        snprintf(tmp, 1024, "%s/%s", client->fileList->path, path);
+        snprintf(tmp, 1024, "%s/%s", client->fileList.path, path);
         if (s_exist(tmp)) {
-            strcpy(client->fileList->path, tmp);
+            strcpy(client->fileList.path, tmp);
         }
     }
 
     // update files
-    s_fileListEmpty(client->fileList);
-    int res = s_fileListGetEntries(client->fileList, client->fileList->path);
+    s_fileListEmpty(&client->fileList);
+    int res = s_fileListGetEntries(&client->fileList, client->fileList.path);
     if (res < 0) {
-        psp2shell_print_color(COL_RED, "could not cd to directory: %s\n", client->fileList->path);
-        strcpy(client->fileList->path, oldPath);
-        s_fileListGetEntries(client->fileList, oldPath);
+        psp2shell_print_color(COL_RED, "could not cd to directory: %s\n", client->fileList.path);
+        strcpy(client->fileList.path, oldPath);
+        s_fileListGetEntries(&client->fileList, oldPath);
     }
 }
 
@@ -313,7 +303,8 @@ static void cmd_ls(s_client *client, char *path) {
     int res, i;
     int noPath = strcmp(path, HOME_PATH) == 0;
 
-    s_FileList *fileList = noPath ? client->fileList : malloc(sizeof(s_FileList));
+    s_FileList fl;
+    s_FileList *fileList = noPath ? &client->fileList : &fl;
     if (!noPath) {
         memset(fileList, 0, sizeof(s_FileList));
         strcpy(fileList->path, path);
@@ -326,13 +317,13 @@ static void cmd_ls(s_client *client, char *path) {
         psp2shell_print_color(COL_RED, "directory does not exist: %s\n", path);
         if (!noPath) {
             s_fileListEmpty(fileList);
-            free(fileList);
+            //free(fileList);
         }
         return;
     }
 
     size_t msg_size = (size_t) (fileList->length * 256) + 512;
-    char *msg = malloc(msg_size);
+    char msg[msg_size];
     memset(msg, 0, msg_size);
     strcat(msg, "\n\n");
     for (i = 0; i < strlen(fileList->path); i++) {
@@ -353,21 +344,20 @@ static void cmd_ls(s_client *client, char *path) {
     }
     psp2shell_print("%s\n", msg);
 
-    free(msg);
     if (!noPath) {
         s_fileListEmpty(fileList);
-        free(fileList);
+        //free(fileList);
     }
 }
 
 static void cmd_pwd(s_client *client) {
-    psp2shell_print("\n\n%s\n\n", client->fileList->path);
+    psp2shell_print("\n\n%s\n\n", client->fileList.path);
 }
 
 static void cmd_mv(s_client *client, char *src, char *dst) {
 
-    char *new_src = toAbsolutePath(client->fileList, src);
-    char *new_dst = toAbsolutePath(client->fileList, dst);
+    char *new_src = toAbsolutePath(&client->fileList, src);
+    char *new_dst = toAbsolutePath(&client->fileList, dst);
 
     int res = s_movePath(new_src, new_dst, MOVE_INTEGRATE | MOVE_REPLACE, NULL);
     if (res != 1) {
@@ -375,14 +365,11 @@ static void cmd_mv(s_client *client, char *src, char *dst) {
     } else {
         psp2shell_print_color(COL_GREEN, "moved `%s` to `%s`\n", new_src, new_dst);
     }
-
-    free(new_src);
-    free(new_dst);
 }
 
 static void cmd_rm(s_client *client, char *file) {
 
-    char *new_path = toAbsolutePath(client->fileList, file);
+    char *new_path = toAbsolutePath(&client->fileList, file);
 
     if (!s_isDir(new_path)) {
         int res = s_removePath(new_path, NULL);
@@ -394,13 +381,11 @@ static void cmd_rm(s_client *client, char *file) {
     } else {
         psp2shell_print_color(COL_RED, "not a file: %s\n", new_path);
     }
-
-    free(new_path);
 }
 
 static void cmd_rmdir(s_client *client, char *path) {
 
-    char *new_path = toAbsolutePath(client->fileList, path);
+    char *new_path = toAbsolutePath(&client->fileList, path);
 
     int res = s_removePath(new_path, NULL);
     if (res != 1) {
@@ -408,28 +393,34 @@ static void cmd_rmdir(s_client *client, char *path) {
     } else {
         psp2shell_print_color(COL_GREEN, "directory deleted: %s\n", new_path);
     }
-
-    free(new_path);
 }
 
 #endif //__VITA_KERNEL__
 
 static void cmd_parse(int client_id, char *buffer) {
 
-    int type, count, size;
-    BOOL is_cmd = binn_is_valid(binn_ptr(buffer), &type, &count, &size);
+    printf("\n=CMD_PARSE=\n%s\n=CMD_PARSE=\n", buffer);
+
+    S_CMD cmd;
+    BOOL is_cmd = s_string_to_cmd(&cmd, buffer) == 0;
+
+    char tmp[SIZE_CMD];
+    if (s_cmd_to_string(tmp, &cmd) == 0)
+        printf("\n=S_CMD=\n%s\n=S_CMD=\n", tmp);
+    else
+        printf("\n=S_CMD=\nFAIL\n=S_CMD=\n");
 
     if (is_cmd) {
 
-        switch (binn_object_int32(buffer, "t")) {
+        switch (cmd.type) {
 
 #ifndef __VITA_KERNEL__ // TODO
             case CMD_CD:
-                cmd_cd(&clients[client_id], binn_object_str(buffer, "0"));
+                cmd_cd(&clients[client_id], cmd.arg0);
                 break;
 
             case CMD_LS:
-                cmd_ls(&clients[client_id], binn_object_str(buffer, "0"));
+                cmd_ls(&clients[client_id], cmd.arg0);
                 break;
 
             case CMD_PWD:
@@ -437,32 +428,27 @@ static void cmd_parse(int client_id, char *buffer) {
                 break;
 
             case CMD_RM:
-                cmd_rm(&clients[client_id], binn_object_str(buffer, "0"));
+                cmd_rm(&clients[client_id], cmd.arg0);
                 break;
 
             case CMD_RMDIR:
-                cmd_rmdir(&clients[client_id], binn_object_str(buffer, "0"));
+                cmd_rmdir(&clients[client_id], cmd.arg0);
                 break;
 
             case CMD_MV:
-                cmd_mv(&clients[client_id],
-                       binn_object_str(buffer, "0"),
-                       binn_object_str(buffer, "1"));
+                cmd_mv(&clients[client_id], cmd.arg0, cmd.arg1);
                 break;
 
             case CMD_PUT:
-                cmd_put(&clients[client_id],
-                        (long) binn_object_int64(buffer, "0"),
-                        binn_object_str(buffer, "1"),
-                        binn_object_str(buffer, "2"));
+                cmd_put(&clients[client_id], cmd.arg2, cmd.arg0, cmd.arg1);
                 break;
 
             case CMD_LAUNCH:
-                s_launchAppByUriExit(binn_object_str(buffer, "0"));
+                s_launchAppByUriExit(cmd.arg0);
                 break;
 
             case CMD_RELOAD:
-                cmd_reload(clients[client_id].cmd_sock, (long) binn_object_int64(buffer, "0"));
+                cmd_reload(clients[client_id].cmd_sock, cmd.arg2);
                 break;
 
             case CMD_RESET:
@@ -470,11 +456,11 @@ static void cmd_parse(int client_id, char *buffer) {
                 break;
 
             case CMD_MOUNT:
-                cmd_mount(binn_object_str(buffer, "0"));
+                cmd_mount(cmd.arg0);
                 break;
 
             case CMD_UMOUNT:
-                cmd_umount(binn_object_str(buffer, "0"));
+                cmd_umount(cmd.arg0);
                 break;
 
 //TODO:
@@ -484,7 +470,7 @@ static void cmd_parse(int client_id, char *buffer) {
                 break;
 
             case CMD_MODLD:
-                ps_moduleLoadStart(binn_object_str(buffer, 0));
+                ps_moduleLoadStart(cmd.arg0);
                 break;
 
             case CMD_THLS:
@@ -504,15 +490,14 @@ int cmd_thread(SceSize args, void *argp) {
     printf("cmd_thread\n");
 
     int client_id = *((int *) argp);
-    char *buf = malloc(SIZE_CMD);
+    char buf[SIZE_CMD];
 
     // init client file listing memory
 #ifndef __VITA_KERNEL__
     printf("client->fileList malloc\n");
-    clients[client_id].fileList = malloc(sizeof(s_FileList));
-    memset(clients[client_id].fileList, 0, sizeof(s_FileList));
-    strcpy(clients[client_id].fileList->path, HOME_PATH);
-    s_fileListGetEntries(clients[client_id].fileList, HOME_PATH);
+    memset(&clients[client_id].fileList, 0, sizeof(s_FileList));
+    strcpy(clients[client_id].fileList.path, HOME_PATH);
+    s_fileListGetEntries(&clients[client_id].fileList, HOME_PATH);
 #endif
 
     // Welcome!
@@ -526,23 +511,21 @@ int cmd_thread(SceSize args, void *argp) {
 
     while (!quit) {
 
-        //char buf[SIZE_CMD];
         memset(buf, 0, SIZE_CMD);
         int read_size = sceNetRecv(clients[client_id].cmd_sock, buf, SIZE_CMD, 0);
-        if (read_size < 0) {
-            printf("sceNetRecv failed: %x\n", read_size);
+        if (read_size <= 0) {
+            printf("sceNetRecv failed: %i\n", read_size);
             break;
-        } else if(read_size > 0) {
-            printf("sceNetRecv ok: %x\n", read_size);
+        } else if (read_size > 0) {
+            printf("sceNetRecv ok: %i\n", read_size);
             cmd_parse(client_id, buf);
         }
     }
 
     printf("closing connection\n");
-    free(buf);
+
 #ifndef __VITA_KERNEL__
-    s_fileListEmpty(clients[client_id].fileList);
-    free(clients[client_id].fileList);
+    s_fileListEmpty(&clients[client_id].fileList);
 #endif
     sceNetSocketClose(clients[client_id].cmd_sock);
     clients[client_id].cmd_sock = -1;
@@ -620,7 +603,7 @@ static int thread_wait(SceSize args, void *argp) {
 
         int client_sock = s_get_sock(server_sock_msg);
         if (client_sock < 0) {
-            if(quit) {
+            if (quit) {
                 break;
             }
             printf("network disconnected: reset (%x)\n", client_sock);
@@ -629,13 +612,13 @@ static int thread_wait(SceSize args, void *argp) {
 #endif
             open_con();
             continue;
-        } else if(client_sock == 0) {
+        } else if (client_sock == 0) {
             printf("client_sock == 0\n");
         }
 
         printf("new connexion on port %i (sock=%i)\n", listen_port, client_sock);
         // find a free client/socket
-        int client_id= -1;
+        int client_id = -1;
         for (int i = 0; i < MAX_CLIENT; i++) {
             if (clients[i].msg_sock < 0) {
                 client_id = i;
@@ -652,7 +635,7 @@ static int thread_wait(SceSize args, void *argp) {
 
         printf("Connection accepted\n");
         clients[client_id].msg_sock = client_sock;
-        clients[client_id].thid = sceKernelCreateThread("cmd_thread", cmd_thread, 64, 0x10000, 0, 0x10000, 0);
+        clients[client_id].thid = sceKernelCreateThread("cmd_thread", cmd_thread, 64, 0x5000, 0, 0x10000, 0);
         if (clients[client_id].thid >= 0)
             sceKernelStartThread(clients[client_id].thid, sizeof(int), (void *) &client_id);
     }
@@ -666,6 +649,7 @@ static int thread_wait(SceSize args, void *argp) {
 }
 
 #ifdef MODULE
+
 int module_start(SceSize argc, const void *args) {
     listen_port = 3333;
     hooks_init();
@@ -675,10 +659,13 @@ int psp2shell_init(int port, int delay) {
     listen_port = port;
 #endif
 
+    // init pool
+    pool_alloc();
+
     // load network modules
     s_netInit();
 
-    thid_wait = sceKernelCreateThread("thread_wait_client", thread_wait, 64, 0x4000, 0, 0x10000, 0);
+    thid_wait = sceKernelCreateThread("thread_wait_client", thread_wait, 64, 0x1000, 0, 0x10000, 0);
     if (thid_wait >= 0) {
         sceKernelStartThread(thid_wait, 0, NULL);
     }
@@ -692,14 +679,17 @@ int psp2shell_init(int port, int delay) {
 }
 
 #ifdef MODULE
+
 int module_stop(SceSize argc, const void *args) {
-    psp2shell_exit();
     hooks_exit();
+    psp2shell_exit();
     return SCE_KERNEL_STOP_SUCCESS;
 }
+
 #endif
 
 void psp2shell_exit() {
     quit = TRUE;
     close_con();
+    pool_free();
 }

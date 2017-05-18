@@ -1,39 +1,43 @@
 //
 // Created by cpasjuste on 09/11/16.
 //
-//#ifdef MODULE
-#include <taihen.h>
+#ifdef MODULE
 
-#include "utility.h"
+#include <taihen.h>
 #include "psp2shell.h"
 #include "libmodule.h"
 #include "hooks.h"
 
-static SceUID g_hooks[1];
+static SceUID sceClibPrintf_uid;
+static tai_hook_ref_t sceClibPrintf_hook;
 
-/*
-static tai_hook_ref_t g_sceClibPrintf_hook;
 int sceClibPrintf_patched(const char *fmt, ...) {
-    psp2shell_print("printf_patched\n");
-    return 0;
+
+    char msg[256];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(msg, 256, fmt, args);
+    va_end(args);
+    psp2shell_print_color(0, msg);
+
+    return TAI_CONTINUE(int, sceClibPrintf_hook, fmt, args);
 }
-*/
 
 void hooks_init() {
-    /*
-    g_hooks[0] = taiHookFunctionImport(&g_sceClibPrintf_hook,
-                                       "SceLibKernel",
-                                       0xCAE9ACE6,
-                                       0xFA26BC62,
-                                       sceClibPrintf_patched);
-    s_debug("hook = %i\n", g_hooks[0]);
-    */
+#ifndef __VITA_KERNEL__
+    sceClibPrintf_uid = taiHookFunctionImport(&sceClibPrintf_hook,
+                                              TAI_MAIN_MODULE,
+                                              TAI_ANY_LIBRARY,
+                                              0xFA26BC62,
+                                              sceClibPrintf_patched);
+#endif
 }
 
 void hooks_exit() {
-    /*
-    if (g_hooks[0] >= 0)
-        taiHookRelease(g_hooks[0], g_sceClibPrintf_hook);
-    */
+#ifndef __VITA_KERNEL__
+    if (sceClibPrintf_uid >= 0)
+        taiHookRelease(sceClibPrintf_uid, sceClibPrintf_hook);
+#endif
 }
-//#endif
+
+#endif

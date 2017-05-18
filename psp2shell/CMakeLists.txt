@@ -18,15 +18,18 @@ set(SRC_FILES
         source/module.c
         source/thread.c
         source/hooks.c
+        source/pool.c
+        ../common/source/psp2cmd.c
         ../common/source/libmodule.c
-        ../common/source/binn.c)
+        )
 
 set(INC_FILES
         ${VITASDK}/arm-vita-eabi/include
         ../common/include
-        include)
+        include
+        )
 
-set(CFLAGS -Wall -O2 -std=c99
+set(CFLAGS -Wall -O2 -std=c99 -DPSP2
         -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format
         -Wno-strict-aliasing -Wno-attributes -ffreestanding
         -DVERSION=\"${BUILD_DATE}\"
@@ -56,7 +59,9 @@ target_link_libraries(${PROJECT_NAME}_user.elf
         SceAppMgr_stub
         gcc
         -nostdlib)
-vita_create_self(${PROJECT_NAME}.suprx ${PROJECT_NAME}_user.elf UNSAFE)
+vita_create_self(${PROJECT_NAME}.suprx ${PROJECT_NAME}_user.elf
+        CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/psp2shell.yml
+        UNSAFE)
 
 # kernel module
 add_executable(${PROJECT_NAME}_kernel.elf ${SRC_FILES})

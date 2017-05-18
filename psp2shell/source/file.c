@@ -19,20 +19,26 @@
 #ifndef __VITA_KERNEL__ // TODO
 
 #ifndef __VITA_KERNEL__
+
 #include <psp2/io/dirent.h>
 #include <psp2/io/fcntl.h>
 #include <psp2/io/devctl.h>
+
 #endif
 #ifndef MODULE
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+
 #else
 #include "libmodule.h"
 #endif
-#include "binn.h"
+
+#include "psp2cmd.h"
 #include "file.h"
 #include "utility.h"
+#include "pool.h"
 
 #define SCE_ERROR_ERRNO_EEXIST 0x80010011
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -118,13 +124,14 @@ int s_getPathInfo(char *path, uint64_t *size, uint32_t *folders, uint32_t *files
                 if (strcmp(dir.d_name, ".") == 0 || strcmp(dir.d_name, "..") == 0)
                     continue;
 
-                char *new_path = malloc(strlen(path) + strlen(dir.d_name) + 2);
+                size_t len = strlen(path) + strlen(dir.d_name) + 2;
+                char new_path[len];
+                memset(new_path, 0, len);
                 snprintf(new_path, MAX_PATH_LENGTH, "%s%s%s", path, s_hasEndSlash(path) ? "" : "/", dir.d_name);
 
                 if (SCE_S_ISDIR(dir.d_stat.st_mode)) {
                     int ret = s_getPathInfo(new_path, size, folders, files);
                     if (ret <= 0) {
-                        free(new_path);
                         sceIoDclose(dfd);
                         return ret;
                     }
@@ -135,8 +142,6 @@ int s_getPathInfo(char *path, uint64_t *size, uint32_t *folders, uint32_t *files
                     if (files)
                         (*files)++;
                 }
-
-                free(new_path);
             }
         } while (res > 0);
 
@@ -181,20 +186,20 @@ int s_removePath(char *path, s_FileProcessParam *param) {
                 if (strcmp(dir.d_name, ".") == 0 || strcmp(dir.d_name, "..") == 0)
                     continue;
 
-                char *new_path = malloc(strlen(path) + strlen(dir.d_name) + 2);
+                size_t len = strlen(path) + strlen(dir.d_name) + 2;
+                char new_path[len];
+                memset(new_path, 0, len);
                 snprintf(new_path, MAX_PATH_LENGTH, "%s%s%s", path, s_hasEndSlash(path) ? "" : "/", dir.d_name);
 
                 if (SCE_S_ISDIR(dir.d_stat.st_mode)) {
                     int ret = s_removePath(new_path, param);
                     if (ret <= 0) {
-                        free(new_path);
                         sceIoDclose(dfd);
                         return ret;
                     }
                 } else {
                     int ret = sceIoRemove(new_path);
                     if (ret < 0) {
-                        free(new_path);
                         sceIoDclose(dfd);
                         return ret;
                     }
@@ -207,14 +212,11 @@ int s_removePath(char *path, s_FileProcessParam *param) {
                             param->SetProgress(param->value ? *param->value : 0, param->max);
 
                         if (param->cancelHandler && param->cancelHandler()) {
-                            free(new_path);
                             sceIoDclose(dfd);
                             return 0;
                         }
                     }
                 }
-
-                free(new_path);
             }
         } while (res > 0);
 
@@ -279,13 +281,17 @@ int s_copyFile(char *src_path, char *dst_path, s_FileProcessParam *param) {
         return fddst;
     }
 
-    void *buf = malloc(TRANSFER_SIZE);
+    //char buf[TRANSFER_SIZE];
+    unsigned char *buf = pool_data_malloc(SIZE_DATA);
+    if (buf == NULL) {
+        return -3;
+    }
+    memset(buf, 0, SIZE_DATA);
 
     int read;
-    while ((read = sceIoRead(fdsrc, buf, TRANSFER_SIZE)) > 0) {
+    while ((read = sceIoRead(fdsrc, buf, SIZE_DATA)) > 0) {
         int res = sceIoWrite(fddst, buf, (SceSize) read);
         if (res < 0) {
-            free(buf);
 
             sceIoClose(fddst);
             sceIoClose(fdsrc);
@@ -301,7 +307,6 @@ int s_copyFile(char *src_path, char *dst_path, s_FileProcessParam *param) {
                 param->SetProgress(param->value ? *param->value : 0, param->max);
 
             if (param->cancelHandler && param->cancelHandler()) {
-                free(buf);
 
                 sceIoClose(fddst);
                 sceIoClose(fdsrc);
@@ -310,8 +315,6 @@ int s_copyFile(char *src_path, char *dst_path, s_FileProcessParam *param) {
             }
         }
     }
-
-    free(buf);
 
     sceIoClose(fddst);
     sceIoClose(fdsrc);
@@ -366,22 +369,23 @@ int s_copyPath(char *src_path, char *dst_path, s_FileProcessParam *param) {
                 if (strcmp(dir.d_name, ".") == 0 || strcmp(dir.d_name, "..") == 0)
                     continue;
 
-                char *new_src_path = malloc(strlen(src_path) + strlen(dir.d_name) + 2);
-                snprintf(new_src_path, MAX_PATH_LENGTH, "%s%s%s", src_path, s_hasEndSlash(src_path) ? "" : "/",
-                         dir.d_name);
+                len = strlen(src_path) + strlen(dir.d_name) + 2;
+                char new_src_path[len];
+                memset(new_src_path, 0, len);
+                snprintf(new_src_path, MAX_PATH_LENGTH, "%s%s%s",
+                         src_path, s_hasEndSlash(src_path) ? "" : "/", dir.d_name);
 
-                char *new_dst_path = malloc(strlen(dst_path) + strlen(dir.d_name) + 2);
-                snprintf(new_dst_path, MAX_PATH_LENGTH, "%s%s%s", dst_path, s_hasEndSlash(dst_path) ? "" : "/",
-                         dir.d_name);
+                len = strlen(dst_path) + strlen(dir.d_name) + 2;
+                char new_dst_path[len];
+                memset(new_dst_path, 0, len);
+                snprintf(new_dst_path, MAX_PATH_LENGTH, "%s%s%s",
+                         dst_path, s_hasEndSlash(dst_path) ? "" : "/", dir.d_name);
 
                 if (SCE_S_ISDIR(dir.d_stat.st_mode)) {
                     ret = s_copyPath(new_src_path, new_dst_path, param);
                 } else {
                     ret = s_copyFile(new_src_path, new_dst_path, param);
                 }
-
-                free(new_dst_path);
-                free(new_src_path);
 
                 if (ret <= 0) {
                     sceIoDclose(dfd);
@@ -464,19 +468,20 @@ int s_movePath(char *src_path, char *dst_path, int flags, s_FileProcessParam *pa
                     if (strcmp(dir.d_name, ".") == 0 || strcmp(dir.d_name, "..") == 0)
                         continue;
 
-                    char *new_src_path = malloc(strlen(src_path) + strlen(dir.d_name) + 2);
+                    len = strlen(src_path) + strlen(dir.d_name) + 2;
+                    char new_src_path[len];
+                    memset(new_src_path, 0, len);
                     snprintf(new_src_path, MAX_PATH_LENGTH, "%s%s%s", src_path, s_hasEndSlash(src_path) ? "" : "/",
                              dir.d_name);
 
-                    char *new_dst_path = malloc(strlen(dst_path) + strlen(dir.d_name) + 2);
+                    len = strlen(dst_path) + strlen(dir.d_name) + 2;
+                    char new_dst_path[len];
+                    memset(new_dst_path, 0, len);
                     snprintf(new_dst_path, MAX_PATH_LENGTH, "%s%s%s", dst_path, s_hasEndSlash(dst_path) ? "" : "/",
                              dir.d_name);
 
                     // Recursive move
                     int ret = s_movePath(new_src_path, new_dst_path, flags, param);
-
-                    free(new_dst_path);
-                    free(new_src_path);
 
                     if (ret <= 0) {
                         sceIoDclose(dfd);
@@ -712,4 +717,5 @@ int s_fileListGetEntries(s_FileList *list, char *path) {
     }
     return s_fileListGetDirectoryEntries(list, path);
 }
+
 #endif

@@ -12,7 +12,6 @@
 #include "utility.h"
 #include "psp2cmd.h"
 #include "cmd.h"
-#include "binn.h"
 
 extern void close_terminal();
 extern void close_socks();
@@ -38,8 +37,26 @@ ssize_t send_file(FILE *file, long size) {
         printf("\t[%lu/%lu]\n", progress, size);
         memset(buf, 0, SIZE_BUFFER);
     }
+
     free(buf);
     return progress;
+}
+
+char CMD_MSG[SIZE_CMD];
+char *build_msg(int type, char *arg0,
+               char *arg1, long arg2) {
+
+    S_CMD cmd;
+    memset(&cmd, 0, sizeof(S_CMD));
+
+    cmd.type = type;
+    strncpy(cmd.arg0, arg0, SIZE_PRINT);
+    strncpy(cmd.arg1, arg1, SIZE_PRINT);
+    cmd.arg2 = arg2;
+
+    s_cmd_to_string(CMD_MSG, &cmd);
+
+    return CMD_MSG;
 }
 
 int cmd_cd(int argc, char **argv) {
@@ -49,32 +66,24 @@ int cmd_cd(int argc, char **argv) {
         return -1;
     }
 
-    binn *obj = binn_object();
-    binn_object_set_int32(obj, "t", CMD_CD);
-    binn_object_set_str(obj, "0", argv[1]);
-    send(data_sock, binn_ptr(obj), (size_t) binn_size(obj), 0);
-    binn_free(obj);
+    char *cmd = build_msg(CMD_CD, argv[1], "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
 
     return 0;
 }
 
 int cmd_ls(int argc, char **argv) {
 
-    binn *obj = binn_object();
-    binn_object_set_int32(obj, "t", CMD_LS);
-    binn_object_set_str(obj, "0", argc < 2 ? "root" : argv[1]);
-    send(data_sock, binn_ptr(obj), (size_t) binn_size(obj), 0);
-    binn_free(obj);
+    char *cmd = build_msg(CMD_LS, argc < 2 ? "root" : argv[1], "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
 
     return 0;
 }
 
 int cmd_pwd(int argc, char **argv) {
 
-    binn *obj = binn_object();
-    binn_object_set_int32(obj, "t", CMD_PWD);
-    send(data_sock, binn_ptr(obj), (size_t) binn_size(obj), 0);
-    binn_free(obj);
+    char *cmd = build_msg(CMD_PWD, "0", "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
 
     return 0;
 }
@@ -90,11 +99,8 @@ int cmd_rm(int argc, char **argv) {
     char c;
     scanf("%c", &c);
     if (c == 'y') {
-        binn *obj = binn_object();
-        binn_object_set_int32(obj, "t", CMD_RM);
-        binn_object_set_str(obj, "0", argv[1]);
-        send(data_sock, binn_ptr(obj), (size_t) binn_size(obj), 0);
-        binn_free(obj);
+        char *cmd = build_msg(CMD_RM, argv[1], "0", 0);
+        send(data_sock, cmd, strlen(cmd), 0);
     }
     return 0;
 }
@@ -110,11 +116,8 @@ int cmd_rmdir(int argc, char **argv) {
     char c;
     scanf("%c", &c);
     if (c == 'y') {
-        binn *obj = binn_object();
-        binn_object_set_int32(obj, "t", CMD_RMDIR);
-        binn_object_set_str(obj, "0", argv[1]);
-        send(data_sock, binn_ptr(obj), (size_t) binn_size(obj), 0);
-        binn_free(obj);
+        char *cmd = build_msg(CMD_RMDIR, argv[1], "0", 0);
+        send(data_sock, cmd, strlen(cmd), 0);
     }
 
     return 0;
@@ -127,12 +130,8 @@ int cmd_mv(int argc, char **argv) {
         return -1;
     }
 
-    binn *obj = binn_object();
-    binn_object_set_int32(obj, "t", CMD_MV);
-    binn_object_set_str(obj, "0", argv[1]);
-    binn_object_set_str(obj, "1", argv[2]);
-    send(data_sock, binn_ptr(obj), (size_t) binn_size(obj), 0);
-    binn_free(obj);
+    char *cmd = build_msg(CMD_MV, argv[1],  argv[2], 0);
+    send(data_sock, cmd, strlen(cmd), 0);
 
     return 0;
 }
@@ -148,13 +147,8 @@ int cmd_put(int argc, char **argv) {
     long size = ftell(fp);
     fseek(fp, 0L, SEEK_SET);
 
-    binn *obj = binn_object();
-    binn_object_set_int32(obj, "t", CMD_PUT);
-    binn_object_set_int64(obj, "0", size);
-    binn_object_set_str(obj, "1", basename(argv[1]));
-    binn_object_set_str(obj, "2", argc < 3 ? "0" : argv[2]);
-    send(data_sock, binn_ptr(obj), (size_t) binn_size(obj), 0);
-    binn_free(obj);
+    char *cmd = build_msg(CMD_PUT, basename(argv[1]), argc < 3 ? "0" : argv[2], size);
+    send(data_sock, cmd, strlen(cmd), 0);
 
     if (response_ok(data_sock)) {
         send_file(fp, size);
@@ -173,21 +167,16 @@ int cmd_launch(int argc, char **argv) {
         return -1;
     }
 
-    binn *obj = binn_object();
-    binn_object_set_int32(obj, "t", CMD_LAUNCH);
-    binn_object_set_str(obj, "0", argv[1]);
-    send(data_sock, binn_ptr(obj), (size_t) binn_size(obj), 0);
-    binn_free(obj);
+    char *cmd = build_msg(CMD_LAUNCH, argv[1],  "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
 
     return 0;
 }
 
 int cmd_reset(int argc, char **argv) {
 
-    binn *obj = binn_object();
-    binn_object_set_int32(obj, "t", CMD_RESET);
-    send(data_sock, binn_ptr(obj), (size_t) binn_size(obj), 0);
-    binn_free(obj);
+    char *cmd = build_msg(CMD_RESET, "0",  "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
 
     return 0;
 }
@@ -203,11 +192,8 @@ int cmd_reload(int argc, char **argv) {
     long size = ftell(fp);
     fseek(fp, 0L, SEEK_SET);
 
-    binn *obj = binn_object();
-    binn_object_set_int32(obj, "t", CMD_RELOAD);
-    binn_object_set_int64(obj, "0", size);
-    send(data_sock, binn_ptr(obj), (size_t) binn_size(obj), 0);
-    binn_free(obj);
+    char *cmd = build_msg(CMD_RELOAD, "0", "0", size);
+    send(data_sock, cmd, strlen(cmd), 0);
 
     if (response_ok(data_sock)) {
         send_file(fp, size);
@@ -226,11 +212,8 @@ int cmd_mount(int argc, char **argv) {
         return -1;
     }
 
-    binn *obj = binn_object();
-    binn_object_set_int32(obj, "t", CMD_MOUNT);
-    binn_object_set_str(obj, "0", argv[1]);
-    send(data_sock, binn_ptr(obj), (size_t) binn_size(obj), 0);
-    binn_free(obj);
+    char *cmd = build_msg(CMD_MOUNT, argv[1],  "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
 
     return 0;
 }
@@ -242,31 +225,24 @@ int cmd_umount(int argc, char **argv) {
         return -1;
     }
 
-    binn *obj = binn_object();
-    binn_object_set_int32(obj, "t", CMD_UMOUNT);
-    binn_object_set_str(obj, "0", argv[1]);
-    send(data_sock, binn_ptr(obj), (size_t) binn_size(obj), 0);
-    binn_free(obj);
+    char *cmd = build_msg(CMD_UMOUNT, argv[1],  "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
 
     return 0;
 }
 
 int cmd_modls(int argc, char **argv) {
 
-    binn *obj = binn_object();
-    binn_object_set_int32(obj, "t", CMD_MODLS);
-    send(data_sock, binn_ptr(obj), (size_t) binn_size(obj), 0);
-    binn_free(obj);
+    char *cmd = build_msg(CMD_MODLS, "0",  "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
 
     return 0;
 }
 
 int cmd_thls(int argc, char **argv) {
 
-    binn *obj = binn_object();
-    binn_object_set_int32(obj, "t", CMD_THLS);
-    send(data_sock, binn_ptr(obj), (size_t) binn_size(obj), 0);
-    binn_free(obj);
+    char *cmd = build_msg(CMD_THLS, "0",  "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
 
     return 0;
 }
@@ -297,7 +273,7 @@ COMMAND cmd[] = {
         {"pwd",     "",                           "Get working directory.",                        cmd_pwd},
         {"rm",      "<remote_file>",              "Remove a file",                                 cmd_rm},
         {"rmdir",   "<local_path> <remote_path>", "Remove a directory",                            cmd_rmdir},
-        {"mv",      "<local_path> <remote_path>", "Move a file/directory",                         cmd_mv},
+        {"mv",      "<remote_src> <remote_dst>",  "Move a file/directory",                         cmd_mv},
         {"put",     "<local_path> <remote_path>", "Upload a file.",                                cmd_put},
         {"reset",   "",                           "Restart the application.",                      cmd_reset},
         {"reload",  "<eboot.bin>",                "Send (eboot.bin) and restart the application.", cmd_reload},

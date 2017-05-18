@@ -23,7 +23,8 @@
 #ifdef MODULE
 #include "libmodule.h"
 #else
-#include <stdlib.h>
+#include <string.h>
+
 #endif
 
 static void printModuleInfo(SceKernelModuleInfo *moduleInfo) {
@@ -70,21 +71,19 @@ int ps_moduleList() {
     } else {
         psp2shell_print("\tmodules count: %i\n\n", count);
 
-        SceKernelModuleInfo *moduleInfo;
-        moduleInfo = malloc(count * sizeof(SceKernelModuleInfo));
+        SceKernelModuleInfo moduleInfo;
+        memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
 
         for (i = 0; i < count; i++) {
-            moduleInfo[i].size = sizeof(SceKernelModuleInfo);
-            res = sceKernelGetModuleInfo(ids[i], &moduleInfo[i]);
+            moduleInfo.size = sizeof(SceKernelModuleInfo);
+            res = sceKernelGetModuleInfo(ids[i], &moduleInfo);
             if (res != 0) {
                 psp2shell_print_color(COL_RED, "getting modinfo of %i failed\n", ids[i]);
                 continue;
             } else {
-                printModuleInfo(&moduleInfo[i]);
+                printModuleInfo(&moduleInfo);
             }
         }
-
-        free(moduleInfo);
     }
     return 0;
 }

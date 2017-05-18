@@ -1,13 +1,21 @@
 #ifndef CMD_H
 #define CMD_H
 
-#define SIZE_CHAR 256
-#define SIZE_BUFFER (1024 * 1024)
-#define SIZE_PRINT (2 * 1024)
-#define SIZE_CMD (2 * SIZE_PRINT)
+#define SIZE_CHAR   (256)
+#define SIZE_DATA   (16 * 1024)
+#define SIZE_PRINT  (1024)
+
+typedef struct S_CMD {
+    int type;
+    char arg0[SIZE_PRINT];
+    char arg1[SIZE_PRINT];
+    long arg2;
+} S_CMD;
+
+#define SIZE_CMD    ((SIZE_PRINT * 2) + 64)
 
 enum cmd_t {
-    CMD_NONE=0,
+    CMD_NONE = 0,
     CMD_LS,
     CMD_CD,
     CMD_RM,
@@ -37,5 +45,9 @@ enum cmd_t {
     CMD_EXIT,
     CMD_HELP
 };
+
+int s_cmd_to_string(char *buffer, S_CMD *c);
+
+int s_string_to_cmd(S_CMD *c, const char *buffer);
 
 #endif

@@ -9,7 +9,6 @@
 #include <readline/history.h>
 #include <pthread.h>
 #include <signal.h>
-#include <binn.h>
 #include <stdbool.h>
 #include <fcntl.h>
 
@@ -173,10 +172,10 @@ bool psp2_alive() {
 
     struct sockaddr_in sin;
     sin.sin_family = AF_INET;
-    sin.sin_port   = htons(65432);
+    sin.sin_port = htons(65432);
     inet_pton(AF_INET, _argv[1], &sin.sin_addr);
     if (connect(sockfd, (struct sockaddr *) &sin, sizeof(sin)) == -1) {
-        if(errno != 111) { // connection refused
+        if (errno != 111) { // connection refused
             printf("Error connecting to %s: %d (%s)\n", _argv[1], errno, strerror(errno));
             close(msg_sock);
             alive = false;
@@ -189,7 +188,7 @@ bool psp2_alive() {
 
 void *msg_thread(void *unused) {
 
-    char *msg = malloc(SIZE_CMD);
+    char *msg = malloc(SIZE_PRINT);
 
     set_timeout(msg_sock, 1);
 
@@ -197,8 +196,8 @@ void *msg_thread(void *unused) {
     while (true) {
 
         // handle vita network/socket disconnect/timeout
-        memset(msg, 0, SIZE_CMD);
-        ssize_t recv_size = recv(msg_sock, msg, SIZE_CMD, 0);
+        memset(msg, 0, SIZE_PRINT);
+        ssize_t recv_size = recv(msg_sock, msg, SIZE_PRINT, 0);
         if (recv_size <= 0) {
             if (((errno != EAGAIN) && (errno != EWOULDBLOCK)) || !psp2_alive()) {
                 break;
@@ -207,27 +206,27 @@ void *msg_thread(void *unused) {
             }
         }
 
-        int type, count, size;
-        BOOL is_msg = binn_is_valid(binn_ptr(msg), &type, &count, &size);
-        if (is_msg) {
-            char *str = binn_object_str(msg, "0");
-            switch (binn_object_int32(msg, "c")) {
-                case COL_RED:
-                    printf(RED "%s" RES, str);
-                    break;
-                case COL_YELLOW:
-                    printf(YEL "%s" RES, str);
-                    break;
-                case COL_GREEN:
-                    printf(GRN "%s" RES, str);
-                    break;
-                default:
-                    printf("%s", str);
-                    break;
-            }
-            fflush(stdout);
+        int color = msg[strlen(msg)-1] - 48;
+        char str[SIZE_PRINT];
+        memset(str, 0, SIZE_PRINT);
+        strncpy(str, msg, strlen(msg)-1);
+
+        switch (color) {
+            case COL_RED:
+                printf(RED "%s" RES, str);
+                break;
+            case COL_YELLOW:
+                printf(YEL "%s" RES, str);
+                break;
+            case COL_GREEN:
+                printf(GRN "%s" RES, str);
+                break;
+            default:
+                printf("%s", str);
+                break;
         }
 
+        fflush(stdout);
         rl_refresh_line(0, 0);
 
         // send "ok/continue"

@@ -16,6 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef __VITA_KERNEL__
+
 #include <psp2/kernel/threadmgr.h>
 #include <psp2/kernel/processmgr.h>
 #include <psp2/sysmodule.h>
@@ -23,18 +24,23 @@
 #include <psp2/net/netctl.h>
 #include <psp2/io/fcntl.h>
 #include <psp2/appmgr.h>
+
 #endif
-#include <main.h>
-#include <psp2cmd.h>
+
 #ifdef MODULE
 #include "libmodule.h"
 #else
+
 #include <string.h>
 #include <stdio.h>
-#include <stdarg.h>
 #include <malloc.h>
 #include <sys/errno.h>
+
 #endif
+
+#include "main.h"
+#include "psp2cmd.h"
+#include "pool.h"
 
 int s_launchAppByUriExit(char *titleid) {
 #ifndef __VITA_KERNEL__
@@ -135,8 +141,14 @@ int s_recvall(int sock, void *buffer, int size, int flags) {
 size_t s_recv_file(int sock, SceUID fd, long size) {
 
     size_t len, received = 0, left = (size_t) size;
-    unsigned char *buffer = malloc(SIZE_BUFFER);
-    int bufSize = SIZE_BUFFER;
+    int bufSize = SIZE_DATA;
+
+    unsigned char *buffer = pool_data_malloc(SIZE_DATA);
+    if (!buffer) {
+        return 0;
+    }
+
+    memset(buffer, 0, SIZE_DATA);
 
     while (left > 0) {
         if (left < bufSize) bufSize = left;
@@ -145,7 +157,6 @@ size_t s_recv_file(int sock, SceUID fd, long size) {
         left -= len;
         received += len;
     }
-    free(buffer);
 
     return received;
 }

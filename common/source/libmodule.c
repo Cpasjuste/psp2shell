@@ -3,13 +3,16 @@
 //
 
 #ifdef MODULE
+
 #include "libmodule.h"
 
 #ifdef __VITA_KERNEL__
 #include <psp2kern/kernel/sysmem.h>
 static SceUID g_pool = -1;
 #else
+
 #include <psp2/kernel/sysmem.h>
+
 #endif
 
 #ifdef DEBUG
@@ -81,7 +84,7 @@ void free(void *p) {
 #ifdef __VITA_KERNEL__
     sceKernelMemPoolFree(g_pool, (char *)p - sizeof(size_t));
 #else
-    SceUID uid = sceKernelFindMemBlockByAddr(p, 0);
+    SceUID uid = sceKernelFindMemBlockByAddr(p, 1);
     if (uid >= 0) {
         sceKernelFreeMemBlock(uid);
     }

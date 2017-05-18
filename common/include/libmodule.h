@@ -14,7 +14,9 @@
 #ifdef __VITA_KERNEL__
 #include <psp2kern/types.h>
 #include <psp2kern/net/net.h>
+#include <psp2kern/kernel/sysmem.h>
 #else
+#include <psp2/kernel/sysmem.h>
 #include <psp2/io/fcntl.h>
 #include <psp2/types.h>
 #endif

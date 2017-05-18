@@ -22,7 +22,10 @@
 #ifdef __VITA_KERNEL__
 #include <psp2kern/types.h>
 #endif
-#include <binn.h>
+
+#define BOOL int
+#define TRUE 1
+#define FALSE 0
 
 #define MAX_PATH_LENGTH 1024
 #define MAX_NAME_LENGTH 256
