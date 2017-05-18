@@ -25,17 +25,17 @@ bool response_ok(int sock) {
 ssize_t send_file(FILE *file, long size) {
 
     ssize_t len, progress = 0;
-    char *buf = malloc(SIZE_BUFFER);
-    memset(buf, 0, SIZE_BUFFER);
+    char *buf = malloc(SIZE_DATA);
+    memset(buf, 0, SIZE_DATA);
 
-    while ((len = fread(buf, sizeof(char), SIZE_BUFFER, file)) > 0) {
+    while ((len = fread(buf, sizeof(char), SIZE_DATA, file)) > 0) {
         if (send(data_sock, buf, (size_t) len, 0) < 0) {
             printf("ERROR: Failed to send file. (errno = %d)\n", errno);
             break;
         }
         progress += len;
         printf("\t[%lu/%lu]\n", progress, size);
-        memset(buf, 0, SIZE_BUFFER);
+        memset(buf, 0, SIZE_DATA);
     }
 
     free(buf);
@@ -205,6 +205,14 @@ int cmd_reload(int argc, char **argv) {
     return 0;
 }
 
+int cmd_title(int argc, char **argv) {
+
+    char *cmd = build_msg(CMD_TITLE, "0", "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
+
+    return 0;
+}
+
 int cmd_mount(int argc, char **argv) {
 
     if (argc < 2) {
@@ -280,6 +288,7 @@ COMMAND cmd[] = {
         {"launch",  "<titleid>",                  "Launch title",                                  cmd_launch},
 //        {"mount",   "<titleid>",                  "Mount titleid",                                 cmd_mount},
         {"umount",  "<dev:>",                     "Umount device.",                                cmd_umount},
+        {"title",   "",                           "Get running title",                             cmd_title},
         {"modlist", "",                           "List all loaded modules.",                      cmd_modls},
         {"thlist",  "",                           "List (own) running threads.",                   cmd_thls},
         {"?",       "",                           "Display the help.",                             cmd_help},

@@ -30,6 +30,7 @@ enum cmd_t {
     CMD_TEST,
     CMD_MOUNT,
     CMD_UMOUNT,
+    CMD_TITLE,
     CMD_OVADD,
     CMD_OVDEL,
     CMD_OVLS,

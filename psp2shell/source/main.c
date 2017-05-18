@@ -211,6 +211,17 @@ static int cmd_umount(char *device) {
     return 0;
 }
 
+static void cmd_title() {
+
+    char name[256];
+    char id[16];
+
+    sceAppMgrAppParamGetString(0, 9, name, 256);
+    sceAppMgrAppParamGetString(0, 12, id, 256);
+
+    psp2shell_print("%s (%s)\n", name, id);
+}
+
 static void cmd_reload(int sock, long size) {
 #ifndef __VITA_KERNEL__
     char eboot_path[256];
@@ -406,9 +417,9 @@ static void cmd_parse(int client_id, char *buffer) {
 
     char tmp[SIZE_CMD];
     if (s_cmd_to_string(tmp, &cmd) == 0)
-        printf("\n=S_CMD=\n%s\n=S_CMD=\n", tmp);
+            printf("\n=S_CMD=\n%s\n=S_CMD=\n", tmp);
     else
-        printf("\n=S_CMD=\nFAIL\n=S_CMD=\n");
+            printf("\n=S_CMD=\nFAIL\n=S_CMD=\n");
 
     if (is_cmd) {
 
@@ -454,6 +465,9 @@ static void cmd_parse(int client_id, char *buffer) {
             case CMD_RESET:
                 cmd_reset();
                 break;
+
+            case CMD_TITLE:
+                cmd_title(&clients[client_id]);
 
             case CMD_MOUNT:
                 cmd_mount(cmd.arg0);

@@ -27,7 +27,7 @@
 
 #endif
 
-static void printModuleInfo(SceKernelModuleInfo *moduleInfo) {
+static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
     int i;
 
     psp2shell_print_color(COL_GREEN, "module_name: %s\n", moduleInfo->module_name);
@@ -57,6 +57,12 @@ static void printModuleInfo(SceKernelModuleInfo *moduleInfo) {
         psp2shell_print("\tsegment[%i].res: %i\n", i, moduleInfo->segments[i].res);
     }
     psp2shell_print("\n\n");
+}
+
+static void printModuleInfo(SceKernelModuleInfo *moduleInfo) {
+
+    psp2shell_print_color(COL_GREEN, "%s (0x%08X)\n",
+                          moduleInfo->module_name, moduleInfo->handle);
 }
 
 int ps_moduleList() {
