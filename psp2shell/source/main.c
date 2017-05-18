@@ -36,6 +36,7 @@
 #endif
 #ifndef MODULE
 
+#include <psp2/power.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -406,20 +407,24 @@ static void cmd_rmdir(s_client *client, char *path) {
     }
 }
 
+static void cmd_reboot() {
+#ifndef __VITA_KERNEL__
+    psp2shell_exit();
+    scePowerRequestColdReset();
+#endif
+}
+
 #endif //__VITA_KERNEL__
 
 static void cmd_parse(int client_id, char *buffer) {
-
-    printf("\n=CMD_PARSE=\n%s\n=CMD_PARSE=\n", buffer);
 
     S_CMD cmd;
     BOOL is_cmd = s_string_to_cmd(&cmd, buffer) == 0;
 
     char tmp[SIZE_CMD];
-    if (s_cmd_to_string(tmp, &cmd) == 0)
-            printf("\n=S_CMD=\n%s\n=S_CMD=\n", tmp);
-    else
-            printf("\n=S_CMD=\nFAIL\n=S_CMD=\n");
+    if(s_cmd_to_string(tmp, &cmd) != 0) {
+        return;
+    }
 
     if (is_cmd) {
 
@@ -458,14 +463,6 @@ static void cmd_parse(int client_id, char *buffer) {
                 s_launchAppByUriExit(cmd.arg0);
                 break;
 
-            case CMD_RELOAD:
-                cmd_reload(clients[client_id].cmd_sock, cmd.arg2);
-                break;
-
-            case CMD_RESET:
-                cmd_reset();
-                break;
-
             case CMD_TITLE:
                 cmd_title(&clients[client_id]);
 
@@ -477,6 +474,17 @@ static void cmd_parse(int client_id, char *buffer) {
                 cmd_umount(cmd.arg0);
                 break;
 
+            case CMD_RELOAD:
+                cmd_reload(clients[client_id].cmd_sock, cmd.arg2);
+                break;
+
+            case CMD_RESET:
+                cmd_reset();
+                break;
+
+            case CMD_REBOOT:
+                cmd_reboot();
+                break;
 //TODO:
 #ifndef __VITA_KERNEL__
             case CMD_MODLS:
@@ -649,7 +657,7 @@ static int thread_wait(SceSize args, void *argp) {
 
         printf("Connection accepted\n");
         clients[client_id].msg_sock = client_sock;
-        clients[client_id].thid = sceKernelCreateThread("cmd_thread", cmd_thread, 64, 0x5000, 0, 0x10000, 0);
+        clients[client_id].thid = sceKernelCreateThread("psp2shell_cmd", cmd_thread, 64, 0x5000, 0, 0x10000, 0);
         if (clients[client_id].thid >= 0)
             sceKernelStartThread(clients[client_id].thid, sizeof(int), (void *) &client_id);
     }
@@ -679,7 +687,7 @@ int psp2shell_init(int port, int delay) {
     // load network modules
     s_netInit();
 
-    thid_wait = sceKernelCreateThread("thread_wait_client", thread_wait, 64, 0x1000, 0, 0x10000, 0);
+    thid_wait = sceKernelCreateThread("psp2shell_wait", thread_wait, 64, 0x1000, 0, 0x10000, 0);
     if (thid_wait >= 0) {
         sceKernelStartThread(thid_wait, 0, NULL);
     }

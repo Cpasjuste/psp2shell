@@ -57,6 +57,7 @@ target_link_libraries(${PROJECT_NAME}_user.elf
         SceNet_stub
         SceNetCtl_stub
         SceAppMgr_stub
+        ScePower_stub
         gcc
         -nostdlib)
 vita_create_self(${PROJECT_NAME}.suprx ${PROJECT_NAME}_user.elf

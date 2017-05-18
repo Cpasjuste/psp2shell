@@ -14,6 +14,7 @@
 #include "cmd.h"
 
 extern void close_terminal();
+
 extern void close_socks();
 
 bool response_ok(int sock) {
@@ -43,8 +44,9 @@ ssize_t send_file(FILE *file, long size) {
 }
 
 char CMD_MSG[SIZE_CMD];
+
 char *build_msg(int type, char *arg0,
-               char *arg1, long arg2) {
+                char *arg1, long arg2) {
 
     S_CMD cmd;
     memset(&cmd, 0, sizeof(S_CMD));
@@ -130,7 +132,7 @@ int cmd_mv(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_MV, argv[1],  argv[2], 0);
+    char *cmd = build_msg(CMD_MV, argv[1], argv[2], 0);
     send(data_sock, cmd, strlen(cmd), 0);
 
     return 0;
@@ -167,7 +169,7 @@ int cmd_launch(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_LAUNCH, argv[1],  "0", 0);
+    char *cmd = build_msg(CMD_LAUNCH, argv[1], "0", 0);
     send(data_sock, cmd, strlen(cmd), 0);
 
     return 0;
@@ -175,7 +177,7 @@ int cmd_launch(int argc, char **argv) {
 
 int cmd_reset(int argc, char **argv) {
 
-    char *cmd = build_msg(CMD_RESET, "0",  "0", 0);
+    char *cmd = build_msg(CMD_RESET, "0", "0", 0);
     send(data_sock, cmd, strlen(cmd), 0);
 
     return 0;
@@ -213,6 +215,14 @@ int cmd_title(int argc, char **argv) {
     return 0;
 }
 
+int cmd_reboot(int argc, char **argv) {
+
+    char *cmd = build_msg(CMD_REBOOT, "0", "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
+
+    return 0;
+}
+
 int cmd_mount(int argc, char **argv) {
 
     if (argc < 2) {
@@ -220,7 +230,7 @@ int cmd_mount(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_MOUNT, argv[1],  "0", 0);
+    char *cmd = build_msg(CMD_MOUNT, argv[1], "0", 0);
     send(data_sock, cmd, strlen(cmd), 0);
 
     return 0;
@@ -233,7 +243,7 @@ int cmd_umount(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_UMOUNT, argv[1],  "0", 0);
+    char *cmd = build_msg(CMD_UMOUNT, argv[1], "0", 0);
     send(data_sock, cmd, strlen(cmd), 0);
 
     return 0;
@@ -241,7 +251,7 @@ int cmd_umount(int argc, char **argv) {
 
 int cmd_modls(int argc, char **argv) {
 
-    char *cmd = build_msg(CMD_MODLS, "0",  "0", 0);
+    char *cmd = build_msg(CMD_MODLS, "0", "0", 0);
     send(data_sock, cmd, strlen(cmd), 0);
 
     return 0;
@@ -249,7 +259,7 @@ int cmd_modls(int argc, char **argv) {
 
 int cmd_thls(int argc, char **argv) {
 
-    char *cmd = build_msg(CMD_THLS, "0",  "0", 0);
+    char *cmd = build_msg(CMD_THLS, "0", "0", 0);
     send(data_sock, cmd, strlen(cmd), 0);
 
     return 0;
@@ -286,6 +296,7 @@ COMMAND cmd[] = {
         {"reset",   "",                           "Restart the application.",                      cmd_reset},
         {"reload",  "<eboot.bin>",                "Send (eboot.bin) and restart the application.", cmd_reload},
         {"launch",  "<titleid>",                  "Launch title",                                  cmd_launch},
+        {"reboot",  "",                           "Reboot.",                                       cmd_reboot},
 //        {"mount",   "<titleid>",                  "Mount titleid",                                 cmd_mount},
         {"umount",  "<dev:>",                     "Umount device.",                                cmd_umount},
         {"title",   "",                           "Get running title",                             cmd_title},

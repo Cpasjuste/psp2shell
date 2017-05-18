@@ -43,6 +43,7 @@ enum cmd_t {
     CMD_MEMR,
     CMD_MEMW,
     CMD_RESET,
+    CMD_REBOOT,
     CMD_EXIT,
     CMD_HELP
 };

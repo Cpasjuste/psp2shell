@@ -24,7 +24,7 @@
 #define THREADS_START 0x40010000
 #define THREADS_RANGE 0x100000
 
-static void printThreadInfo(SceKernelThreadInfo *threadInfo, int thid) {
+static void printThreadInfoFull(SceKernelThreadInfo *threadInfo, int thid) {
 
     psp2shell_print_color(COL_GREEN, "thread_name: %s\n", threadInfo->name);
     psp2shell_print("\tthid: 0x%08X\n", thid);
@@ -47,6 +47,12 @@ static void printThreadInfo(SceKernelThreadInfo *threadInfo, int thid) {
     psp2shell_print("\tthreadReleaseCount: %i\n", threadInfo->threadReleaseCount);
     psp2shell_print("\tfNotifyCallback: %08X\n", threadInfo->fNotifyCallback);
     psp2shell_print("\n\n");
+}
+
+static void printThreadInfo(SceKernelThreadInfo *threadInfo, int thid) {
+
+    psp2shell_print_color(COL_GREEN, "%s id: 0x%08X, stack: 0x%08X (0x%08X)\n",
+                          threadInfo->name, thid, threadInfo->stack, threadInfo->stackSize);
 }
 
 int ps_threadList() {
