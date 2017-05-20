@@ -12,9 +12,11 @@
 #include <libk/stdarg.h>
 
 #ifdef __VITA_KERNEL__
+
 #include <psp2kern/types.h>
 #include <psp2kern/net/net.h>
 #include <psp2kern/kernel/sysmem.h>
+
 #else
 #include <psp2/kernel/sysmem.h>
 #include <psp2/io/fcntl.h>
@@ -28,16 +30,26 @@ void mdebug(const char *fmt, ...);
 #endif
 
 #ifdef __VITA_KERNEL__
+
 #include <psp2kern/kernel/threadmgr.h>
 #include <psp2kern/kernel/processmgr.h>
 #include <psp2kern/kernel/modulemgr.h>
 #include <psp2kern/io/fcntl.h>
-#include <psp2/io/stat.h>
+#include <psp2kern/io/stat.h>
+
+SceUID ksceKernelFindMemBlockByAddr(const void *addr, SceSize size);
+
+#define sceKernelAllocMemBlock ksceKernelAllocMemBlock
+#define sceKernelGetMemBlockBase ksceKernelGetMemBlockBase
+#define sceKernelFindMemBlockByAddr ksceKernelFindMemBlockByAddr
+#define sceKernelFreeMemBlock ksceKernelFreeMemBlock
+
 #define sceKernelWaitThreadEnd ksceKernelWaitThreadEnd
 #define sceKernelDeleteThread ksceKernelDeleteThread
 #define sceKernelCreateThread ksceKernelCreateThread
 #define sceKernelStartThread ksceKernelStartThread
 #define sceKernelDelayThread ksceKernelDelayThread
+#define sceKernelExitDeleteThread ksceKernelExitDeleteThread
 #define sceIoOpen ksceIoOpen
 #define sceIoRead ksceIoRead
 #define sceIoWrite ksceIoWrite
@@ -45,31 +57,27 @@ void mdebug(const char *fmt, ...);
 #define sceIoClose ksceIoClose
 #define sceIoRename ksceIoRename
 #define sceIoRemove ksceIoRemove
+#define sceIoMkdir ksceIoMkdir
 
 #define sceNetSocketClose ksceNetSocketClose
 #define sceNetSocket ksceNetSocket
 #define sceNetBind ksceNetBind
 #define sceNetListen ksceNetListen
 #define sceNetAccept ksceNetAccept
-#define sceNetSend ksceNetSend
-#define sceNetRecv ksceNetRecv
+#define sceNetRecv(a, b, c, d) ksceNetRecvfrom(a, b, c, d, NULL, NULL)
+#define sceNetSend(a, b, c, d) ksceNetSendto (a, b, c, d, NULL, 0)
 #define sceNetHtons ksceNetHtons
 #define sceNetHtonl ksceNetHtonl
 
-#define sceKernelMemPoolAlloc ksceKernelAllocHeapMemory
-#define sceKernelMemPoolCreate ksceKernelCreateHeap
-#define sceKernelMemPoolFree ksceKernelFreeHeapMemory
-
 #endif
 
+
 void *malloc(size_t size);
-void *_realloc(void *ptr, size_t old_size, size_t new_size);
+
 void free(void *p);
 
-int strcasecmp(const char *s1, const char *s2);
-int strncasecmp(const char *s1, const char *s2, size_t n);
-double atof(const char *str);
-char *strdup(const char *s);
+#define strcasecmp strcmp
+#define strncasecmp strncmp
 
 #endif // MODULE
 #endif //LIBMODULE_H

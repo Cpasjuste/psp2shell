@@ -54,8 +54,8 @@ target_link_libraries(${PROJECT_NAME}_user.elf
         SceSysmodule_stub
         SceSysmem_stub
         SceIofilemgr_stub
-        SceNet_stub
-        SceNetCtl_stub
+        SceNet_stub_weak
+        SceNetCtl_stub_weak
         SceAppMgr_stub
         ScePower_stub
         gcc

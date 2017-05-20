@@ -12,7 +12,9 @@
 #include "debugScreen.h"
 
 #define printf psvDebugScreenPrintf
-#define SKPRX "ux0:tai/psp2shell.suprx"
+#define PRX "ux0:tai/psp2shell.suprx"
+
+SceUID modid = -1;
 
 int exitTimeout(SceUInt delay) {
 
@@ -22,63 +24,50 @@ int exitTimeout(SceUInt delay) {
     return 0;
 }
 
-void netInit() {
-
-    sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
-    SceNetInitParam netInitParam;
-    size_t size = 1 * 1024 * 1024;
-    netInitParam.memory = malloc(size);
-    netInitParam.size = size;
-    netInitParam.flags = 0;
-    sceNetInit(&netInitParam);
-    sceNetCtlInit();
-}
-
-SceUID getModuleUID() {
-    tai_module_info_t info;
-    info.size = sizeof(info);
-    if (taiGetModuleInfo("psp2shell", &info) >= 0) {
-        return info.modid;
-    }
-    return -1;
-}
+typedef struct {
+} args_t;
 
 void load() {
 
-    if(getModuleUID() >= 0) {
+    if (modid >= 0) {
         printf("psp2shell module already loaded\n");
         return;
     }
 
-    //SceUID pid = sceKernelGetProcessId();
-    //printf("loading %s (pid=%i)\n", SKPRX, pid);
-    //int ret = taiLoadStartModuleForPid(pid, SKPRX, 0, NULL, 0);//taiLoadStartKernelModule(SKPRX, 0, NULL, 0);
+    printf("loading %s\n", PRX);
 
-    printf("loading %s\n", SKPRX);
-    //int ret = taiLoadStartKernelModule(SKPRX, 0, NULL, 0);
-    int ret = sceKernelLoadStartModule(SKPRX, 0, NULL, 0, NULL, 0);
-    if (ret >= 0) {
+    args_t arg;
+    int res, ret;
+
+    //uid = taiLoadKernelModule(PRX, 0, NULL);
+    modid = sceKernelLoadStartModule(PRX, 0, NULL, 0, NULL, 0);
+    if (modid >= 0) {
+        //ret = taiStartKernelModule(uid, sizeof(arg), &arg, 0, NULL, &res);
+        //if (ret >= 0) {
         printf("psp2shell module loaded\n");
-        SceNetCtlInfo netInfo;
-        sceNetCtlInetGetInfo(SCE_NETCTL_INFO_GET_IP_ADDRESS, &netInfo);
-        printf("connect with psp2shell_cli to %:3333\n", netInfo.ip_address);
-
+       // SceNetCtlInfo netInfo;
+       // sceNetCtlInetGetInfo(SCE_NETCTL_INFO_GET_IP_ADDRESS, &netInfo);
+       // printf("connect with psp2shell_cli to %s 3333\n", netInfo.ip_address);
+        //} else {
+        //    printf("could not load psp2shell: %i\n", ret);
+        //}
     } else {
-        printf("could not load psp2shell: %i\n", ret);
+        printf("could not load psp2shell: 0x%08X", modid);
     }
 
-    sceKernelDelayThread(1000*1000);
+    sceKernelDelayThread(1000 * 1000);
 }
 
 void unload() {
 
     printf("unloading psp2shell\n");
 
-    SceUID uid = getModuleUID();
-    if(uid >= 0) {
-        //int ret = taiStopUnloadKernelModule(uid, 0, NULL, 0, NULL, NULL);
-        int ret = sceKernelStopUnloadModule(uid, 0, NULL, 0, NULL, 0);
+    int res;
+    if (modid >= 0) {
+        //int ret = taiStopUnloadKernelModule(id, 0, NULL, 0, NULL, &res);
+        int ret = sceKernelStopUnloadModule(modid, 0, NULL, 0, NULL, 0);
         if (ret >= 0) {
+            modid = -1;
             printf("psp2shell module unloaded\n");
         } else {
             printf("could not unload psp2shell: %i\n", ret);
@@ -87,7 +76,7 @@ void unload() {
         printf("psp2shell module not loaded\n");
     }
 
-    sceKernelDelayThread(1000*500);
+    sceKernelDelayThread(1000 * 500);
 }
 
 int main(int argc, char *argv[]) {
@@ -95,7 +84,6 @@ int main(int argc, char *argv[]) {
     SceCtrlData ctrl;
 
     psvDebugScreenInit();
-    netInit();
 
     printf("PSP2SHELL LOADER @ Cpasjuste\n\n");
     printf("Triangle to load psp2shell module\n");
@@ -112,8 +100,11 @@ int main(int argc, char *argv[]) {
             load();
         else if (ctrl.buttons == SCE_CTRL_SQUARE)
             unload();
-        else if (ctrl.buttons == SCE_CTRL_CIRCLE)
-            sceClibPrintf("Hello Module\n");
+        else if (ctrl.buttons == SCE_CTRL_CIRCLE) {
+            sceClibPrintf("Hello Module1\n");
+            printf("Hello Module2\n");
+            fprintf(stdout, "Hello Module3\n");
+        }
     }
 
     return exitTimeout(0);

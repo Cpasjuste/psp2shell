@@ -18,23 +18,26 @@
 #ifndef __VITA_KERNEL__
 
 #include <psp2/kernel/threadmgr.h>
-#include <psp2/kernel/processmgr.h>
 #include <psp2/sysmodule.h>
 #include <psp2/net/net.h>
 #include <psp2/net/netctl.h>
 #include <psp2/io/fcntl.h>
-#include <psp2/appmgr.h>
+#include <psp2/io/dirent.h>
 
 #endif
 
 #ifdef MODULE
+
 #include "libmodule.h"
+
 #else
 
 #include <string.h>
 #include <stdio.h>
 #include <malloc.h>
 #include <sys/errno.h>
+#include <psp2/kernel/processmgr.h>
+#include <psp2/appmgr.h>
 
 #endif
 
@@ -59,16 +62,19 @@ int s_launchAppByUriExit(char *titleid) {
 
 void s_netInit() {
 #ifndef __VITA_KERNEL__
-    sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
-    int ret = sceNetShowNetstat();
-    if (ret == SCE_NET_ERROR_ENOTINIT) {
-        SceNetInitParam netInitParam;
-        netInitParam.memory = malloc(1048576);
-        netInitParam.size = 1048576;
-        netInitParam.flags = 0;
-        sceNetInit(&netInitParam);
+    int loaded = sceSysmoduleIsLoaded(SCE_SYSMODULE_NET);
+    if (loaded != 0) {
+        sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
+        int ret = sceNetShowNetstat();
+        if (ret == SCE_NET_ERROR_ENOTINIT) {
+            SceNetInitParam netInitParam;
+            netInitParam.memory = malloc(1048576);
+            netInitParam.size = 1048576;
+            netInitParam.flags = 0;
+            sceNetInit(&netInitParam);
+        }
+        sceNetCtlInit();
     }
-    sceNetCtlInit();
 #endif
 }
 
@@ -138,22 +144,28 @@ int s_recvall(int sock, void *buffer, int size, int flags) {
     return size;
 }
 
+static unsigned char *rcv_buffer = NULL;
+
 size_t s_recv_file(int sock, SceUID fd, long size) {
 
     size_t len, received = 0, left = (size_t) size;
     int bufSize = SIZE_DATA;
 
-    unsigned char *buffer = pool_data_malloc(SIZE_DATA);
-    if (!buffer) {
+    //unsigned char *buffer = pool_data_malloc(SIZE_DATA);
+    if (rcv_buffer == NULL) {
+        rcv_buffer = pool_data_malloc(SIZE_DATA);
+    }
+
+    if (rcv_buffer == NULL) {
         return 0;
     }
 
-    memset(buffer, 0, SIZE_DATA);
+    memset(rcv_buffer, 0, SIZE_DATA);
 
     while (left > 0) {
         if (left < bufSize) bufSize = left;
-        len = (size_t) s_recvall(sock, buffer, bufSize, 0);
-        sceIoWrite(fd, buffer, (SceSize) len);
+        len = (size_t) s_recvall(sock, rcv_buffer, bufSize, 0);
+        sceIoWrite(fd, rcv_buffer, (SceSize) len);
         left -= len;
         received += len;
     }
@@ -186,4 +198,17 @@ int s_addEndSlash(char *path) {
     }
 
     return 0;
+}
+
+void s_log_write(const char *msg) {
+
+    sceIoMkdir("ux0:/tai/", 6);
+
+    SceUID fd = sceIoOpen("ux0:/tai/psp2shell.log",
+                          SCE_O_WRONLY | SCE_O_CREAT | SCE_O_APPEND, 6);
+    if (fd < 0)
+        return;
+
+    sceIoWrite(fd, msg, strlen(msg));
+    sceIoClose(fd);
 }

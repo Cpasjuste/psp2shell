@@ -206,10 +206,10 @@ void *msg_thread(void *unused) {
             }
         }
 
-        int color = msg[strlen(msg)-1] - 48;
+        int color = msg[strlen(msg) - 1] - 48;
         char str[SIZE_PRINT];
         memset(str, 0, SIZE_PRINT);
-        strncpy(str, msg, strlen(msg)-1);
+        strncpy(str, msg, strlen(msg) - 1);
 
         switch (color) {
             case COL_RED:

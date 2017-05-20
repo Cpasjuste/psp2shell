@@ -19,8 +19,6 @@ target_link_libraries(${PROJECT_NAME}.elf
 		taihen_stub
 		SceLibKernel_stub
 		SceSysmodule_stub
-		SceNet_stub
-		SceNetCtl_stub
 		SceDisplay_stub
 		SceCtrl_stub
 )

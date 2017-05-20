@@ -21,6 +21,14 @@
 
 #include <psp2/rtc.h>
 
+void s_log_write(const char *msg);
+#define LOG(...) \
+    do { \
+        char buffer[256]; \
+        snprintf(buffer, sizeof(buffer), ##__VA_ARGS__); \
+        s_log_write(buffer); \
+    } while (0)
+
 int s_launchAppByUriExit(char *titleid);
 
 void s_netInit();

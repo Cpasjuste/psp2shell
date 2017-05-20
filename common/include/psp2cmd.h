@@ -2,7 +2,7 @@
 #define CMD_H
 
 #define SIZE_CHAR   (256)
-#define SIZE_DATA   (16 * 1024)
+#define SIZE_DATA   (10 * 1024)
 #define SIZE_PRINT  (1024)
 
 typedef struct S_CMD {
