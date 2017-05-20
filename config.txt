@@ -1,0 +1,26 @@
+# You must reboot for changes to take place.
+*KERNEL
+# henkaku.skprx is hard-coded to load and is not listed here
+*main
+# main is a special titleid for SceShell
+ux0:app/MLCL00001/henkaku.suprx
+*NPXS10015
+# this is for modifying the version string
+ux0:app/MLCL00001/henkaku.suprx
+*NPXS10016
+# this is for modifying the version string in settings widget
+ux0:app/MLCL00001/henkaku.suprx
+
+# disable psp2shell for "SceShell"
+*!main
+# disable psp2shell for "PlayStationStore"
+*!NPXS10002
+# disable psp2shell for "MsgMW"
+*!NPXS10063
+# disable psp2shell for "NearUtilBG"
+*!NPXS10032
+# disable psp2shell for "MolecularShell"
+*!MLCL00001
+
+*ALL
+ux0:tai/psp2shell.suprx
