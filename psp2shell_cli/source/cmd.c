@@ -257,9 +257,35 @@ int cmd_modls(int argc, char **argv) {
     return 0;
 }
 
+int cmd_modinfo(int argc, char **argv) {
+
+    if (argc < 2) {
+        printf("incorrect number of arguments\n");
+        return -1;
+    }
+
+    char *cmd = build_msg(CMD_MODINFO, argv[1], "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
+
+    return 0;
+}
+
 int cmd_thls(int argc, char **argv) {
 
     char *cmd = build_msg(CMD_THLS, "0", "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
+
+    return 0;
+}
+
+int cmd_memr(int argc, char **argv) {
+
+    if (argc < 3) {
+        printf("incorrect number of arguments\n");
+        return -1;
+    }
+
+    char *cmd = build_msg(CMD_MEMR, argv[1], argv[2], 0);
     send(data_sock, cmd, strlen(cmd), 0);
 
     return 0;
@@ -297,11 +323,13 @@ COMMAND cmd[] = {
         {"reload",  "<eboot.bin>",                "Send (eboot.bin) and restart the application.", cmd_reload},
         {"launch",  "<titleid>",                  "Launch title",                                  cmd_launch},
         {"reboot",  "",                           "Reboot.",                                       cmd_reboot},
-//        {"mount",   "<titleid>",                  "Mount titleid",                                 cmd_mount},
+//        {"mount",   "<titleid>",                "Mount titleid",                                 cmd_mount},
         {"umount",  "<dev:>",                     "Umount device.",                                cmd_umount},
         {"title",   "",                           "Get running title",                             cmd_title},
         {"modlist", "",                           "List all loaded modules.",                      cmd_modls},
+        {"modinfo", "<module_name>",              "Get module information by name.",               cmd_modinfo},
         {"thlist",  "",                           "List (own) running threads.",                   cmd_thls},
+        {"memr",    "<hex_address> <hex_size>",   "Read memory.",                                  cmd_memr},
         {"?",       "",                           "Display the help.",                             cmd_help},
         {"help",    "",                           "Display the help.",                             cmd_help},
         {"exit",    "",                           "Exit the shell.",                               cmd_exit},

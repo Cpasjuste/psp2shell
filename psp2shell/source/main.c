@@ -100,7 +100,7 @@ void _psp2shell_print_color(SceSize size, int color, const char *fmt, ...) {
     vsnprintf(msg, size, fmt, args);
     va_end(args);
 
-    sprintf(msg + strlen(msg), "%i", color);
+    snprintf(msg + strlen(msg), size, "%i", color);
 
     for (int i = 0; i < MAX_CLIENT; i++) {
         if (clients[i].msg_sock > 0) {
@@ -421,6 +421,30 @@ static void cmd_rmdir(s_client *client, char *path) {
     }
 }
 
+static void cmd_memr(const char *address_str, const char *size_str) {
+
+    unsigned int address = strtoul(address_str, NULL, 16);
+
+    psp2shell_print_color(COL_RED, "address: 0x%08X 0x%08X (%s)\n", address, (unsigned int *) address, address_str);
+
+    //uintptr_t paddr = (uintptr_t) address;
+    //unsigned int *addr = (unsigned int *) address;
+    unsigned int size = strtoul(size_str, NULL, 16);
+    unsigned int *addr = (unsigned int *) address;
+
+    unsigned int i;
+    for (i = 0; i < (size >> 4); i++) {
+        psp2shell_print_color(COL_GREEN,
+                              "0x%08X: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
+                              addr,
+                              addr[0], addr[1], addr[2], addr[3], addr[4], addr[5], addr[6], addr[7], addr[8],
+                              addr[9], addr[10], addr[11], addr[12], addr[13], addr[14], addr[15]
+        );
+        //address += 0x10;
+        addr += 0x10;
+    }
+}
+
 static void cmd_reboot() {
 #ifndef __VITA_KERNEL__
     psp2shell_exit();
@@ -494,10 +518,18 @@ static void cmd_parse(int client_id) {
             case CMD_REBOOT:
                 cmd_reboot();
                 break;
+
+            case CMD_MEMR:
+                cmd_memr(cmd.arg0, cmd.arg1);
+                break;
 //TODO:
 #ifndef __VITA_KERNEL__
             case CMD_MODLS:
                 ps_moduleList();
+                break;
+
+            case CMD_MODINFO:
+                ps_moduleInfo(strtoul(cmd.arg0, NULL, 16));
                 break;
 
             case CMD_MODLD:
@@ -692,8 +724,8 @@ int module_start(SceSize argc, const void *args) {
     hooks_init();
 #else
 
-    int psp2shell_init(int port, int delay) {
-        listen_port = port;
+int psp2shell_init(int port, int delay) {
+    listen_port = port;
 #endif
 
     // init pool

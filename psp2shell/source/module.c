@@ -17,18 +17,21 @@
 */
 
 #ifndef __VITA_KERNEL__
+
 #include <psp2/kernel/modulemgr.h>
 #include "psp2shell.h"
 #include "module.h"
+
 #ifdef MODULE
 #include "libmodule.h"
 #else
+
 #include <string.h>
 
 #endif
 
-/*
 static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
+
     int i;
 
     psp2shell_print_color(COL_GREEN, "module_name: %s\n", moduleInfo->module_name);
@@ -59,13 +62,6 @@ static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
     }
     psp2shell_print("\n\n");
 }
-*/
-
-static void printModuleInfo(SceKernelModuleInfo *moduleInfo) {
-
-    psp2shell_print_color(COL_GREEN, "%s (0x%08X)\n",
-                          moduleInfo->module_name, moduleInfo->handle);
-}
 
 int ps_moduleList() {
 
@@ -89,11 +85,28 @@ int ps_moduleList() {
                 psp2shell_print_color(COL_RED, "getting modinfo of %i failed\n", ids[i]);
                 continue;
             } else {
-                printModuleInfo(&moduleInfo);
+                psp2shell_print_color(COL_GREEN, "%s (0x%08X)\n",
+                                      moduleInfo.module_name, moduleInfo.handle);
             }
         }
     }
     return 0;
+}
+
+int ps_moduleInfo(SceUID uid) {
+
+    SceKernelModuleInfo moduleInfo;
+    memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
+    moduleInfo.size = sizeof(SceKernelModuleInfo);
+
+    int res = sceKernelGetModuleInfo(uid, &moduleInfo);
+    if (res == 0) {
+        printModuleInfoFull(&moduleInfo);
+    } else {
+        psp2shell_print_color(COL_RED, "GetModuleInfo failed: 0x%08X\n", res);
+    }
+
+    return res;
 }
 
 int ps_moduleLoadStart(char *modulePath) {

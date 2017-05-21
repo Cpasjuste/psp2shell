@@ -36,6 +36,7 @@ enum cmd_t {
     CMD_OVLS,
     CMD_FIOSCP,
     CMD_MODLS,
+    CMD_MODINFO,
     CMD_MODLD,
     CMD_THLS,
     CMD_THPAUSE,

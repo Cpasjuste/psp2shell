@@ -21,6 +21,8 @@
 
 int ps_moduleLoadStart(char *modulePath);
 
+int ps_moduleInfo(SceUID uid);
+
 int ps_moduleList();
 
 #endif //_MODULE_H
