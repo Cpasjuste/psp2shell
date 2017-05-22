@@ -3,6 +3,8 @@
 //
 #ifdef MODULE
 
+#include <psp2/kernel/processmgr.h>
+#include <psp2/kernel/modulemgr.h>
 #include <taihen.h>
 #include "psp2shell.h"
 #include "libmodule.h"
@@ -10,70 +12,106 @@
 
 extern void _psp2shell_print_color(SceSize size, int color, const char *fmt, ...);
 
-static char sceClibPrintf_msg[512];
-static SceUID sceClibPrintf_uid;
-static tai_hook_ref_t sceClibPrintf_hook;
+static char buffer[256];
 
-int sceClibPrintf_patched(const char *fmt, ...) {
+#define HOOK_MAX 32
+static SceUID sceClibPrintf_uid[HOOK_MAX];
+static tai_hook_ref_t sceClibPrintf_ref[HOOK_MAX];
 
-    memset(sceClibPrintf_msg, 0, 512);
+static tai_hook_ref_t module_start_ref;
+SceUID module_start_uid;
+
+int _sceClibPrintf(const char *fmt, ...) {
+
+    memset(buffer, 0, 256);
     va_list args;
     va_start(args, fmt);
-    vsnprintf(sceClibPrintf_msg, 512, fmt, args);
+    vsnprintf(buffer, 256, fmt, args);
     va_end(args);
-    psp2shell_print_color(0, sceClibPrintf_msg);
+    _psp2shell_print_color(256, 0, buffer);
 
-    return TAI_CONTINUE(int, sceClibPrintf_hook, fmt, args);
+    return 0;
+    //return TAI_CONTINUE(int, sceClibPrintf_ref, fmt, args);
 }
 
-/*
-static int __stdout_fd = 1073807367;
-static SceUID g_hooks[2];
+int module_start_hook(SceSize argc, const void *args) {
 
-static tai_hook_ref_t ref_hook0;
+    // hook all user modules import (sceClibPrintf)
 
-int sceIoWrite_patched(SceUID fd, const void *data, SceSize size) {
-    if (fd == __stdout_fd) {
-        _psp2shell_print_color(size, 0, (char *) data);
+    SceUID ids[256];
+    int mod_count = 256;
+    int hook_count = 0;
+    SceKernelModuleInfo moduleInfo;
+
+    int res = sceKernelGetModuleList(0xFF, ids, &mod_count);
+    if (res == 0) {
+        for (int i = 0; i < mod_count; i++) {
+
+            memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
+            moduleInfo.size = sizeof(SceKernelModuleInfo);
+            res = sceKernelGetModuleInfo(ids[i], &moduleInfo);
+
+            if (res >= 0) {
+
+                if (strcmp(moduleInfo.module_name, "psp2shell") == 0
+                    || strcmp(moduleInfo.module_name, "SceLibPgf") == 0
+                    || strcmp(moduleInfo.module_name, "SceLibNetCtl") == 0
+                    || strcmp(moduleInfo.module_name, "SceNet") == 0
+                    || strcmp(moduleInfo.module_name, "SceAppUtil") == 0
+                    || strcmp(moduleInfo.module_name, "SceLibPvf") == 0
+                    || strcmp(moduleInfo.module_name, "SceLibft2") == 0
+                    || strcmp(moduleInfo.module_name, "SceLibDbg") == 0
+                    || strcmp(moduleInfo.module_name, "SceCommonDialog") == 0
+                    || strcmp(moduleInfo.module_name, "SceShellSvc") == 0
+                    || strcmp(moduleInfo.module_name, "SceGxm") == 0
+                    || strcmp(moduleInfo.module_name, "SceGpuEs4User") == 0
+                    || strcmp(moduleInfo.module_name, "SceAvcodecUser") == 0
+                    || strcmp(moduleInfo.module_name, "SceDriverUser") == 0
+                    || strcmp(moduleInfo.module_name, "SceLibKernel") == 0) {
+                    //psp2shell_print("skip hook: %s\n", moduleInfo.module_name);
+                    continue;
+                }
+
+                //psp2shell_print("apply hook: %s\n", moduleInfo.module_name);
+                sceClibPrintf_uid[hook_count] =
+                        taiHookFunctionImport(&sceClibPrintf_ref[i],
+                                              moduleInfo.module_name,
+                                              TAI_ANY_LIBRARY,
+                                              0xFA26BC62,
+                                              _sceClibPrintf);
+                hook_count++;
+
+                if (hook_count >= HOOK_MAX) {
+                    break;
+                }
+            }
+        }
     }
-    return TAI_CONTINUE(int, ref_hook0, fd, data, size);
-}
 
-static tai_hook_ref_t ref_hook1;
-
-int sceKernelGetStdout_patched() {
-    //debug("sceIoOpen: %s\n",file);
-    int fd = TAI_CONTINUE(int, ref_hook1);
-    __stdout_fd = fd;
-    return fd;
+    return TAI_CONTINUE(int, module_start_ref, argc, args);
 }
-*/
 
 void hooks_init() {
 #ifndef __VITA_KERNEL__
-    /*
-    g_hooks[0] = taiHookFunctionExport(&ref_hook0, "SceIofilemgr", 0xF2FF276E,
-                                       0x34EFD876, sceIoWrite_patched);
-    g_hooks[1] = taiHookFunctionExport(&ref_hook1, "SceProcessmgr", 0x2DD91812,
-                                       0xE5AA625C, sceKernelGetStdout_patched);
-    */
-    sceClibPrintf_uid = taiHookFunctionImport(&sceClibPrintf_hook,
-                                              TAI_MAIN_MODULE,
-                                              TAI_ANY_LIBRARY,
-                                              0xFA26BC62,
-                                              sceClibPrintf_patched);
+    module_start_uid = taiHookFunctionExport(&module_start_ref,  // Output a reference
+                                             TAI_MAIN_MODULE,       // Name of module being hooked
+                                             TAI_ANY_LIBRARY, // If there's multiple libs exporting this
+                                             0x935CD196,      // Special NID specifying module_start
+                                             module_start_hook); // Name of the hook function
 #endif
 }
 
 void hooks_exit() {
 #ifndef __VITA_KERNEL__
-    /*
-    if (g_hooks[0] >= 0) taiHookRelease(g_hooks[0], ref_hook0);
-    if (g_hooks[1] >= 0) taiHookRelease(g_hooks[1], ref_hook1);
-    */
+    for (int i = 0; i < HOOK_MAX; i++) {
+        if (sceClibPrintf_uid[i] > 0) {
+            taiHookRelease(sceClibPrintf_uid[i], sceClibPrintf_ref[i]);
+        }
+    }
 
-    if (sceClibPrintf_uid >= 0)
-        taiHookRelease(sceClibPrintf_uid, sceClibPrintf_hook);
+    if (module_start_uid >= 0)
+        taiHookRelease(module_start_uid, module_start_ref);
 #endif
 }
+
 #endif
