@@ -22,7 +22,8 @@ enum colors_t {
     COL_NONE = 0,
     COL_RED = 1,
     COL_YELLOW = 2,
-    COL_GREEN = 3
+    COL_GREEN = 3,
+    COL_HEX = 9
 };
 
 int msg_sock = -1;
@@ -186,6 +187,49 @@ bool psp2_alive() {
     return alive;
 }
 
+void print_hex(char *line) {
+
+    size_t num_tokens;
+    char **tokens = strsplit(line, " ", &num_tokens);
+
+    if (num_tokens == 5) {
+
+        unsigned char chars[16];
+        memset(chars, 0, sizeof(unsigned char) * 16);
+
+        for (int i = 0; i < 4; i++) {
+
+            unsigned int hex = (unsigned int) strtoul(tokens[i + 1], NULL, 16);
+
+            int index = i + (i * 3);
+            chars[index] = (unsigned char) ((hex >> 24) & 0xFF);
+            if (!isprint(chars[index])) {
+                chars[index] = '.';
+            }
+            chars[index + 1] = (unsigned char) ((hex >> 16) & 0xFF);
+            if (!isprint(chars[index + 1])) {
+                chars[index + 1] = '.';
+            }
+            chars[index + 2] = (unsigned char) ((hex >> 8) & 0xFF);
+            if (!isprint(chars[index + 2])) {
+                chars[index + 2] = '.';
+            }
+            chars[index + 3] = (unsigned char) hex;
+            if (!isprint(chars[index + 3])) {
+                chars[index + 3] = '.';
+            }
+        }
+
+        line[strlen(line) - 1] = '\0';
+
+        printf("%s | %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+               line,
+               chars[0], chars[1], chars[2], chars[3], chars[4],
+               chars[5], chars[6], chars[7], chars[8], chars[9],
+               chars[10], chars[11], chars[12], chars[13], chars[14], chars[15]);
+    }
+}
+
 void *msg_thread(void *unused) {
 
     char *msg = malloc(SIZE_PRINT);
@@ -220,6 +264,9 @@ void *msg_thread(void *unused) {
                 break;
             case COL_GREEN:
                 printf(GRN "%s" RES, str);
+                break;
+            case COL_HEX:
+                print_hex(str);
                 break;
             default:
                 printf("%s", str);
@@ -270,13 +317,14 @@ void process_line(char *line) {
                 printf("\n");
                 cmd->func((int) num_tokens, tokens);
                 printf("\n");
-                for (int i = 0; i < num_tokens; i++) {
-                    if (tokens[i] != NULL)
-                        free(tokens[i]);
-                }
             }
         }
+
         if (tokens != NULL) {
+            for (int i = 0; i < num_tokens; i++) {
+                if (tokens[i] != NULL)
+                    free(tokens[i]);
+            }
             free(tokens);
         }
     }

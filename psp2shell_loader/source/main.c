@@ -1,13 +1,8 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/modulemgr.h>
-#include <psp2/sysmodule.h>
-#include <psp2/net/netctl.h>
 #include <psp2/ctrl.h>
 #include <psp2/kernel/clib.h>
-
-#include <taihen.h>
 
 #include "debugScreen.h"
 

@@ -291,6 +291,19 @@ int cmd_memr(int argc, char **argv) {
     return 0;
 }
 
+int cmd_memw(int argc, char **argv) {
+
+    if (argc < 3) {
+        printf("incorrect number of arguments\n");
+        return -1;
+    }
+
+    char *cmd = build_msg(CMD_MEMW, argv[1], argv[2], 0);
+    send(data_sock, cmd, strlen(cmd), 0);
+
+    return 0;
+}
+
 int cmd_help(int argc, char **argv) {
 
     int i = 0;
@@ -330,6 +343,7 @@ COMMAND cmd[] = {
         {"modinfo", "<module_name>",              "Get module information by name.",               cmd_modinfo},
         {"thlist",  "",                           "List (own) running threads.",                   cmd_thls},
         {"memr",    "<hex_address> <hex_size>",   "Read memory.",                                  cmd_memr},
+        {"memw",    "<hex_address> <hex_data>",   "Write memory.",                                 cmd_memw},
         {"?",       "",                           "Display the help.",                             cmd_help},
         {"help",    "",                           "Display the help.",                             cmd_help},
         {"exit",    "",                           "Exit the shell.",                               cmd_exit},

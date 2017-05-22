@@ -76,9 +76,9 @@ int ps_moduleList() {
         psp2shell_print("\tmodules count: %i\n\n", count);
 
         SceKernelModuleInfo moduleInfo;
-        memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
 
         for (i = 0; i < count; i++) {
+            memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
             moduleInfo.size = sizeof(SceKernelModuleInfo);
             res = sceKernelGetModuleInfo(ids[i], &moduleInfo);
             if (res != 0) {

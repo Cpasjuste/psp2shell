@@ -16,8 +16,19 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef __VITA_KERNEL__
+
 #include <psp2/appmgr.h>
-#include <main.h>
+#include <psp2/kernel/processmgr.h>
+#include <psp2/kernel/modulemgr.h>
+#include <psp2/io/dirent.h>
+#include <psp2/io/fcntl.h>
+#include <psp2/net/net.h>
+#include <psp2/appmgr.h>
+#include <taihen.h>
+
+#endif
+
 #include "main.h"
 #include "utility.h"
 #include "psp2cmd.h"
@@ -26,16 +37,6 @@
 #include "thread.h"
 #include "pool.h"
 
-#ifndef __VITA_KERNEL__
-
-#include <psp2/kernel/processmgr.h>
-#include <psp2/kernel/modulemgr.h>
-#include <psp2/io/dirent.h>
-#include <psp2/io/fcntl.h>
-#include <psp2/net/net.h>
-#include <main.h>
-
-#endif
 #ifndef MODULE
 
 #include <psp2/power.h>
@@ -73,7 +74,7 @@ int sceAppMgrAppMount(char *tid);
 static SceUID thid_wait = -1;
 static int listen_port = 3333;
 static int quit = 0;
-static s_client *clients; //[MAX_CLIENT];
+static s_client *clients;
 static int server_sock_msg;
 static int server_sock_cmd;
 
@@ -424,24 +425,73 @@ static void cmd_rmdir(s_client *client, char *path) {
 static void cmd_memr(const char *address_str, const char *size_str) {
 
     unsigned int address = strtoul(address_str, NULL, 16);
-
-    psp2shell_print_color(COL_RED, "address: 0x%08X 0x%08X (%s)\n", address, (unsigned int *) address, address_str);
-
-    //uintptr_t paddr = (uintptr_t) address;
-    //unsigned int *addr = (unsigned int *) address;
     unsigned int size = strtoul(size_str, NULL, 16);
+    unsigned int max = address + size;
+
     unsigned int *addr = (unsigned int *) address;
 
-    unsigned int i;
-    for (i = 0; i < (size >> 4); i++) {
-        psp2shell_print_color(COL_GREEN,
-                              "0x%08X: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
-                              addr,
-                              addr[0], addr[1], addr[2], addr[3], addr[4], addr[5], addr[6], addr[7], addr[8],
-                              addr[9], addr[10], addr[11], addr[12], addr[13], addr[14], addr[15]
+    while ((unsigned int) addr < max) {
+
+        _psp2shell_print_color(64, COL_HEX,
+                               "0x%08X: %08X %08X %08X %08X\n",
+                               addr,
+                               addr[0], addr[1], addr[2], addr[3]
         );
-        //address += 0x10;
-        addr += 0x10;
+
+        addr += 4;
+    }
+}
+
+static void cmd_memw(const char *address_str, const char *data_str) {
+
+    unsigned int address = strtoul(address_str, NULL, 16);
+    unsigned int size = strlen(data_str) / 8;
+
+    // try to find module segment by address
+    int segment = -1;
+    unsigned int offset = 0;
+    unsigned int uid = 0;
+
+    SceUID ids[256];
+    int count = 256;
+    SceKernelModuleInfo moduleInfo;
+
+    int res = sceKernelGetModuleList(0xFF, ids, &count);
+    if (res != 0) {
+        return;
+    } else {
+        for (int i = 0; i < count; i++) {
+            memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
+            moduleInfo.size = sizeof(SceKernelModuleInfo);
+            res = sceKernelGetModuleInfo(ids[i], &moduleInfo);
+            if (res >= 0) {
+                for (int j = 0; j < 4; j++) {
+                    if (moduleInfo.segments[j].memsz <= 0) {
+                        continue;
+                    }
+                    if (address >= (unsigned int) moduleInfo.segments[j].vaddr
+                        && address <
+                           (unsigned int) moduleInfo.segments[j].vaddr + (unsigned int) moduleInfo.segments[j].memsz) {
+                        uid = moduleInfo.handle;
+                        segment = j;
+                        offset = address - (unsigned int) moduleInfo.segments[j].vaddr;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    if (uid <= 0) {
+        return;
+    }
+
+    for (unsigned int i = 0; i < size; i++) {
+        char tmp[8];
+        strncpy(tmp, data_str + (i * 8), 8);
+        unsigned int data = strtoul(tmp, NULL, 16);
+        taiInjectData(uid, segment, offset, &data, 4);
+        offset += 4;
     }
 }
 
@@ -522,6 +572,10 @@ static void cmd_parse(int client_id) {
             case CMD_MEMR:
                 cmd_memr(cmd.arg0, cmd.arg1);
                 break;
+
+            case CMD_MEMW:
+                cmd_memw(cmd.arg0, cmd.arg1);
+                break;
 //TODO:
 #ifndef __VITA_KERNEL__
             case CMD_MODLS:
@@ -579,7 +633,7 @@ int cmd_thread(SceSize args, void *argp) {
                 clients[client_id].cmd_sock,
                 clients[client_id].cmd_buffer, SIZE_CMD, 0);
 
-        if (read_size < 0) {
+        if (read_size <= 0) {
             printf("sceNetRecv failed: %i\n", read_size);
             break;
         } else if (read_size > 0) {
@@ -724,8 +778,8 @@ int module_start(SceSize argc, const void *args) {
     hooks_init();
 #else
 
-int psp2shell_init(int port, int delay) {
-    listen_port = port;
+    int psp2shell_init(int port, int delay) {
+        listen_port = port;
 #endif
 
     // init pool

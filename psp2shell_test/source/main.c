@@ -3,7 +3,6 @@
 #include <psp2/net/netctl.h>
 
 #include "debugScreen.h"
-
 #include "../../psp2shell/include/psp2shell.h"
 
 #define printf psvDebugScreenPrintf

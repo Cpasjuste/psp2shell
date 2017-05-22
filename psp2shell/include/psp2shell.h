@@ -9,7 +9,8 @@ enum colors_t {
     COL_NONE = 0,
     COL_RED = 1,
     COL_YELLOW = 2,
-    COL_GREEN = 3
+    COL_GREEN = 3,
+    COL_HEX = 9
 };
 
 // init psp2shell on specified port with delay in seconds.
