@@ -45,15 +45,13 @@
 #include "psp2cmd.h"
 #include "pool.h"
 
+#define NET_STACK_SIZE 0x4000
+static unsigned char net_stack[NET_STACK_SIZE];
+
 int s_launchAppByUriExit(char *titleid) {
 #ifndef __VITA_KERNEL__
     char uri[32];
     sprintf(uri, "psgm:play?titleid=%s", titleid);
-#ifndef MODULE
-    sceKernelDelayThread(10000);
-    sceAppMgrLaunchAppByUri(0xFFFFF, uri);
-    sceKernelExitProcess(0);
-#else
     char name[256];
     char id[16];
     sceAppMgrAppParamGetString(0, 9, name, 256);
@@ -68,7 +66,6 @@ int s_launchAppByUriExit(char *titleid) {
         sceAppMgrDestroyAppByName(id);
     }
 #endif
-#endif
     return 0;
 }
 
@@ -80,8 +77,8 @@ void s_netInit() {
         int ret = sceNetShowNetstat();
         if (ret == SCE_NET_ERROR_ENOTINIT) {
             SceNetInitParam netInitParam;
-            netInitParam.memory = malloc(0x4000);
-            netInitParam.size = 0x4000;
+            netInitParam.memory = net_stack;
+            netInitParam.size = NET_STACK_SIZE;
             netInitParam.flags = 0;
             sceNetInit(&netInitParam);
         }
