@@ -49,12 +49,24 @@ int s_launchAppByUriExit(char *titleid) {
 #ifndef __VITA_KERNEL__
     char uri[32];
     sprintf(uri, "psgm:play?titleid=%s", titleid);
-    sceKernelDelayThread(100000);
-    sceAppMgrLaunchAppByUri(0xFFFFF, uri);
+#ifndef MODULE
     sceKernelDelayThread(10000);
     sceAppMgrLaunchAppByUri(0xFFFFF, uri);
-#ifndef MODULE //TODO:
     sceKernelExitProcess(0);
+#else
+    char name[256];
+    char id[16];
+    sceAppMgrAppParamGetString(0, 9, name, 256);
+    sceAppMgrAppParamGetString(0, 12, id, 256);
+
+    for (int i = 0; i < 4; i++) {
+        sceAppMgrLaunchAppByUri(0xFFFFF, uri);
+        sceKernelDelayThread(10000);
+    }
+
+    if (strcmp(name, "SceShell") != 0) {
+        sceAppMgrDestroyAppByName(id);
+    }
 #endif
 #endif
     return 0;
