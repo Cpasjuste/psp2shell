@@ -23,6 +23,7 @@
 #include <psp2/net/netctl.h>
 #include <psp2/io/fcntl.h>
 #include <psp2/io/dirent.h>
+#include <psp2/appmgr.h>
 
 #endif
 
@@ -37,7 +38,6 @@
 #include <malloc.h>
 #include <sys/errno.h>
 #include <psp2/kernel/processmgr.h>
-#include <psp2/appmgr.h>
 
 #endif
 
@@ -47,13 +47,13 @@
 
 int s_launchAppByUriExit(char *titleid) {
 #ifndef __VITA_KERNEL__
-#ifndef MODULE //TODO:
     char uri[32];
     sprintf(uri, "psgm:play?titleid=%s", titleid);
     sceKernelDelayThread(100000);
     sceAppMgrLaunchAppByUri(0xFFFFF, uri);
     sceKernelDelayThread(10000);
     sceAppMgrLaunchAppByUri(0xFFFFF, uri);
+#ifndef MODULE //TODO:
     sceKernelExitProcess(0);
 #endif
 #endif
@@ -68,8 +68,8 @@ void s_netInit() {
         int ret = sceNetShowNetstat();
         if (ret == SCE_NET_ERROR_ENOTINIT) {
             SceNetInitParam netInitParam;
-            netInitParam.memory = malloc(1048576);
-            netInitParam.size = 1048576;
+            netInitParam.memory = malloc(0x4000);
+            netInitParam.size = 0x4000;
             netInitParam.flags = 0;
             sceNetInit(&netInitParam);
         }
