@@ -10,6 +10,7 @@
 #include "libmodule.h"
 #include "hooks.h"
 
+/*
 extern void _psp2shell_print_color(SceSize size, int color, const char *fmt, ...);
 
 static char buffer[256];
@@ -90,8 +91,10 @@ int module_start_hook(SceSize argc, const void *args) {
 
     return TAI_CONTINUE(int, module_start_ref, argc, args);
 }
+*/
 
 void hooks_init() {
+    /*
 #ifndef __VITA_KERNEL__
     module_start_uid = taiHookFunctionExport(&module_start_ref,  // Output a reference
                                              TAI_MAIN_MODULE,       // Name of module being hooked
@@ -99,9 +102,11 @@ void hooks_init() {
                                              0x935CD196,      // Special NID specifying module_start
                                              module_start_hook); // Name of the hook function
 #endif
+     */
 }
 
 void hooks_exit() {
+    /*
 #ifndef __VITA_KERNEL__
     for (int i = 0; i < HOOK_MAX; i++) {
         if (sceClibPrintf_uid[i] > 0) {
@@ -112,6 +117,7 @@ void hooks_exit() {
     if (module_start_uid >= 0)
         taiHookRelease(module_start_uid, module_start_ref);
 #endif
+     */
 }
 
 #endif

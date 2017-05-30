@@ -3,13 +3,31 @@
 #include <psp2/kernel/modulemgr.h>
 #include <psp2/ctrl.h>
 #include <psp2/kernel/clib.h>
+#include <taihen.h>
 
 #include "debugScreen.h"
 
 #define printf psvDebugScreenPrintf
-#define PRX "ux0:tai/psp2shell.suprx"
 
-SceUID modid = -1;
+#define PSP2S_K 0
+#define PSP2S_U 1
+
+#define MOD_TYPE_K 0
+#define MOD_TYPE_U 1
+
+int sceKernelStartModule(SceUID modid, SceSize args, void *argp, int flags, void *option, int *status);
+
+typedef struct Module {
+    char *name;
+    char *path;
+    int type;
+    SceUID uid;
+} Module;
+
+Module modules[2] = {
+        {"psp2shell_k", "ux0:tai/psp2shell_k.skprx", MOD_TYPE_K, -1},
+        {"psp2shell_u", "ux0:tai/psp2shell_u.suprx", MOD_TYPE_U, -1}
+};
 
 int exitTimeout(SceUInt delay) {
 
@@ -19,56 +37,68 @@ int exitTimeout(SceUInt delay) {
     return 0;
 }
 
-typedef struct {
-} args_t;
+void start_module(Module *module) {
 
-void load() {
+    // load
+    printf("loading %s\n", module->name);
 
-    if (modid >= 0) {
-        printf("psp2shell module already loaded\n");
+    if (module->uid >= 0) {
+        printf("%s module already loaded\n", module->name);
         return;
     }
 
-    printf("loading %s\n", PRX);
+    module->uid = module->type == MOD_TYPE_U ?
+                  sceKernelLoadModule(module->path, 0, NULL) :
+                  taiLoadKernelModule(module->path, 0, NULL);
 
-    args_t arg;
-    int res, ret;
-
-    //uid = taiLoadKernelModule(PRX, 0, NULL);
-    modid = sceKernelLoadStartModule(PRX, 0, NULL, 0, NULL, 0);
-    if (modid >= 0) {
-        //ret = taiStartKernelModule(uid, sizeof(arg), &arg, 0, NULL, &res);
-        //if (ret >= 0) {
-        printf("psp2shell module loaded\n");
-       // SceNetCtlInfo netInfo;
-       // sceNetCtlInetGetInfo(SCE_NETCTL_INFO_GET_IP_ADDRESS, &netInfo);
-       // printf("connect with psp2shell_cli to %s 3333\n", netInfo.ip_address);
-        //} else {
-        //    printf("could not load psp2shell: %i\n", ret);
-        //}
+    if (module->uid >= 0) {
+        printf("%s module loaded\n", module->name);
     } else {
-        printf("could not load psp2shell: 0x%08X", modid);
+        printf("could not load %s: 0x%08X", module->name, module->uid);
+        return;
+    }
+
+    // start
+    printf("starting %s (0x%08X)\n", module->name, module->uid);
+
+    int res = 0;
+    int ret = module->type == MOD_TYPE_U ?
+              sceKernelStartModule(module->uid, 0, NULL, 0, NULL, &res) :
+              taiStartKernelModule(module->uid, 0, NULL, 0, NULL, &res);
+
+    if (ret >= 0) {
+        printf("%s module started\n", modules->name);
+    } else {
+        printf("could not start %s: 0x%08X", modules->name, res);
+        if (module->type == MOD_TYPE_U) {
+            sceKernelUnloadModule(modules->uid, 0, NULL);
+        } else {
+            taiUnloadKernelModule(modules->uid, 0, NULL);
+        }
+        module->uid = -1;
     }
 
     sceKernelDelayThread(1000 * 1000);
 }
 
-void unload() {
+void stop_module(Module *module) {
 
-    printf("unloading psp2shell\n");
+    printf("stopping %s\n", module->name);
 
-    int res;
-    if (modid >= 0) {
-        //int ret = taiStopUnloadKernelModule(id, 0, NULL, 0, NULL, &res);
-        int ret = sceKernelStopUnloadModule(modid, 0, NULL, 0, NULL, 0);
-        if (ret >= 0) {
-            modid = -1;
-            printf("psp2shell module unloaded\n");
-        } else {
-            printf("could not unload psp2shell: %i\n", ret);
-        }
+    if (module->uid < 0) {
+        printf("%s module not loaded\n", module->name);
+        return;
+    }
+
+    int res = 0;
+    int ret = module->type == MOD_TYPE_U ?
+              sceKernelStopUnloadModule(module->uid, 0, NULL, 0, NULL, &res) :
+              taiStopUnloadKernelModule(module->uid, 0, NULL, 0, NULL, &res);
+    if (ret >= 0) {
+        module->uid = -1;
+        printf("%s module unloaded\n", module->name);
     } else {
-        printf("psp2shell module not loaded\n");
+        printf("could not unload %s: 0x%08X\n", ret);
     }
 
     sceKernelDelayThread(1000 * 500);
@@ -81,24 +111,34 @@ int main(int argc, char *argv[]) {
     psvDebugScreenInit();
 
     printf("PSP2SHELL LOADER @ Cpasjuste\n\n");
-    printf("Triangle to load psp2shell module\n");
-    printf("Square to unload psp2shell module\n");
-    printf("Circle to test sceClibPrintf hook\n");
-    printf("Cross/Circle to exit\n");
+
+    printf("Square to load psp2shell_k module\n");
+    printf("Triangle to unload psp2shell_k module\n\n");
+
+    printf("Cross to load psp2shell_u module\n");
+    printf("Circle to unload psp2shell_u module\n\n");
+
+    printf("L/R to printf\n");
+
+    printf("Start to exit\n");
 
     while (1) {
 
         sceCtrlPeekBufferPositive(0, &ctrl, 1);
-        if (ctrl.buttons == (SCE_CTRL_CIRCLE | SCE_CTRL_CROSS))
-            break;
-        else if (ctrl.buttons == SCE_CTRL_TRIANGLE)
-            load();
-        else if (ctrl.buttons == SCE_CTRL_SQUARE)
-            unload();
-        else if (ctrl.buttons == SCE_CTRL_CIRCLE) {
+        if (ctrl.buttons == (SCE_CTRL_LTRIGGER | SCE_CTRL_RTRIGGER)) {
             sceClibPrintf("Hello Module1\n");
             printf("Hello Module2\n");
             fprintf(stdout, "Hello Module3\n");
+        } else if (ctrl.buttons == SCE_CTRL_SQUARE) {
+            start_module(&modules[PSP2S_K]);
+        } else if (ctrl.buttons == SCE_CTRL_TRIANGLE) {
+            stop_module(&modules[PSP2S_K]);
+        } else if (ctrl.buttons == SCE_CTRL_CROSS) {
+            start_module(&modules[PSP2S_U]);
+        } else if (ctrl.buttons == SCE_CTRL_CIRCLE) {
+            stop_module(&modules[PSP2S_U]);
+        } else if (ctrl.buttons == SCE_CTRL_START) {
+            break;
         }
     }
 

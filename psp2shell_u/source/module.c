@@ -23,7 +23,9 @@
 #include "module.h"
 
 #ifdef MODULE
+
 #include "libmodule.h"
+
 #else
 
 #include <string.h>
@@ -109,12 +111,41 @@ int ps_moduleInfo(SceUID uid) {
     return res;
 }
 
+SceUID ps_moduleLoad(char *modulePath) {
+
+    SceUID uid = sceKernelLoadModule(modulePath, 0, NULL);
+    if (uid != 0) {
+        psp2shell_print_color(COL_RED, "module load failed: 0x%08X\n", uid);
+    } else {
+        psp2shell_print_color(COL_GREEN, "module loaded: uid = 0x%08X\n", uid);
+    }
+
+    return uid;
+}
+
+int ps_moduleStart(SceUID uid) {
+
+    int status = 0;
+
+    int res = sceKernelStartModule(uid, 0, NULL, 0, NULL, &status);
+    if (res != 0) {
+        psp2shell_print_color(COL_RED, "module start failed: 0x%08X\n", status);
+    } else {
+        psp2shell_print_color(COL_GREEN, "module started\n");
+    }
+
+    return res;
+}
+
 int ps_moduleLoadStart(char *modulePath) {
 
-    int res = sceKernelLoadStartModule(modulePath, 0, NULL, 0, 0, 0);
+    int status = 0;
+
+    int res = sceKernelLoadStartModule(modulePath, 0, NULL, 0, NULL, &status);
     if (res != 0) {
-        psp2shell_print_color(COL_RED, "modld failed: %i\n", res);
+        psp2shell_print_color(COL_RED, "module load/start failed: 0x%08X\n", status);
     }
+
     return res;
 }
 

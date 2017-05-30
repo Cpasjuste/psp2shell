@@ -22,6 +22,9 @@
 #include <psp2/io/fcntl.h>
 #include <psp2/types.h>
 #include <psp2/power.h>
+
+int sceKernelStartModule(SceUID modid, SceSize args, void *argp, int flags, void *option, int *status);
+
 #endif
 
 #ifdef DEBUG
@@ -36,6 +39,8 @@ void mdebug(const char *fmt, ...);
 #include <psp2kern/kernel/modulemgr.h>
 #include <psp2kern/io/fcntl.h>
 #include <psp2kern/io/stat.h>
+
+#define sceKernelStartModule ksceKernelStartModule
 
 SceUID ksceKernelFindMemBlockByAddr(const void *addr, SceSize size);
 

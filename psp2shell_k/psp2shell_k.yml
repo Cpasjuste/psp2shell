@@ -1,0 +1,13 @@
+psp2shell_k:
+    attributes: 0
+    version:
+        major: 1
+        minor: 0
+    main:
+        start: module_start
+        stop: module_stop
+    modules:
+        psp2shell_k:
+            syscall: true
+            functions:
+              - setStdoutCb

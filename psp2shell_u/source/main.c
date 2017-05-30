@@ -57,6 +57,7 @@ extern int psvDebugScreenPrintf(const char *format, ...);
 
 #include "libmodule.h"
 #include "hooks.h"
+#include "../../psp2shell_k/include/psp2shell_k.h"
 
 #endif
 
@@ -586,8 +587,12 @@ static void cmd_parse(int client_id) {
                 ps_moduleInfo(strtoul(cmd.arg0, NULL, 16));
                 break;
 
-            case CMD_MODLD:
-                ps_moduleLoadStart(cmd.arg0);
+            case CMD_MODLOAD:
+                ps_moduleLoad(cmd.arg0);
+                break;
+
+            case CMD_MODSTART:
+                ps_moduleStart(cmd.arg0);
                 break;
 
             case CMD_THLS:
@@ -770,14 +775,20 @@ static int thread_wait(SceSize args, void *argp) {
 
 #ifdef MODULE
 
+void stdoutCallback(const void *data, SceSize size) {
+    //_psp2shell_print_color(size, 0, "%s", data);
+    psp2shell_print("stdout\n");
+}
+
 void _start() __attribute__ ((weak, alias ("module_start")));
 
 int module_start(SceSize argc, const void *args) {
 
     listen_port = 3333;
     hooks_init();
-#else
 
+    //setStdoutCb(stdoutCallback);
+#else
     int psp2shell_init(int port, int delay) {
         listen_port = port;
 #endif
@@ -804,6 +815,7 @@ int module_start(SceSize argc, const void *args) {
 #ifdef MODULE
 
 int module_stop(SceSize argc, const void *args) {
+    //setStdoutCb(NULL);
     hooks_exit();
     psp2shell_exit();
     return SCE_KERNEL_STOP_SUCCESS;
