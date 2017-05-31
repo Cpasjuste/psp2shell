@@ -25,8 +25,7 @@ void psp2shell_print(const char *fmt, ...);
 
 void psp2shell_print_color(int color, const char *fmt, ...);
 
-// uncomment this to redefine printf
-//#define printf(...) psp2shell_print_color(0, __VA_ARGS__)
+void psp2shell_print_color_advanced(SceSize size, int color, const char *fmt, ...);
 
 #ifdef __cplusplus
 }

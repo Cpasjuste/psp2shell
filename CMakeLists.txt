@@ -16,10 +16,13 @@ endif ()
 execute_process(COMMAND "date" "+%Y.%m.%d" OUTPUT_VARIABLE BUILD_DATE OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 # kernel module
-add_subdirectory(psp2shell_k)
+#add_subdirectory(psp2shell_k)
+
+# main module
+add_subdirectory(psp2shell_m)
 
 # user module
-add_subdirectory(psp2shell_u)
+# add_subdirectory(psp2shell_u)
 
 #add_subdirectory(psp2shell_test)
 add_subdirectory(psp2shell_loader) # no module support yet in vitasdk

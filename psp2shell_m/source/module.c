@@ -34,8 +34,6 @@
 
 static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
 
-    int i;
-
     psp2shell_print_color(COL_GREEN, "module_name: %s\n", moduleInfo->module_name);
     psp2shell_print("\tpath: %s\n", moduleInfo->path);
     psp2shell_print("\thandle: 0x%08X\n", moduleInfo->handle);
@@ -52,7 +50,7 @@ static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
     psp2shell_print("\tunk30: 0x%08X\n", moduleInfo->unk30);
     psp2shell_print("\tunk40: 0x%08X\n", moduleInfo->unk40);
     psp2shell_print("\tunk44: 0x%08X\n", moduleInfo->unk44);
-    for (i = 0; i < 4; ++i) {
+    for (int i = 0; i < 4; ++i) {
         if (moduleInfo->segments[i].memsz <= 0) {
             continue;
         }
@@ -65,10 +63,26 @@ static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
     psp2shell_print("\n\n");
 }
 
-int ps_moduleList() {
+int p2s_moduleInfo(SceUID uid) {
+
+    SceKernelModuleInfo moduleInfo;
+    memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
+    moduleInfo.size = sizeof(SceKernelModuleInfo);
+
+    int res = sceKernelGetModuleInfo(uid, &moduleInfo);
+    if (res == 0) {
+        printModuleInfoFull(&moduleInfo);
+    } else {
+        psp2shell_print_color(COL_RED, "getting module info failed: 0x%08X\n", res);
+    }
+
+    return res;
+}
+
+int p2s_moduleList() {
 
     SceUID ids[256];
-    int count = 256, i;
+    int count = 256;
 
     int res = sceKernelGetModuleList(0xFF, ids, &count);
     if (res != 0) {
@@ -79,7 +93,7 @@ int ps_moduleList() {
 
         SceKernelModuleInfo moduleInfo;
 
-        for (i = 0; i < count; i++) {
+        for (int i = 0; i < count; i++) {
             memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
             moduleInfo.size = sizeof(SceKernelModuleInfo);
             res = sceKernelGetModuleInfo(ids[i], &moduleInfo);
@@ -92,29 +106,14 @@ int ps_moduleList() {
             }
         }
     }
+
     return 0;
 }
 
-int ps_moduleInfo(SceUID uid) {
-
-    SceKernelModuleInfo moduleInfo;
-    memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
-    moduleInfo.size = sizeof(SceKernelModuleInfo);
-
-    int res = sceKernelGetModuleInfo(uid, &moduleInfo);
-    if (res == 0) {
-        printModuleInfoFull(&moduleInfo);
-    } else {
-        psp2shell_print_color(COL_RED, "GetModuleInfo failed: 0x%08X\n", res);
-    }
-
-    return res;
-}
-
-SceUID ps_moduleLoad(char *modulePath) {
+SceUID p2s_moduleLoad(char *modulePath) {
 
     SceUID uid = sceKernelLoadModule(modulePath, 0, NULL);
-    if (uid != 0) {
+    if (uid < 0) {
         psp2shell_print_color(COL_RED, "module load failed: 0x%08X\n", uid);
     } else {
         psp2shell_print_color(COL_GREEN, "module loaded: uid = 0x%08X\n", uid);
@@ -123,9 +122,9 @@ SceUID ps_moduleLoad(char *modulePath) {
     return uid;
 }
 
-int ps_moduleStart(SceUID uid) {
+int p2s_moduleStart(SceUID uid) {
 
-    int status = 0;
+    int status;
 
     int res = sceKernelStartModule(uid, 0, NULL, 0, NULL, &status);
     if (res != 0) {
@@ -137,13 +136,55 @@ int ps_moduleStart(SceUID uid) {
     return res;
 }
 
-int ps_moduleLoadStart(char *modulePath) {
+SceUID p2s_moduleLoadStart(char *modulePath) {
 
-    int status = 0;
+    int status;
 
-    int res = sceKernelLoadStartModule(modulePath, 0, NULL, 0, NULL, &status);
-    if (res != 0) {
+    SceUID uid = sceKernelLoadStartModule(modulePath, 0, NULL, 0, NULL, &status);
+    if (uid < 0) {
         psp2shell_print_color(COL_RED, "module load/start failed: 0x%08X\n", status);
+    } else {
+        psp2shell_print_color(COL_GREEN, "module loaded/started: uid = 0x%08X\n", uid);
+    }
+
+    return uid;
+}
+
+int p2s_moduleStop(SceUID uid) {
+
+    int status;
+
+    int res = sceKernelStopModule(uid, 0, NULL, 0, NULL, &status);
+    if (res != 0) {
+        psp2shell_print_color(COL_RED, "module stop failed: 0x%08X\n", status);
+    } else {
+        psp2shell_print_color(COL_GREEN, "module stopped\n");
+    }
+
+    return res;
+}
+
+int p2s_moduleUnload(SceUID uid) {
+
+    int res = sceKernelUnloadModule(uid, 0, NULL);
+    if (res != 0) {
+        psp2shell_print_color(COL_RED, "module unload failed: 0x%08X\n", res);
+    } else {
+        psp2shell_print_color(COL_GREEN, "module unloaded\n");
+    }
+
+    return res;
+}
+
+int p2s_moduleStopUnload(SceUID uid) {
+
+    int status;
+
+    int res = sceKernelStopUnloadModule(uid, 0, NULL, 0, NULL, &status);
+    if (res != 0) {
+        psp2shell_print_color(COL_RED, "module stop/unload failed: 0x%08X\n", status);
+    } else {
+        psp2shell_print_color(COL_GREEN, "module stopped/unloaded\n");
     }
 
     return res;

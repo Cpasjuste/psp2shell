@@ -22,20 +22,20 @@ static tai_hook_ref_t sceClibPrintf_ref[HOOK_MAX];
 static tai_hook_ref_t module_start_ref;
 SceUID module_start_uid;
 
-int _sceClibPrintf(const char *fmt, ...) {
+static int _sceClibPrintf(const char *fmt, ...) {
 
     memset(buffer, 0, 256);
     va_list args;
     va_start(args, fmt);
     vsnprintf(buffer, 256, fmt, args);
     va_end(args);
-    _psp2shell_print_color(256, 0, buffer);
+    psp2shell_print_color_advanced(256, 0, buffer);
 
     return 0;
     //return TAI_CONTINUE(int, sceClibPrintf_ref, fmt, args);
 }
 
-int module_start_hook(SceSize argc, const void *args) {
+static int module_start_hook(SceSize argc, const void *args) {
 
     // hook all user modules import (sceClibPrintf)
 
@@ -93,7 +93,95 @@ int module_start_hook(SceSize argc, const void *args) {
 }
 */
 
-void hooks_init() {
+int sceAppMgrGetProcessIdByAppIdForShell(SceUID pid);
+
+static tai_hook_ref_t h_ref[2];
+static SceUID h_uid[2];
+
+int sceAppMgrGetRunningAppIdListForShell_h(int *a, int b) {
+
+    int ret = TAI_CONTINUE(int, h_ref[0], a, b);
+
+    if (a == NULL) {
+        psp2shell_print("sceAppMgrGetRunningAppIdListForShell_h: a == NULL\n");
+    } else {
+        psp2shell_print("sceAppMgrGetRunningAppIdListForShell_h: a == 0x%08X\n", a[0]);
+        if(ret > 0) {
+            int res = sceAppMgrGetProcessIdByAppIdForShell(a[0]);
+            psp2shell_print("sceAppMgrGetProcessIdByAppIdForShell: res == 0x%08X\n", res);
+            if(res > 0) {
+
+            }
+        }
+    }
+
+    if (b == NULL) {
+        psp2shell_print("sceAppMgrGetRunningAppIdListForShell_h: b == NULL\n");
+    } else {
+        psp2shell_print("sceAppMgrGetRunningAppIdListForShell_h: b == 0x%08X\n", b);
+    }
+
+    psp2shell_print("sceAppMgrGetRunningAppIdListForShell_h: ret == 0x%08X\n", ret);
+
+    return ret;
+}
+
+/*
+int sceAppMgrGetProcessIdByAppIdForShell_h(int a, void *b, void *c, void *d) {
+
+    int ret = TAI_CONTINUE(int, h_ref[1], a, b, c, d);
+
+    if (a == NULL) {
+        psp2shell_print("sceAppMgrGetProcessIdByAppIdForShell_h: a == NULL\n");
+    } else {
+        psp2shell_print("sceAppMgrGetProcessIdByAppIdForShell_h: a == 0x%08X\n", a);
+
+    }
+
+    if (b == NULL) {
+        psp2shell_print("sceAppMgrGetProcessIdByAppIdForShell_h: b == NULL\n");
+    } else {
+        psp2shell_print("sceAppMgrGetProcessIdByAppIdForShell_h: b == 0x%08X\n", b);
+    }
+
+    if (c == NULL) {
+        psp2shell_print("sceAppMgrGetProcessIdByAppIdForShell_h: c == NULL\n");
+    } else {
+        psp2shell_print("sceAppMgrGetProcessIdByAppIdForShell_h: c == 0x%08X\n", c);
+    }
+
+    if (d == NULL) {
+        psp2shell_print("sceAppMgrGetProcessIdByAppIdForShell_h: d == NULL\n");
+    } else {
+        psp2shell_print("sceAppMgrGetProcessIdByAppIdForShell_h: d == 0x%08X\n", d);
+    }
+
+    psp2shell_print("sceAppMgrGetProcessIdByAppIdForShell_h: 0x%08X\n", ret);
+
+    return ret;
+}
+*/
+
+void ps2_hooks_init() {
+
+    //sceAppMgrGetRunningAppIdListForShell
+
+    /*
+    h_uid[0] = taiHookFunctionImport(&h_ref[0],
+                                     TAI_MAIN_MODULE,
+                                     TAI_ANY_LIBRARY,
+                                     0x613A70E2,
+                                     sceAppMgrGetRunningAppIdListForShell_h);
+    */
+
+/*
+    h_uid[1] = taiHookFunctionImport(&h_ref[1],
+                                     TAI_MAIN_MODULE,
+                                     TAI_ANY_LIBRARY,
+                                     0x63FAC2A9,
+                                     sceAppMgrGetProcessIdByAppIdForShell_h);
+*/
+
     /*
 #ifndef __VITA_KERNEL__
     module_start_uid = taiHookFunctionExport(&module_start_ref,  // Output a reference
@@ -102,10 +190,23 @@ void hooks_init() {
                                              0x935CD196,      // Special NID specifying module_start
                                              module_start_hook); // Name of the hook function
 #endif
-     */
+    */
 }
 
-void hooks_exit() {
+void ps2_hooks_exit() {
+
+    /*
+    if (h_uid[0] > 0) {
+        taiHookRelease(h_uid[0], h_ref[0]);
+    }
+    */
+
+    /*
+    if (h_uid[1] > 0) {
+        taiHookRelease(h_uid[1], h_ref[1]);
+    }
+    */
+
     /*
 #ifndef __VITA_KERNEL__
     for (int i = 0; i < HOOK_MAX; i++) {
@@ -117,7 +218,7 @@ void hooks_exit() {
     if (module_start_uid >= 0)
         taiHookRelease(module_start_uid, module_start_ref);
 #endif
-     */
+    */
 }
 
 #endif

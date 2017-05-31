@@ -19,19 +19,4 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#include "file.h"
-
-#define BOOL int
-#define TRUE 1
-#define FALSE 0
-#define MAX_CLIENT 2
-
-typedef struct {
-    SceUID thid;
-    int msg_sock;
-    int cmd_sock;
-    char *cmd_buffer;
-    s_FileList fileList;
-} s_client;
-
 #endif // MAIN_H

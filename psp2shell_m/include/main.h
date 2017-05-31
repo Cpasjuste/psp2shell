@@ -16,35 +16,22 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UTILITY_H
-#define UTILITY_H
+#ifndef MAIN_H
+#define MAIN_H
 
-#include <psp2/rtc.h>
+#include "file.h"
 
-void s_log_write(const char *msg);
-#define LOG(...) \
-    do { \
-        char buffer[256]; \
-        snprintf(buffer, sizeof(buffer), ##__VA_ARGS__); \
-        s_log_write(buffer); \
-    } while (0)
+#define BOOL int
+#define TRUE 1
+#define FALSE 0
+#define MAX_CLIENT 2
 
-int s_launchAppByUriExit(char *titleid);
+typedef struct {
+    SceUID thid;
+    int msg_sock;
+    int cmd_sock;
+    char *cmd_buffer;
+    s_FileList fileList;
+} s_client;
 
-void s_netInit();
-
-int s_bind_port(int sock, int port);
-
-int s_get_sock(int sock);
-
-int s_recvall(int sock, void *buffer, int size, int flags);
-
-ssize_t s_recv_file(int sock, SceUID fd, long size);
-
-int s_hasEndSlash(char *path);
-
-int s_removeEndSlash(char *path);
-
-int s_addEndSlash(char *path);
-
-#endif // UTILITY_H
+#endif // MAIN_H

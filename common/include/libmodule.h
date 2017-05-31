@@ -18,10 +18,12 @@
 #include <psp2kern/kernel/sysmem.h>
 
 #else
+
 #include <psp2/kernel/sysmem.h>
 #include <psp2/io/fcntl.h>
 #include <psp2/types.h>
 #include <psp2/power.h>
+#include <psp2/appmgr.h>
 
 int sceKernelStartModule(SceUID modid, SceSize args, void *argp, int flags, void *option, int *status);
 
@@ -73,6 +75,21 @@ SceUID ksceKernelFindMemBlockByAddr(const void *addr, SceSize size);
 #define sceNetSend(a, b, c, d) ksceNetSendto (a, b, c, d, NULL, 0)
 #define sceNetHtons ksceNetHtons
 #define sceNetHtonl ksceNetHtonl
+
+#else
+
+int sceKernelStopModule(SceUID modid, SceSize args, void *argp, int flags, void *option, int *status);
+
+SceUID sceAppMgrGetProcessIdByAppIdForShell(SceUID appId);
+
+int sceAppMgrGetRunningAppIdListForShell(SceUID *ids, int count);
+
+// return AppId ?
+SceUID sceAppMgrLaunchAppByName2ForShell(const char *name, const char *param, SceAppMgrLaunchAppOptParam *optParam);
+
+int sceAppMgrDestroyOtherAppByAppIdForShell(SceUID appId, void *a, void *b);
+
+int sceAppMgrDestroyAppByAppId(SceUID aid);
 
 #endif
 

@@ -127,7 +127,7 @@ int s_getPathInfo(char *path, uint64_t *size, uint32_t *folders, uint32_t *files
                 size_t len = strlen(path) + strlen(dir.d_name) + 2;
                 char new_path[len];
                 memset(new_path, 0, len);
-                snprintf(new_path, MAX_PATH_LENGTH, "%s%s%s", path, s_hasEndSlash(path) ? "" : "/", dir.d_name);
+                snprintf(new_path, MAX_PATH_LENGTH, "%s%s%s", path, p2s_hasEndSlash(path) ? "" : "/", dir.d_name);
 
                 if (SCE_S_ISDIR(dir.d_stat.st_mode)) {
                     int ret = s_getPathInfo(new_path, size, folders, files);
@@ -189,7 +189,7 @@ int s_removePath(char *path, s_FileProcessParam *param) {
                 size_t len = strlen(path) + strlen(dir.d_name) + 2;
                 char new_path[len];
                 memset(new_path, 0, len);
-                snprintf(new_path, MAX_PATH_LENGTH, "%s%s%s", path, s_hasEndSlash(path) ? "" : "/", dir.d_name);
+                snprintf(new_path, MAX_PATH_LENGTH, "%s%s%s", path, p2s_hasEndSlash(path) ? "" : "/", dir.d_name);
 
                 if (SCE_S_ISDIR(dir.d_stat.st_mode)) {
                     int ret = s_removePath(new_path, param);
@@ -373,13 +373,13 @@ int s_copyPath(char *src_path, char *dst_path, s_FileProcessParam *param) {
                 char new_src_path[len];
                 memset(new_src_path, 0, len);
                 snprintf(new_src_path, MAX_PATH_LENGTH, "%s%s%s",
-                         src_path, s_hasEndSlash(src_path) ? "" : "/", dir.d_name);
+                         src_path, p2s_hasEndSlash(src_path) ? "" : "/", dir.d_name);
 
                 len = strlen(dst_path) + strlen(dir.d_name) + 2;
                 char new_dst_path[len];
                 memset(new_dst_path, 0, len);
                 snprintf(new_dst_path, MAX_PATH_LENGTH, "%s%s%s",
-                         dst_path, s_hasEndSlash(dst_path) ? "" : "/", dir.d_name);
+                         dst_path, p2s_hasEndSlash(dst_path) ? "" : "/", dir.d_name);
 
                 if (SCE_S_ISDIR(dir.d_stat.st_mode)) {
                     ret = s_copyPath(new_src_path, new_dst_path, param);
@@ -471,13 +471,13 @@ int s_movePath(char *src_path, char *dst_path, int flags, s_FileProcessParam *pa
                     len = strlen(src_path) + strlen(dir.d_name) + 2;
                     char new_src_path[len];
                     memset(new_src_path, 0, len);
-                    snprintf(new_src_path, MAX_PATH_LENGTH, "%s%s%s", src_path, s_hasEndSlash(src_path) ? "" : "/",
+                    snprintf(new_src_path, MAX_PATH_LENGTH, "%s%s%s", src_path, p2s_hasEndSlash(src_path) ? "" : "/",
                              dir.d_name);
 
                     len = strlen(dst_path) + strlen(dir.d_name) + 2;
                     char new_dst_path[len];
                     memset(new_dst_path, 0, len);
-                    snprintf(new_dst_path, MAX_PATH_LENGTH, "%s%s%s", dst_path, s_hasEndSlash(dst_path) ? "" : "/",
+                    snprintf(new_dst_path, MAX_PATH_LENGTH, "%s%s%s", dst_path, p2s_hasEndSlash(dst_path) ? "" : "/",
                              dir.d_name);
 
                     // Recursive move
@@ -688,7 +688,7 @@ int s_fileListGetDirectoryEntries(s_FileList *list, char *path) {
 
             entry->is_folder = SCE_S_ISDIR(dir.d_stat.st_mode);
             if (entry->is_folder) {
-                s_addEndSlash(entry->name);
+                p2s_addEndSlash(entry->name);
                 entry->type = FILE_TYPE_UNKNOWN;
                 list->folders++;
             } else {

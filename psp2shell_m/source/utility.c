@@ -24,6 +24,7 @@
 #include <psp2/io/fcntl.h>
 #include <psp2/io/dirent.h>
 #include <psp2/appmgr.h>
+#include "psp2shell.h"
 
 #endif
 
@@ -48,28 +49,102 @@
 #define NET_STACK_SIZE 0x4000
 static unsigned char net_stack[NET_STACK_SIZE];
 
-int s_launchAppByUriExit(char *titleid) {
-#ifndef __VITA_KERNEL__
-    char uri[32];
-    sprintf(uri, "psgm:play?titleid=%s", titleid);
-    char name[256];
-    char id[16];
-    sceAppMgrAppParamGetString(0, 9, name, 256);
-    sceAppMgrAppParamGetString(0, 12, id, 256);
+SceUID p2s_get_running_app_pid() {
 
-    for (int i = 0; i < 4; i++) {
-        sceAppMgrLaunchAppByUri(0xFFFFF, uri);
-        sceKernelDelayThread(10000);
+    SceUID pid = 0;
+    SceUID ids[20];
+
+    int count = sceAppMgrGetRunningAppIdListForShell(ids, 20);
+    if (count > 0) {
+        pid = sceAppMgrGetProcessIdByAppIdForShell(ids[0]);
     }
 
-    if (strcmp(name, "SceShell") != 0) {
-        sceAppMgrDestroyAppByName(id);
+    return pid;
+}
+
+SceUID p2s_get_running_app_id() {
+
+    SceUID ids[20];
+
+    int count = sceAppMgrGetRunningAppIdListForShell(ids, 20);
+    if (count > 0) {
+        return ids[0];
+    }
+
+    return 0;
+}
+
+int p2s_get_running_app_name(char *name) {
+
+    int ret = -1;
+
+    SceUID pid = p2s_get_running_app_pid();
+    if (pid > 0) {
+        ret = sceAppMgrAppParamGetString(pid, 9, name, 256);
+        return ret;
+    }
+
+    return ret;
+}
+
+int p2s_get_running_app_title_id(char *title_id) {
+
+    int ret = -1;
+
+    SceUID pid = p2s_get_running_app_pid();
+    if (pid > 0) {
+        ret = sceAppMgrAppParamGetString(pid, 12, title_id, 256);
+        return ret;
+    }
+
+    return ret;
+}
+
+int p2s_launch_app_by_uri(const char *tid) {
+#ifndef __VITA_KERNEL__
+    char uri[32];
+
+    sceAppMgrDestroyOtherApp();
+    sceKernelDelayThread(1000 * 1000);
+
+    snprintf(uri, 32, "psgm:play?titleid=%s", tid);
+
+    for (int i = 0; i < 40; i++) {
+        sceAppMgrLaunchAppByUri(0xFFFFF, uri);
+        sceKernelDelayThread(10000);
     }
 #endif
     return 0;
 }
 
-void s_netInit() {
+int p2s_reset_running_app() {
+#ifndef __VITA_KERNEL__
+    char name[256];
+    char id[16];
+    char uri[32];
+
+    if (p2s_get_running_app_title_id(id) != 0) {
+        return -1;
+    }
+
+    if (p2s_get_running_app_name(name) != 0) {
+        return -1;
+    }
+
+    sceAppMgrDestroyOtherApp();
+    sceKernelDelayThread(1000 * 1000);
+
+    snprintf(uri, 32, "psgm:play?titleid=%s", id);
+
+    for (int i = 0; i < 40; i++) {
+        sceAppMgrLaunchAppByUri(0xFFFFF, uri);
+        sceKernelDelayThread(10000);
+    }
+#endif
+    return 0;
+}
+
+void p2s_netInit() {
 #ifndef __VITA_KERNEL__
     int loaded = sceSysmoduleIsLoaded(SCE_SYSMODULE_NET);
     if (loaded != 0) {
@@ -87,7 +162,7 @@ void s_netInit() {
 #endif
 }
 
-int s_bind_port(int sock, int port) {
+int p2s_bind_port(int sock, int port) {
 
     SceNetSockaddrIn serverAddress;
 
@@ -119,14 +194,14 @@ int s_bind_port(int sock, int port) {
     return sock;
 }
 
-int s_get_sock(int sock) {
+int p2s_get_sock(int sock) {
 
     SceNetSockaddrIn clientAddress;
     unsigned int c = sizeof(clientAddress);
     return sceNetAccept(sock, (SceNetSockaddr *) &clientAddress, &c);
 }
 
-int s_recvall(int sock, void *buffer, int size, int flags) {
+int p2s_recvall(int sock, void *buffer, int size, int flags) {
     int len;
     size_t sizeLeft = (size_t) size;
 
@@ -155,7 +230,7 @@ int s_recvall(int sock, void *buffer, int size, int flags) {
 
 static unsigned char *rcv_buffer = NULL;
 
-size_t s_recv_file(int sock, SceUID fd, long size) {
+size_t p2s_recv_file(int sock, SceUID fd, long size) {
 
     size_t len, received = 0, left = (size_t) size;
     int bufSize = SIZE_DATA;
@@ -173,7 +248,7 @@ size_t s_recv_file(int sock, SceUID fd, long size) {
 
     while (left > 0) {
         if (left < bufSize) bufSize = left;
-        len = (size_t) s_recvall(sock, rcv_buffer, bufSize, 0);
+        len = (size_t) p2s_recvall(sock, rcv_buffer, bufSize, 0);
         sceIoWrite(fd, rcv_buffer, (SceSize) len);
         left -= len;
         received += len;
@@ -182,11 +257,11 @@ size_t s_recv_file(int sock, SceUID fd, long size) {
     return received;
 }
 
-int s_hasEndSlash(char *path) {
+int p2s_hasEndSlash(char *path) {
     return path[strlen(path) - 1] == '/';
 }
 
-int s_removeEndSlash(char *path) {
+int p2s_removeEndSlash(char *path) {
     int len = strlen(path);
 
     if (path[len - 1] == '/') {
@@ -197,7 +272,7 @@ int s_removeEndSlash(char *path) {
     return 0;
 }
 
-int s_addEndSlash(char *path) {
+int p2s_addEndSlash(char *path) {
     int len = strlen(path);
     if (len < MAX_PATH_LENGTH - 2) {
         if (path[len - 1] != '/') {
@@ -209,7 +284,7 @@ int s_addEndSlash(char *path) {
     return 0;
 }
 
-void s_log_write(const char *msg) {
+void p2s_log_write(const char *msg) {
 
     sceIoMkdir("ux0:/tai/", 6);
 

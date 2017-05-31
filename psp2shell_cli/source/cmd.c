@@ -270,6 +270,84 @@ int cmd_modinfo(int argc, char **argv) {
     return 0;
 }
 
+int cmd_modload(int argc, char **argv) {
+
+    if (argc < 2) {
+        printf("incorrect number of arguments\n");
+        return -1;
+    }
+
+    char *cmd = build_msg(CMD_MODLOAD, argv[1], "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
+
+    return 0;
+}
+
+int cmd_modstart(int argc, char **argv) {
+
+    if (argc < 2) {
+        printf("incorrect number of arguments\n");
+        return -1;
+    }
+
+    char *cmd = build_msg(CMD_MODSTART, argv[1], "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
+
+    return 0;
+}
+
+int cmd_modloadstart(int argc, char **argv) {
+
+    if (argc < 2) {
+        printf("incorrect number of arguments\n");
+        return -1;
+    }
+
+    char *cmd = build_msg(CMD_MODLOADSTART, argv[1], "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
+
+    return 0;
+}
+
+int cmd_modstop(int argc, char **argv) {
+
+    if (argc < 2) {
+        printf("incorrect number of arguments\n");
+        return -1;
+    }
+
+    char *cmd = build_msg(CMD_MODSTOP, argv[1], "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
+
+    return 0;
+}
+
+int cmd_modunload(int argc, char **argv) {
+
+    if (argc < 2) {
+        printf("incorrect number of arguments\n");
+        return -1;
+    }
+
+    char *cmd = build_msg(CMD_MODUNLOAD, argv[1], "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
+
+    return 0;
+}
+
+int cmd_modstopunload(int argc, char **argv) {
+
+    if (argc < 2) {
+        printf("incorrect number of arguments\n");
+        return -1;
+    }
+
+    char *cmd = build_msg(CMD_MODSTOPUNLOAD, argv[1], "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
+
+    return 0;
+}
+
 int cmd_thls(int argc, char **argv) {
 
     char *cmd = build_msg(CMD_THLS, "0", "0", 0);
@@ -325,28 +403,34 @@ int cmd_exit(int argc, char **argv) {
 }
 
 COMMAND cmd[] = {
-        {"cd",      "<remote_path>",              "Enter a directory.",                            cmd_cd},
-        {"ls",      "<remote_path>",              "List a directory.",                             cmd_ls},
-        {"pwd",     "",                           "Get working directory.",                        cmd_pwd},
-        {"rm",      "<remote_file>",              "Remove a file",                                 cmd_rm},
-        {"rmdir",   "<local_path> <remote_path>", "Remove a directory",                            cmd_rmdir},
-        {"mv",      "<remote_src> <remote_dst>",  "Move a file/directory",                         cmd_mv},
-        {"put",     "<local_path> <remote_path>", "Upload a file.",                                cmd_put},
-        {"reset",   "",                           "Restart the application.",                      cmd_reset},
-        {"reload",  "<eboot.bin>",                "Send (eboot.bin) and restart the application.", cmd_reload},
-        {"launch",  "<titleid>",                  "Launch title",                                  cmd_launch},
-        {"reboot",  "",                           "Reboot.",                                       cmd_reboot},
+        {"cd",            "<remote_path>",              "Enter a directory.",                            cmd_cd},
+        {"ls",            "<remote_path>",              "List a directory.",                             cmd_ls},
+        {"pwd",           "",                           "Get working directory.",                        cmd_pwd},
+        {"rm",            "<remote_file>",              "Remove a file",                                 cmd_rm},
+        {"rmdir",         "<local_path> <remote_path>", "Remove a directory",                            cmd_rmdir},
+        {"mv",            "<remote_src> <remote_dst>",  "Move a file/directory",                         cmd_mv},
+        {"put",           "<local_path> <remote_path>", "Upload a file.",                                cmd_put},
+        {"reset",         "",                           "Restart the application.",                      cmd_reset},
+        {"reload",        "<eboot.bin>",                "Send (eboot.bin) and restart the application.", cmd_reload},
+        {"launch",        "<titleid>",                  "Launch title",                                  cmd_launch},
+        {"reboot",        "",                           "Reboot.",                                       cmd_reboot},
 //        {"mount",   "<titleid>",                "Mount titleid",                                 cmd_mount},
-        {"umount",  "<dev:>",                     "Umount device.",                                cmd_umount},
-        {"title",   "",                           "Get running title",                             cmd_title},
-        {"modlist", "",                           "List all loaded modules.",                      cmd_modls},
-        {"modinfo", "<module_name>",              "Get module information by name.",               cmd_modinfo},
-        {"thlist",  "",                           "List (own) running threads.",                   cmd_thls},
-        {"memr",    "<hex_address> <hex_size>",   "Read memory.",                                  cmd_memr},
-        {"memw",    "<hex_address> <hex_data>",   "Write memory.",                                 cmd_memw},
-        {"?",       "",                           "Display the help.",                             cmd_help},
-        {"help",    "",                           "Display the help.",                             cmd_help},
-        {"exit",    "",                           "Exit the shell.",                               cmd_exit},
+        {"umount",        "<dev:>",                     "Umount device.",                                cmd_umount},
+        {"title",         "",                           "Get running title",                             cmd_title},
+        {"modlist",       "",                           "List all loaded modules.",                      cmd_modls},
+        {"modinfo",       "<module_name>",              "Get module information by name.",               cmd_modinfo},
+        {"modload",       "<module_path>",              "Load module.",                                  cmd_modload},
+        {"modstart",      "<module_id>",                "Start module.",                                 cmd_modstart},
+        {"modloadstart",  "<module_path>",              "Load/Start module.",                            cmd_modloadstart},
+        {"modstop",       "<module_id>",                "Stop module.",                                  cmd_modstop},
+        {"modunload",     "<module_id>",                "Unload module.",                                cmd_modunload},
+        {"modstopunload", "<module_id>",                "Stop/Unload module.",                           cmd_modstopunload},
+        {"thlist",        "",                           "List (own) running threads.",                   cmd_thls},
+        {"memr",          "<hex_address> <hex_size>",   "Read memory.",                                  cmd_memr},
+        {"memw",          "<hex_address> <hex_data>",   "Write memory.",                                 cmd_memw},
+        {"?",             "",                           "Display the help.",                             cmd_help},
+        {"help",          "",                           "Display the help.",                             cmd_help},
+        {"exit",          "",                           "Exit the shell.",                               cmd_exit},
         {NULL, NULL, NULL}
 };
 
