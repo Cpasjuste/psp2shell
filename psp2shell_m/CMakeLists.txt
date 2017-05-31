@@ -40,7 +40,7 @@ add_executable(${PROJECT_NAME}.elf ${SRC_FILES})
 target_include_directories(${PROJECT_NAME}.elf PRIVATE ${INC_FILES})
 target_compile_options(${PROJECT_NAME}.elf PRIVATE ${CFLAGS} -DMODULE)
 target_link_libraries(${PROJECT_NAME}.elf
-        #${CMAKE_BINARY_DIR}/psp2shell_k/psp2shell_k-stubs/libpsp2shell_k_stub.a
+        ${CMAKE_BINARY_DIR}/psp2shell_k/psp2shell_k-stubs/libpsp2shell_k_stub.a
         taihen_stub
         SceLibKernel_stub
         SceKernelThreadMgr_stub

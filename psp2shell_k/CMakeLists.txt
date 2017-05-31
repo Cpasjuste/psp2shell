@@ -23,6 +23,7 @@ target_link_libraries(psp2shell_k
         SceSysmemForDriver_stub
         SceThreadmgrForDriver_stub
         SceIofilemgrForDriver_stub
+        SceNetPsForDriver_stub
         k
         gcc
         )

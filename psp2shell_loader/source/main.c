@@ -26,7 +26,7 @@ typedef struct Module {
 
 Module modules[2] = {
         {"psp2shell_k", "ux0:tai/psp2shell_k.skprx", MOD_TYPE_K, -1},
-        {"psp2shell_u", "ux0:tai/psp2shell_u.suprx", MOD_TYPE_U, -1}
+        {"psp2shell_m", "ux0:tai/psp2shell_m.suprx", MOD_TYPE_U, -1}
 };
 
 int exitTimeout(SceUInt delay) {
@@ -118,14 +118,14 @@ int main(int argc, char *argv[]) {
     printf("Cross to load psp2shell_u module\n");
     printf("Circle to unload psp2shell_u module\n\n");
 
-    printf("L/R to printf\n");
+    printf("R to printf\n");
 
     printf("Start to exit\n");
 
     while (1) {
 
         sceCtrlPeekBufferPositive(0, &ctrl, 1);
-        if (ctrl.buttons == (SCE_CTRL_LTRIGGER | SCE_CTRL_RTRIGGER)) {
+        if (ctrl.buttons == SCE_CTRL_RTRIGGER) {
             sceClibPrintf("Hello Module1\n");
             printf("Hello Module2\n");
             fprintf(stdout, "Hello Module3\n");

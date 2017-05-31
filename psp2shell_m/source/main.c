@@ -56,6 +56,7 @@ extern int psvDebugScreenPrintf(const char *format, ...);
 
 #include "libmodule.h"
 #include "hooks.h"
+#include "../../psp2shell_k/include/psp2shell_k.h"
 
 #endif
 
@@ -104,11 +105,14 @@ void psp2shell_print_color_advanced(SceSize size, int color, const char *fmt, ..
 
     for (int i = 0; i < MAX_CLIENT; i++) {
         if (clients[i].msg_sock > 0) {
+            kpsp2shell_print(clients[i].msg_sock, strlen(msg), msg);
+            /*
             sceNetSend(clients[i].msg_sock, msg, size, 0);
             int ret = sceNetRecv(clients[i].msg_sock, msg, 1, 0);
             if (ret < 0) { // wait for answer
                 printf("psp2shell_print: sceNetRecv failed: %i\n", ret);
             }
+            */
         }
     }
 }
@@ -235,12 +239,10 @@ static void cmd_title() {
 
     if (p2s_get_running_app_name(name) == 0) {
         p2s_get_running_app_title_id(id);
+        psp2shell_print("%s (%s)\n", name, id);
     } else {
-        sceAppMgrAppParamGetString(0, 9, name, 256);
-        sceAppMgrAppParamGetString(0, 12, id, 256);
+        psp2shell_print("SceShell\n");
     }
-
-    psp2shell_print("%s (%s)\n", name, id);
 }
 
 static void cmd_reload(int sock, long size) {
@@ -689,6 +691,7 @@ static void close_con() {
         if (clients[i].msg_sock >= 0) {
             sceNetSocketClose(clients[i].msg_sock);
             clients[i].msg_sock = -1;
+            kpsp2shell_set_sock(-1);
         }
         if (clients[i].cmd_sock >= 0) {
             sceNetSocketClose(clients[i].cmd_sock);
@@ -777,6 +780,9 @@ static int thread_wait(SceSize args, void *argp) {
         }
 
         printf("Connection accepted\n");
+
+        kpsp2shell_set_sock(client_sock);
+
         clients[client_id].msg_sock = client_sock;
         clients[client_id].thid = sceKernelCreateThread("psp2shell_cmd", cmd_thread, 64, 0x4000, 0, 0x10000, 0);
         if (clients[client_id].thid >= 0)

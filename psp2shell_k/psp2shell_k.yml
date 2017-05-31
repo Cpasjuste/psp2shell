@@ -10,4 +10,5 @@ psp2shell_k:
         psp2shell_k:
             syscall: true
             functions:
-              - setStdoutCb
+              - kpsp2shell_print
+              - kpsp2shell_set_sock

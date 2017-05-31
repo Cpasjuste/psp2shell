@@ -253,23 +253,26 @@ void *msg_thread(void *unused) {
         int color = msg[strlen(msg) - 1] - 48;
         char str[SIZE_PRINT];
         memset(str, 0, SIZE_PRINT);
-        strncpy(str, msg, strlen(msg) - 1);
 
         switch (color) {
             case COL_RED:
+                strncpy(str, msg, strlen(msg) - 1);
                 printf(RED "%s" RES, str);
                 break;
             case COL_YELLOW:
+                strncpy(str, msg, strlen(msg) - 1);
                 printf(YEL "%s" RES, str);
                 break;
             case COL_GREEN:
+                strncpy(str, msg, strlen(msg) - 1);
                 printf(GRN "%s" RES, str);
                 break;
             case COL_HEX:
+                strncpy(str, msg, strlen(msg) - 1);
                 print_hex(str);
                 break;
             default:
-                printf("%s", str);
+                printf("%s", msg);
                 break;
         }
 

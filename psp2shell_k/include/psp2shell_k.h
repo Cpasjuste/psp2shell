@@ -1,8 +1,8 @@
 #ifndef _PSP2SHELL_K_H_
 #define _PSP2SHELL_K_H_
 
-typedef void (*StdoutCallback)(const void *data, SceSize size);
+void kpsp2shell_set_sock(int s);
 
-void setStdoutCb(StdoutCallback cb);
+void kpsp2shell_print(int sock, unsigned int size, const char *msg);
 
 #endif //_PSP2SHELL_K_H_
