@@ -105,14 +105,12 @@ void psp2shell_print_color_advanced(SceSize size, int color, const char *fmt, ..
 
     for (int i = 0; i < MAX_CLIENT; i++) {
         if (clients[i].msg_sock > 0) {
-            kpsp2shell_print(clients[i].msg_sock, strlen(msg), msg);
-            /*
+            //kpsp2shell_print(clients[i].msg_sock, strlen(msg), msg);
             sceNetSend(clients[i].msg_sock, msg, size, 0);
             int ret = sceNetRecv(clients[i].msg_sock, msg, 1, 0);
             if (ret < 0) { // wait for answer
                 printf("psp2shell_print: sceNetRecv failed: %i\n", ret);
             }
-            */
         }
     }
 }
