@@ -16,39 +16,23 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <libk/stdio.h>
-
 #include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/modulemgr.h>
-#include <psp2/io/dirent.h>
-#include <psp2/io/fcntl.h>
-#include <psp2/net/net.h>
-#include <psp2/appmgr.h>
-#include <taihen.h>
 
-#include "../../psp2shell_m/include/psp2shell.h"
+#include "../include/hooks.h"
 
 void _start() __attribute__ ((weak, alias ("module_start")));
 
-void dummy() {
-    sceKernelDelayThread(1000);
-}
-
 int module_start(SceSize argc, const void *args) {
 
-    sceKernelDelayThread(1000*1000);
-    psp2shell_print_color_advanced(256, COL_GREEN, "HelloModule1\n");
-
-    sceKernelDelayThread(1000*1000);
-    psp2shell_print_color_advanced(256, COL_GREEN, "HelloModule2\n");
-
-    sceKernelDelayThread(1000*1000);
-    psp2shell_print_color_advanced(256, COL_GREEN, "HelloModule3\n");
+    ps2_hooks_init();
 
     return SCE_KERNEL_START_SUCCESS;
 }
 
 int module_stop(SceSize argc, const void *args) {
+
+    ps2_hooks_exit();
 
     return SCE_KERNEL_STOP_SUCCESS;
 }

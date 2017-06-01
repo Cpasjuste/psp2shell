@@ -74,7 +74,7 @@ int sceAppMgrAppMount(char *tid);
 static SceUID thid_wait = -1;
 static int listen_port = 3333;
 static int quit = 0;
-static s_client *clients;
+static s_client client;
 static int server_sock_msg;
 static int server_sock_cmd;
 
@@ -103,38 +103,16 @@ void psp2shell_print_color_advanced(SceSize size, int color, const char *fmt, ..
 
     snprintf(msg + strlen(msg), size, "%i", color);
 
-    for (int i = 0; i < MAX_CLIENT; i++) {
-        if (clients[i].msg_sock > 0) {
-            //kpsp2shell_print(clients[i].msg_sock, strlen(msg), msg);
-            sceNetSend(clients[i].msg_sock, msg, size, 0);
-            int ret = sceNetRecv(clients[i].msg_sock, msg, 1, 0);
-            if (ret < 0) { // wait for answer
-                printf("psp2shell_print: sceNetRecv failed: %i\n", ret);
-            }
+    if (client.msg_sock > 0) {
+        kpsp2shell_print_sock(client.msg_sock, strlen(msg), msg);
+        /*
+        sceNetSend(clients[i].msg_sock, msg, size, 0);
+        int ret = sceNetRecv(clients[i].msg_sock, msg, 1, 0);
+        if (ret < 0) { // wait for answer
+            printf("psp2shell_print: sceNetRecv failed: %i\n", ret);
         }
+        */
     }
-}
-
-void psp2shell_print_color(int color, const char *fmt, ...) {
-
-    char msg[SIZE_PRINT];
-    memset(msg, 0, SIZE_PRINT);
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(msg, SIZE_PRINT, fmt, args);
-    va_end(args);
-    psp2shell_print_color_advanced(SIZE_PRINT, color, msg);
-}
-
-void psp2shell_print(const char *fmt, ...) {
-
-    char msg[SIZE_PRINT];
-    memset(msg, 0, SIZE_PRINT);
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(msg, SIZE_PRINT, fmt, args);
-    va_end(args);
-    psp2shell_print_color_advanced(SIZE_PRINT, 0, msg);
 }
 
 static void welcome() {
@@ -507,10 +485,10 @@ static void cmd_reboot() {
 
 #endif //__VITA_KERNEL__
 
-static void cmd_parse(int client_id) {
+static void cmd_parse() {
 
     S_CMD cmd;
-    BOOL is_cmd = s_string_to_cmd(&cmd, clients[client_id].cmd_buffer) == 0;
+    BOOL is_cmd = s_string_to_cmd(&cmd, client.cmd_buffer) == 0;
 
     if (is_cmd) {
 
@@ -518,31 +496,31 @@ static void cmd_parse(int client_id) {
 
 #ifndef __VITA_KERNEL__ // TODO
             case CMD_CD:
-                cmd_cd(&clients[client_id], cmd.arg0);
+                cmd_cd(&client, cmd.arg0);
                 break;
 
             case CMD_LS:
-                cmd_ls(&clients[client_id], cmd.arg0);
+                cmd_ls(&client, cmd.arg0);
                 break;
 
             case CMD_PWD:
-                cmd_pwd(&clients[client_id]);
+                cmd_pwd(&client);
                 break;
 
             case CMD_RM:
-                cmd_rm(&clients[client_id], cmd.arg0);
+                cmd_rm(&client, cmd.arg0);
                 break;
 
             case CMD_RMDIR:
-                cmd_rmdir(&clients[client_id], cmd.arg0);
+                cmd_rmdir(&client, cmd.arg0);
                 break;
 
             case CMD_MV:
-                cmd_mv(&clients[client_id], cmd.arg0, cmd.arg1);
+                cmd_mv(&client, cmd.arg0, cmd.arg1);
                 break;
 
             case CMD_PUT:
-                cmd_put(&clients[client_id], cmd.arg2, cmd.arg0, cmd.arg1);
+                cmd_put(&client, cmd.arg2, cmd.arg0, cmd.arg1);
                 break;
 
             case CMD_LAUNCH:
@@ -561,7 +539,7 @@ static void cmd_parse(int client_id) {
                 break;
 
             case CMD_RELOAD:
-                cmd_reload(clients[client_id].cmd_sock, cmd.arg2);
+                cmd_reload(client.cmd_sock, cmd.arg2);
                 break;
 
             case CMD_RESET:
@@ -628,54 +606,52 @@ int cmd_thread(SceSize args, void *argp) {
 
     printf("cmd_thread\n");
 
-    int client_id = *((int *) argp);
-
     // init client file listing memory
 #ifndef __VITA_KERNEL__
     printf("client->fileList malloc\n");
-    memset(&clients[client_id].fileList, 0, sizeof(s_FileList));
-    strcpy(clients[client_id].fileList.path, HOME_PATH);
-    s_fileListGetEntries(&clients[client_id].fileList, HOME_PATH);
+    memset(&client.fileList, 0, sizeof(s_FileList));
+    strcpy(client.fileList.path, HOME_PATH);
+    s_fileListGetEntries(&client.fileList, HOME_PATH);
 #endif
 
     // Welcome!
-    printf("welcome client %i\n", client_id);
+    printf("welcome client\n");
     welcome();
 
     // get data sock
     printf("get data sock\n");
-    clients[client_id].cmd_sock = p2s_get_sock(server_sock_cmd);
-    printf("got data sock: %i\n", clients[client_id].cmd_sock);
+    client.cmd_sock = p2s_get_sock(server_sock_cmd);
+    printf("got data sock: %i\n", client.cmd_sock);
 
     while (!quit) {
 
-        memset(clients[client_id].cmd_buffer, 0, SIZE_CMD);
+        memset(client.cmd_buffer, 0, SIZE_CMD);
 
         int read_size = sceNetRecv(
-                clients[client_id].cmd_sock,
-                clients[client_id].cmd_buffer, SIZE_CMD, 0);
+                client.cmd_sock,
+                client.cmd_buffer, SIZE_CMD, 0);
 
         if (read_size <= 0) {
             printf("sceNetRecv failed: %i\n", read_size);
             break;
         } else if (read_size > 0) {
             printf("sceNetRecv ok: %i\n", read_size);
-            cmd_parse(client_id);
+            cmd_parse();
         }
     }
 
     printf("closing connection\n");
 
 #ifndef __VITA_KERNEL__
-    s_fileListEmpty(&clients[client_id].fileList);
+    s_fileListEmpty(&client.fileList);
 #endif
-    if (clients[client_id].cmd_sock >= 0) {
-        sceNetSocketClose(clients[client_id].cmd_sock);
-        clients[client_id].cmd_sock = -1;
+    if (client.cmd_sock >= 0) {
+        sceNetSocketClose(client.cmd_sock);
+        client.cmd_sock = -1;
     }
-    if (clients[client_id].msg_sock >= 0) {
-        sceNetSocketClose(clients[client_id].msg_sock);
-        clients[client_id].msg_sock = -1;
+    if (client.msg_sock >= 0) {
+        sceNetSocketClose(client.msg_sock);
+        client.msg_sock = -1;
     }
 
     sceKernelExitDeleteThread(0);
@@ -685,19 +661,16 @@ int cmd_thread(SceSize args, void *argp) {
 
 static void close_con() {
 
-    for (int i = 0; i < MAX_CLIENT; i++) {
-        if (clients[i].msg_sock >= 0) {
-            sceNetSocketClose(clients[i].msg_sock);
-            clients[i].msg_sock = -1;
-            kpsp2shell_set_sock(-1);
-        }
-        if (clients[i].cmd_sock >= 0) {
-            sceNetSocketClose(clients[i].cmd_sock);
-            clients[i].cmd_sock = -1;
-        }
-        //sceKernelWaitThreadEnd(clients[i].thid, &i, NULL);
-        //sceKernelDeleteThread(clients[i].thid);
+    if (client.msg_sock >= 0) {
+        sceNetSocketClose(client.msg_sock);
+        client.msg_sock = -1;
+        kpsp2shell_set_sock(-1);
     }
+    if (client.cmd_sock >= 0) {
+        sceNetSocketClose(client.cmd_sock);
+        client.cmd_sock = -1;
+    }
+
     if (server_sock_msg >= 0) {
         sceNetSocketClose(server_sock_msg);
         server_sock_msg = -1;
@@ -727,14 +700,11 @@ static int open_con() {
 static int thread_wait(SceSize args, void *argp) {
 
     // setup clients data
-    clients = pool_data_malloc(sizeof(s_client) * MAX_CLIENT);
-    memset(clients, 0, MAX_CLIENT * sizeof(s_client));
-    for (int i = 0; i < MAX_CLIENT; i++) {
-        clients[i].msg_sock = -1;
-        clients[i].cmd_sock = -1;
-        clients[i].cmd_buffer = pool_data_malloc(SIZE_CMD);
-        memset(clients[i].cmd_buffer, 0, SIZE_CMD);
-    }
+    memset(&client, 0, sizeof(s_client));
+    client.msg_sock = -1;
+    client.cmd_sock = -1;
+    client.cmd_buffer = pool_data_malloc(SIZE_CMD);
+    memset(client.cmd_buffer, 0, SIZE_CMD);
 
     // setup sockets
     if (open_con() != 0) {
@@ -761,30 +731,22 @@ static int thread_wait(SceSize args, void *argp) {
         }
 
         printf("new connexion on port %i (sock=%i)\n", listen_port, client_sock);
-        // find a free client/socket
-        int client_id = -1;
-        for (int i = 0; i < MAX_CLIENT; i++) {
-            if (clients[i].msg_sock < 0) {
-                client_id = i;
-                break;
-            }
-        }
 
         // max client/socket count reached
-        if (client_id < 0) {
-            printf("Connection refused, max client reached (%i)\n", MAX_CLIENT);
+        if (client.msg_sock > 0) {
+            printf("Connection refused, max client reached (1)\n");
             sceNetSocketClose(client_sock);
             continue;
         }
 
         printf("Connection accepted\n");
 
-        kpsp2shell_set_sock(client_sock);
+        client.msg_sock = client_sock;
+        kpsp2shell_set_sock(client.msg_sock);
 
-        clients[client_id].msg_sock = client_sock;
-        clients[client_id].thid = sceKernelCreateThread("psp2shell_cmd", cmd_thread, 64, 0x4000, 0, 0x10000, 0);
-        if (clients[client_id].thid >= 0)
-            sceKernelStartThread(clients[client_id].thid, sizeof(int), (void *) &client_id);
+        client.thid = sceKernelCreateThread("psp2shell_cmd", cmd_thread, 64, 0x4000, 0, 0x10000, 0);
+        if (client.thid >= 0)
+            sceKernelStartThread(client.thid, 0, NULL);
     }
 
     psp2shell_exit();

@@ -1,6 +1,8 @@
 #ifndef _psp2_shell_h_
 #define _psp2_shell_h_
 
+#include "psp2cmd.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -26,6 +28,9 @@ void psp2shell_print(const char *fmt, ...);
 void psp2shell_print_color(int color, const char *fmt, ...);
 
 void psp2shell_print_color_advanced(SceSize size, int color, const char *fmt, ...);
+
+#define psp2shell_print(...) psp2shell_print_color_advanced(SIZE_PRINT, 0, __VA_ARGS__)
+#define psp2shell_print_color(x, ...) psp2shell_print_color_advanced(SIZE_PRINT, x, __VA_ARGS__)
 
 #ifdef __cplusplus
 }

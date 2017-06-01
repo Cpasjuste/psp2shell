@@ -7,7 +7,3 @@ psp2shell_m:
     start: module_start
     stop: module_stop
     exit: module_exit
-  modules:
-    psp2shell_m:
-      functions:
-        - psp2shell_print_color_advanced

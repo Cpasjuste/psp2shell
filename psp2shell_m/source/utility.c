@@ -186,7 +186,7 @@ int p2s_bind_port(int sock, int port) {
     }
 
     // listen
-    if (sceNetListen(sock, MAX_CLIENT) < 0) {
+    if (sceNetListen(sock, 64) < 0) {
         printf("sceNetListen failed\n");
         return -1;
     }

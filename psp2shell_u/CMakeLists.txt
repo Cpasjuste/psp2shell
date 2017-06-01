@@ -8,6 +8,7 @@ execute_process(COMMAND "date" "+%Y.%m.%d" OUTPUT_VARIABLE BUILD_DATE OUTPUT_STR
 
 set(SRC_FILES
         source/main.c
+        source/hooks.c
         )
 
 set(INC_FILES
@@ -27,18 +28,10 @@ add_executable(${PROJECT_NAME}.elf ${SRC_FILES})
 target_include_directories(${PROJECT_NAME}.elf PRIVATE ${INC_FILES})
 target_compile_options(${PROJECT_NAME}.elf PRIVATE ${CFLAGS} -DMODULE)
 target_link_libraries(${PROJECT_NAME}.elf
-        ${CMAKE_BINARY_DIR}/psp2shell_m/psp2shell_m-stubs/libpsp2shell_m_stub.a
+        ${CMAKE_BINARY_DIR}/psp2shell_k/psp2shell_k-stubs/libpsp2shell_k_stub.a
         taihen_stub
         SceLibKernel_stub
-        SceKernelThreadMgr_stub
         SceKernelModulemgr_stub
-        SceSysmodule_stub
-        SceSysmem_stub
-        SceIofilemgr_stub
-        SceNet_stub_weak
-        SceNetCtl_stub_weak
-        SceAppMgr_stub
-        ScePower_stub
         k
         gcc
         -nostdlib)
