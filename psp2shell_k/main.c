@@ -2,10 +2,13 @@
 #include <libk/stdio.h>
 #include <taihen.h>
 #include <libk/string.h>
+#include <libk/stdarg.h>
 
 #include "include/psp2shell_k.h"
 
 static int sock = 0;
+static char sock_buf[256];
+static char log_buf[256];
 
 static SceUID g_hooks[2];
 static tai_hook_ref_t ref_hooks[2];
@@ -18,7 +21,6 @@ void delete_hooks();
 void log_write(const char *msg) {
 
     //ksceIoMkdir("ux0:/tai/", 6);
-
     SceUID fd = ksceIoOpen("ux0:/tai/psp2shell_k.log",
                            SCE_O_WRONLY | SCE_O_CREAT | SCE_O_APPEND, 6);
     if (fd < 0)
@@ -30,9 +32,8 @@ void log_write(const char *msg) {
 
 #define LOG(...) \
     do { \
-        char buffer[256]; \
-        snprintf(buffer, sizeof(buffer), ##__VA_ARGS__); \
-        log_write(buffer); \
+        snprintf(log_buf, sizeof(log_buf), ##__VA_ARGS__); \
+        log_write(log_buf); \
     } while (0)
 
 int isprint(int c) {
@@ -60,7 +61,6 @@ int _sceKernelGetStdout() {
 
     int fd = TAI_CONTINUE(int, ref_hooks[1]);
     __stdout_fd = fd;
-
     //LOG("hook: __stdout_fd: 0x%08X\n", __stdout_fd);
 
     return fd;
@@ -97,43 +97,46 @@ int _sceClibPrintf(const char *fmt, ...) {
 void kpsp2shell_set_sock(int s) {
     sock = s;
     if (sock > 0) {
+        LOG("set_hooks (sock=%i)\n", sock);
         set_hooks();
     } else {
+        LOG("delete_hooks (sock=%i)\n", sock);
         delete_hooks();
     }
 }
 
 void kpsp2shell_print(int s, unsigned int size, const char *msg) {
 
+    uint32_t state;
+    ENTER_SYSCALL(state);
+
+    ksceNetSendto(s, "ok\n", 3, 0, NULL, 0);
+
+    EXIT_SYSCALL(state);
+    /*
     if (size > 256) {
         return;
     }
 
-    char buf[size];
-    memset(buf, 0, size);
-
     uint32_t state;
     ENTER_SYSCALL(state);
 
-    ksceKernelStrncpyUserToKernel(buf, (uintptr_t) msg, size);
+    memset(sock_buf, 0, 256);
+    ksceKernelStrncpyUserToKernel(sock_buf, (uintptr_t) msg, size);
 
-    /*
-    // remove invalid chars
-    char buf_clean[size];
-    memset(buf_clean, 0, size);
-    for (int i = 0; i < size; i++) {
-        buf_clean[i] = (char) (isprint(buf[i]) ? buf[i] : '?');
-    }
-    buf_clean[size - 1] = '\0';
-    */
+    LOG("%s", sock_buf);
 
-    ksceNetSendto(s, buf, size, 0, NULL, 0);
-    ksceNetRecvfrom(s, buf, 2, 0x1000, NULL, 0);
+    ksceNetSendto(s, sock_buf, size, 0, NULL, 0);
+    ksceNetRecvfrom(s, sock_buf, 2, 0x1000, NULL, 0);
 
     EXIT_SYSCALL(state);
+    */
 }
 
 void set_hooks() {
+
+    uint32_t state;
+    ENTER_SYSCALL(state);
 
     g_hooks[0] = taiHookFunctionExportForKernel(
             KERNEL_PID,
@@ -142,7 +145,7 @@ void set_hooks() {
             0xF2FF276E,
             0x34EFD876,
             _sceIoWrite);
-    //LOG("hook: sceIoWrite: 0x%08X\n", g_hooks[0]);
+    LOG("hook: sceIoWrite: 0x%08X\n", g_hooks[0]);
 
     g_hooks[1] = taiHookFunctionExportForKernel(
             KERNEL_PID,
@@ -151,7 +154,9 @@ void set_hooks() {
             0x2DD91812,
             0xE5AA625C,
             _sceKernelGetStdout);
-    //LOG("hook: sceKernelGetStdout: 0x%08X\n", g_hooks[1]);
+    LOG("hook: sceKernelGetStdout: 0x%08X\n", g_hooks[1]);
+
+    EXIT_SYSCALL(state);
 }
 
 void delete_hooks() {
@@ -163,6 +168,44 @@ void delete_hooks() {
         taiHookReleaseForKernel(g_hooks[1], ref_hooks[1]);
 }
 
+/*
+static SceUID
+_sceKernelLoadStartModule(char *path, SceSize args, void *argp, int flags, SceKernelLMOption *option, int *status) {
+    SceUID ret = TAI_CONTINUE(SceUID, ref_hooks[0], path, args, argp, flags, option, status);
+
+    uint32_t state;
+    ENTER_SYSCALL(state);
+
+    memset(temp_buf, 0, 256);
+    ksceKernelStrncpyUserToKernel(temp_buf, (uintptr_t) path, 256);
+
+    LOG("sm: %s\n", temp_buf);
+
+    EXIT_SYSCALL(state);
+
+    return ret;
+}
+
+//static SceUID _ksceKernelLoadModuleForPid(SceUID pid, const char *path, int flags, SceKernelLMOption *option) {
+SceUID _ksceKernelLoadStartModuleForPid(SceUID pid, const char *path, SceSize args, void *argp, int flags,
+                                        SceKernelLMOption *option, int *status) {
+
+    SceUID ret = TAI_CONTINUE(SceUID, ref_hooks[0], pid, path, args, argp, flags, option, status);
+
+    //uint32_t state;
+    //ENTER_SYSCALL(state);
+
+    //memset(temp_buf, 0, 256);
+    //ksceKernelStrncpyUserToKernel(temp_buf, (uintptr_t) path, 256);
+
+    LOG("sm: %s\n", path);
+
+    //EXIT_SYSCALL(state);
+
+    return ret;
+}
+*/
+
 void _start() __attribute__ ((weak, alias ("module_start")));
 
 int module_start(SceSize argc, const void *args) {
@@ -173,8 +216,9 @@ int module_start(SceSize argc, const void *args) {
             &ref_hooks[0],
             "SceLibKernel",
             0xCAE9ACE6,
-            0xFA26BC62,
-            _sceClibPrintf);
+            0xBBE82155,
+            _sceKernelLoadStartModule);
+    LOG("hook: sceKernelLoadStartModule: 0x%08X\n", g_hooks[0]);
     */
 
     return SCE_KERNEL_START_SUCCESS;
