@@ -27,7 +27,7 @@ void p2s_log_write(const char *msg);
     do { \
         char buffer[256]; \
         snprintf(buffer, sizeof(buffer), ##__VA_ARGS__); \
-        s_log_write(buffer); \
+        p2s_log_write(buffer); \
     } while (0)
 
 

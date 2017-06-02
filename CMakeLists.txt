@@ -22,7 +22,7 @@ add_subdirectory(psp2shell_k)
 add_subdirectory(psp2shell_m)
 
 # user module
-add_subdirectory(psp2shell_u)
+# add_subdirectory(psp2shell_u)
 
 #add_subdirectory(psp2shell_test)
 add_subdirectory(psp2shell_loader) # no module support yet in vitasdk

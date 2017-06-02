@@ -15,7 +15,10 @@ link_directories(
 
 add_definitions(-DRELEASE)
 
-add_executable(psp2shell_k main.c)
+add_executable(psp2shell_k
+        main.c
+        kutility.c
+        )
 
 target_link_libraries(psp2shell_k
         taihenForKernel_stub
@@ -24,6 +27,7 @@ target_link_libraries(psp2shell_k
         SceThreadmgrForDriver_stub
         SceIofilemgrForDriver_stub
         SceNetPsForDriver_stub
+        SceCpuForDriver_stub
         k
         gcc
         )

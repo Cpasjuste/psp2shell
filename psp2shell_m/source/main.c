@@ -71,7 +71,7 @@ int sceAppMgrAppMount(char *tid);
 
 //#define printf LOG
 
-static SceUID thid_wait = -1;
+static SceUID thid_wait, thid_kbuf;
 static int listen_port = 3333;
 static int quit = 0;
 static s_client client;
@@ -92,6 +92,43 @@ static void sendNOK(int sock) {
 
 #endif
 
+static void close_con() {
+
+    if (client.msg_sock >= 0) {
+        sceNetSocketClose(client.msg_sock);
+        client.msg_sock = -1;
+    }
+    if (client.cmd_sock >= 0) {
+        sceNetSocketClose(client.cmd_sock);
+        client.cmd_sock = -1;
+    }
+
+    if (server_sock_msg >= 0) {
+        sceNetSocketClose(server_sock_msg);
+        server_sock_msg = -1;
+    }
+    if (server_sock_cmd >= 0) {
+        sceNetSocketClose(server_sock_cmd);
+        server_sock_cmd = -1;
+    }
+}
+
+static int open_con() {
+
+    close_con();
+
+    server_sock_msg = p2s_bind_port(server_sock_msg, listen_port);
+    if (server_sock_msg <= 0) {
+        return -1;
+    }
+    server_sock_cmd = p2s_bind_port(server_sock_cmd, listen_port + 1);
+    if (server_sock_cmd <= 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
 void psp2shell_print_color_advanced(SceSize size, int color, const char *fmt, ...) {
 
     char msg[size];
@@ -104,14 +141,15 @@ void psp2shell_print_color_advanced(SceSize size, int color, const char *fmt, ..
     snprintf(msg + strlen(msg), size, "%i", color);
 
     if (client.msg_sock > 0) {
-        kpsp2shell_print_sock(client.msg_sock, strlen(msg), msg);
-        /*
-        sceNetSend(clients[i].msg_sock, msg, size, 0);
-        int ret = sceNetRecv(clients[i].msg_sock, msg, 1, 0);
+        //kpsp2shell_print_sock(client.msg_sock, strlen(msg), msg);
+        //kpsp2shell_print(strlen(msg), msg);
+
+        sceNetSend(client.msg_sock, msg, size, 0);
+        int ret = sceNetRecv(client.msg_sock, msg, 1, 0);
         if (ret < 0) { // wait for answer
             printf("psp2shell_print: sceNetRecv failed: %i\n", ret);
         }
-        */
+
     }
 }
 
@@ -623,6 +661,8 @@ int cmd_thread(SceSize args, void *argp) {
     client.cmd_sock = p2s_get_sock(server_sock_cmd);
     printf("got data sock: %i\n", client.cmd_sock);
 
+    kpsp2shell_set_ready(1);
+
     while (!quit) {
 
         memset(client.cmd_buffer, 0, SIZE_CMD);
@@ -642,6 +682,8 @@ int cmd_thread(SceSize args, void *argp) {
 
     printf("closing connection\n");
 
+    kpsp2shell_set_ready(0);
+
 #ifndef __VITA_KERNEL__
     s_fileListEmpty(&client.fileList);
 #endif
@@ -655,44 +697,6 @@ int cmd_thread(SceSize args, void *argp) {
     }
 
     sceKernelExitDeleteThread(0);
-
-    return 0;
-}
-
-static void close_con() {
-
-    if (client.msg_sock >= 0) {
-        sceNetSocketClose(client.msg_sock);
-        client.msg_sock = -1;
-        kpsp2shell_set_sock(-1);
-    }
-    if (client.cmd_sock >= 0) {
-        sceNetSocketClose(client.cmd_sock);
-        client.cmd_sock = -1;
-    }
-
-    if (server_sock_msg >= 0) {
-        sceNetSocketClose(server_sock_msg);
-        server_sock_msg = -1;
-    }
-    if (server_sock_cmd >= 0) {
-        sceNetSocketClose(server_sock_cmd);
-        server_sock_cmd = -1;
-    }
-}
-
-static int open_con() {
-
-    close_con();
-
-    server_sock_msg = p2s_bind_port(server_sock_msg, listen_port);
-    if (server_sock_msg <= 0) {
-        return -1;
-    }
-    server_sock_cmd = p2s_bind_port(server_sock_cmd, listen_port + 1);
-    if (server_sock_cmd <= 0) {
-        return -1;
-    }
 
     return 0;
 }
@@ -742,8 +746,6 @@ static int thread_wait(SceSize args, void *argp) {
         printf("Connection accepted\n");
 
         client.msg_sock = client_sock;
-        kpsp2shell_set_sock(client.msg_sock);
-
         client.thid = sceKernelCreateThread("psp2shell_cmd", cmd_thread, 64, 0x4000, 0, 0x10000, 0);
         if (client.thid >= 0)
             sceKernelStartThread(client.thid, 0, NULL);
@@ -752,7 +754,23 @@ static int thread_wait(SceSize args, void *argp) {
     psp2shell_exit();
 
     sceKernelExitDeleteThread(0);
+    return 0;
+}
 
+static int thread_kbuf(SceSize args, void *argp) {
+
+    char buffer[512];
+
+    while (!quit) {
+
+        memset(buffer, 0, 512);
+
+        kpsp2shell_wait_buffer(buffer, 512);
+
+        psp2shell_print(buffer);
+    }
+
+    sceKernelExitDeleteThread(0);
     return 0;
 }
 
@@ -775,6 +793,11 @@ int module_start(SceSize argc, const void *args) {
 
     // load network modules
     p2s_netInit();
+
+    thid_kbuf = sceKernelCreateThread("psp2shell_kbuf", thread_kbuf, 64, 0x1000, 0, 0x10000, 0);
+    if (thid_kbuf >= 0) {
+        sceKernelStartThread(thid_kbuf, 0, NULL);
+    }
 
     thid_wait = sceKernelCreateThread("psp2shell_wait", thread_wait, 64, 0x1000, 0, 0x10000, 0);
     if (thid_wait >= 0) {

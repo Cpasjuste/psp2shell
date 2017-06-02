@@ -10,7 +10,5 @@ psp2shell_k:
         psp2shell_k:
             syscall: true
             functions:
-              - kpsp2shell_print
-              - kpsp2shell_print_sock
-              - kpsp2shell_set_sock
-              - kpsp2shell_get_sock
+              - kpsp2shell_wait_buffer
+              - kpsp2shell_set_ready

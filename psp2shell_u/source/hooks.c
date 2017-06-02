@@ -29,7 +29,7 @@ static int _sceClibPrintf(const char *fmt, ...) {
     vsnprintf(temp_buf, 512, fmt, args);
     va_end(args);
 
-    kpsp2shell_print(strlen(temp_buf), temp_buf);
+    //kpsp2shell_print(strlen(temp_buf), temp_buf);
 
     return 0;
 }

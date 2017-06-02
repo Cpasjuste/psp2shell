@@ -6,6 +6,7 @@
 #include <taihen.h>
 
 #include "debugScreen.h"
+#include "../../psp2shell_k/include/psp2shell_k.h"
 
 #define printf psvDebugScreenPrintf
 
@@ -128,7 +129,6 @@ int main(int argc, char *argv[]) {
         if (ctrl.buttons == SCE_CTRL_RTRIGGER) {
             sceClibPrintf("Hello Module1\n");
             printf("Hello Module2\n");
-            fprintf(stdout, "Hello Module3\n");
         } else if (ctrl.buttons == SCE_CTRL_SQUARE) {
             start_module(&modules[PSP2S_K]);
         } else if (ctrl.buttons == SCE_CTRL_TRIANGLE) {
