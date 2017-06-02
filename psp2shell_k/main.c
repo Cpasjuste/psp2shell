@@ -1,7 +1,7 @@
 #include <vitasdkkern.h>
+#include <libk/string.h>
 #include <libk/stdio.h>
 #include <taihen.h>
-#include <libk/string.h>
 
 #include "include/psp2shell_k.h"
 #include "include/kutility.h"
@@ -20,7 +20,7 @@ void set_hooks();
 
 void delete_hooks();
 
-void update_kbuf(unsigned int size, const char *msg);
+void update_kbuf(const char *buffer, unsigned int size);
 
 int _sceIoWrite(SceUID fd, const void *data, SceSize size) {
 
@@ -29,7 +29,7 @@ int _sceIoWrite(SceUID fd, const void *data, SceSize size) {
     }
 
     if (fd == __stdout_fd && ready) {
-        update_kbuf(size, data);
+        update_kbuf(data, size);
     }
 
     return TAI_CONTINUE(int, ref_hooks[0], fd, data, size);
@@ -48,7 +48,7 @@ int _sceKernelGetStdout() {
     return fd;
 }
 
-void update_kbuf(unsigned int size, const char *msg) {
+void update_kbuf(const char *buffer, unsigned int size) {
 
     if (size > BUF_SIZE) {
         return;
@@ -58,7 +58,7 @@ void update_kbuf(unsigned int size, const char *msg) {
     ENTER_SYSCALL(state);
 
     memset(kbuf, 0, BUF_SIZE);
-    ksceKernelStrncpyUserToKernel(kbuf, (uintptr_t) msg, size);
+    ksceKernelStrncpyUserToKernel(kbuf, (uintptr_t) buffer, size);
 
     ksceKernelSignalSema(k_mutex, 1);
     ksceKernelWaitSema(u_mutex, 1, NULL);

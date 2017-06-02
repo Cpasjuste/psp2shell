@@ -12,7 +12,6 @@ set(SRC_FILES
         source/file.c
         source/module.c
         source/thread.c
-        source/hooks.c
         source/pool.c
         ../common/source/psp2cmd.c
         ../common/source/libmodule.c

@@ -16,8 +16,6 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __VITA_KERNEL__
-
 #include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/modulemgr.h>
 #include <psp2/io/dirent.h>
@@ -25,8 +23,6 @@
 #include <psp2/net/net.h>
 #include <psp2/appmgr.h>
 #include <taihen.h>
-
-#endif
 
 #include "main.h"
 #include "utility.h"
@@ -36,40 +32,10 @@
 #include "thread.h"
 #include "pool.h"
 
-#ifndef MODULE
-
-#include <psp2/power.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-
-#ifdef DEBUG
-
-extern int psvDebugScreenPrintf(const char *format, ...);
-
-#define printf psvDebugScreenPrintf
-#else
-#define printf(...)
-#endif
-#else
-
 #include "libmodule.h"
-#include "hooks.h"
 #include "../../psp2shell_k/include/psp2shell_k.h"
 
-#endif
-
-
 #define PRINT_ERR(...) psp2shell_print_color(COL_RED, __VA_ARGS__)
-
-#ifndef MODULE //TODO
-
-int sceAppMgrAppMount(char *tid);
-
-#endif
-
-//#define printf LOG
 
 static SceUID thid_wait, thid_kbuf;
 static int listen_port = 3333;
@@ -77,8 +43,6 @@ static int quit = 0;
 static s_client client;
 static int server_sock_msg;
 static int server_sock_cmd;
-
-#ifndef __VITA_KERNEL__
 
 static void cmd_reset();
 
@@ -89,8 +53,6 @@ static void sendOK(int sock) {
 static void sendNOK(int sock) {
     sceNetSend(sock, "0\n", 2, 0);
 }
-
-#endif
 
 static void close_con() {
 
@@ -141,15 +103,11 @@ void psp2shell_print_color_advanced(SceSize size, int color, const char *fmt, ..
     snprintf(msg + strlen(msg), size, "%i", color);
 
     if (client.msg_sock > 0) {
-        //kpsp2shell_print_sock(client.msg_sock, strlen(msg), msg);
-        //kpsp2shell_print(strlen(msg), msg);
-
         sceNetSend(client.msg_sock, msg, size, 0);
         int ret = sceNetRecv(client.msg_sock, msg, 1, 0);
         if (ret < 0) { // wait for answer
             printf("psp2shell_print: sceNetRecv failed: %i\n", ret);
         }
-
     }
 }
 
@@ -166,8 +124,6 @@ static void welcome() {
     sprintf(msg + strlen(msg), "|__|       \\/ |__|           \\/     \\/     \\/     \\/ %s\n\n", VERSION);
     psp2shell_print_color(COL_GREEN, msg);
 }
-
-#ifndef __VITA_KERNEL__ // TODO
 
 static char *toAbsolutePath(s_FileList *fileList, char *path) {
 
@@ -212,7 +168,6 @@ static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
 }
 
 static int cmd_mount(char *tid) {
-#ifndef __VITA_KERNEL__
 #ifndef MODULE
     int res = sceAppMgrAppMount(tid);
     if (res != 0) {
@@ -220,12 +175,11 @@ static int cmd_mount(char *tid) {
         return -1;
     }
 #endif
-#endif
     return 0;
 }
 
 static int cmd_umount(char *device) {
-#ifndef __VITA_KERNEL__
+
     // hack to close all open files descriptors before umount
     // from 0x40010000 to 0x43ff00ff
     int i, j;
@@ -242,7 +196,7 @@ static int cmd_umount(char *device) {
         PRINT_ERR("could not umount device: %s (err=%x)\n", device, res);
         return -1;
     }
-#endif
+
     return 0;
 }
 
@@ -260,7 +214,6 @@ static void cmd_title() {
 }
 
 static void cmd_reload(int sock, long size) {
-#ifndef __VITA_KERNEL__
 
     char path[256];
     char tid[16];
@@ -292,13 +245,11 @@ static void cmd_reload(int sock, long size) {
         psp2shell_print_color(COL_RED, "reload failed, received size < 0\n");
     }
     s_close(fd);
-#endif
+
 }
 
 static void cmd_reset() {
-#ifndef __VITA_KERNEL__
     p2s_reset_running_app();
-#endif
 }
 
 static void cmd_cd(s_client *client, char *path) {
@@ -515,13 +466,9 @@ static void cmd_memw(const char *address_str, const char *data_str) {
 }
 
 static void cmd_reboot() {
-#ifndef __VITA_KERNEL__
     psp2shell_exit();
     scePowerRequestColdReset();
-#endif
 }
-
-#endif //__VITA_KERNEL__
 
 static void cmd_parse() {
 
@@ -532,7 +479,6 @@ static void cmd_parse() {
 
         switch (cmd.type) {
 
-#ifndef __VITA_KERNEL__ // TODO
             case CMD_CD:
                 cmd_cd(&client, cmd.arg0);
                 break;
@@ -595,7 +541,7 @@ static void cmd_parse() {
             case CMD_MEMW:
                 cmd_memw(cmd.arg0, cmd.arg1);
                 break;
-#ifndef __VITA_KERNEL__
+
             case CMD_MODLS:
                 p2s_moduleList();
                 break;
@@ -631,8 +577,7 @@ static void cmd_parse() {
             case CMD_THLS:
                 ps_threadList();
                 break;
-#endif
-#endif //__VITA_KERNEL__
+
             default:
                 PRINT_ERR("Unrecognized command\n");
                 break;
@@ -645,12 +590,10 @@ int cmd_thread(SceSize args, void *argp) {
     printf("cmd_thread\n");
 
     // init client file listing memory
-#ifndef __VITA_KERNEL__
     printf("client->fileList malloc\n");
     memset(&client.fileList, 0, sizeof(s_FileList));
     strcpy(client.fileList.path, HOME_PATH);
     s_fileListGetEntries(&client.fileList, HOME_PATH);
-#endif
 
     // Welcome!
     printf("welcome client\n");
@@ -684,9 +627,8 @@ int cmd_thread(SceSize args, void *argp) {
 
     kpsp2shell_set_ready(0);
 
-#ifndef __VITA_KERNEL__
     s_fileListEmpty(&client.fileList);
-#endif
+
     if (client.cmd_sock >= 0) {
         sceNetSocketClose(client.cmd_sock);
         client.cmd_sock = -1;
@@ -774,19 +716,11 @@ static int thread_kbuf(SceSize args, void *argp) {
     return 0;
 }
 
-#ifdef MODULE
-
 void _start() __attribute__ ((weak, alias ("module_start")));
 
 int module_start(SceSize argc, const void *args) {
 
     listen_port = 3333;
-    ps2_hooks_init();
-
-#else
-    int psp2shell_init(int port, int delay) {
-        listen_port = port;
-#endif
 
     // init pool
     pool_create();
@@ -803,19 +737,11 @@ int module_start(SceSize argc, const void *args) {
     if (thid_wait >= 0) {
         sceKernelStartThread(thid_wait, 0, NULL);
     }
-#ifndef MODULE
-    // give time to client if asked
-    sceKernelDelayThread((SceUInt) (1000 * 1000 * delay));
-    return 0;
-#else
+
     return SCE_KERNEL_START_SUCCESS;
-#endif
 }
 
-#ifdef MODULE
-
 int module_stop(SceSize argc, const void *args) {
-    ps2_hooks_exit();
     psp2shell_exit();
     return SCE_KERNEL_STOP_SUCCESS;
 }
@@ -823,8 +749,6 @@ int module_stop(SceSize argc, const void *args) {
 void module_exit(void) {
 
 }
-
-#endif
 
 void psp2shell_exit() {
     quit = TRUE;

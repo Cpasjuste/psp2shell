@@ -16,21 +16,10 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __VITA_KERNEL__
-
 #include <psp2/kernel/modulemgr.h>
 #include "psp2shell.h"
 #include "module.h"
-
-#ifdef MODULE
-
 #include "libmodule.h"
-
-#else
-
-#include <string.h>
-
-#endif
 
 static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
 
@@ -189,5 +178,3 @@ int p2s_moduleStopUnload(SceUID uid) {
 
     return res;
 }
-
-#endif // __VITA_KERNEL__

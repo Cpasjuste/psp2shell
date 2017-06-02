@@ -116,8 +116,8 @@ int main(int argc, char *argv[]) {
     printf("Square to load psp2shell_k module\n");
     printf("Triangle to unload psp2shell_k module\n\n");
 
-    printf("Cross to load psp2shell_u module\n");
-    printf("Circle to unload psp2shell_u module\n\n");
+    printf("Cross to load psp2shell_m module\n");
+    printf("Circle to unload psp2shell_m module\n\n");
 
     printf("R to printf\n");
 

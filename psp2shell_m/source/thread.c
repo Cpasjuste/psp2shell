@@ -16,7 +16,6 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __VITA_KERNEL__
 #include <psp2/kernel/threadmgr.h>
 #include "psp2shell.h"
 #include "thread.h"
@@ -72,4 +71,3 @@ int ps_threadList() {
 
     return 0;
 }
-#endif // __VITA_KERNEL__
