@@ -26,6 +26,7 @@ enum cmd_t {
     CMD_GET,
     CMD_PUT,
     CMD_LAUNCH,
+    CMD_LOAD,
     CMD_RELOAD,
     CMD_TEST,
     CMD_MOUNT,

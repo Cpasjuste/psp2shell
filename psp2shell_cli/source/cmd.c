@@ -183,6 +183,35 @@ int cmd_reset(int argc, char **argv) {
     return 0;
 }
 
+int cmd_load(int argc, char **argv) {
+
+    if (argc < 3) {
+        printf("incorrect number of arguments\n");
+        return -1;
+    }
+
+    FILE *fp = fopen(argv[2], "r");
+    if (fp == NULL) {
+        printf("ERROR: file does not exist: \"%s\"\n", argv[1]);
+        return -1;
+    }
+    fseek(fp, 0L, SEEK_END);
+    long size = ftell(fp);
+    fseek(fp, 0L, SEEK_SET);
+
+    char *cmd = build_msg(CMD_LOAD, argv[1], "0", size);
+    send(data_sock, cmd, strlen(cmd), 0);
+
+    if (response_ok(data_sock)) {
+        send_file(fp, size);
+    }
+
+    fclose(fp);
+    printf("done\n");
+
+    return 0;
+}
+
 int cmd_reload(int argc, char **argv) {
 
     FILE *fp = fopen(argv[1], "r");
@@ -411,6 +440,7 @@ COMMAND cmd[] = {
         {"mv",            "<remote_src> <remote_dst>",  "Move a file/directory",                         cmd_mv},
         {"put",           "<local_path> <remote_path>", "Upload a file.",                                cmd_put},
         {"reset",         "",                           "Restart the application.",                      cmd_reset},
+        {"load",          "<title_id> <eboot.bin>",     "Send (eboot.bin) and restart the application.", cmd_load},
         {"reload",        "<eboot.bin>",                "Send (eboot.bin) and restart the application.", cmd_reload},
         {"launch",        "<titleid>",                  "Launch title",                                  cmd_launch},
         {"reboot",        "",                           "Reboot.",                                       cmd_reboot},

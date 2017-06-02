@@ -19,9 +19,7 @@
 #include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/modulemgr.h>
 #include <psp2/io/dirent.h>
-#include <psp2/io/fcntl.h>
 #include <psp2/net/net.h>
-#include <psp2/appmgr.h>
 #include <taihen.h>
 
 #include "main.h"
@@ -213,16 +211,9 @@ static void cmd_title() {
     }
 }
 
-static void cmd_reload(int sock, long size) {
+static void cmd_load(int sock, long size, const char *tid) {
 
     char path[256];
-    char tid[16];
-
-    if (p2s_get_running_app_title_id(tid) != 0) {
-        sendNOK(sock);
-        PRINT_ERR("can't reload SceShell...\n");
-        return;
-    }
 
     sceAppMgrDestroyOtherApp();
     sceKernelDelayThread(1000 * 1000);
@@ -245,7 +236,19 @@ static void cmd_reload(int sock, long size) {
         psp2shell_print_color(COL_RED, "reload failed, received size < 0\n");
     }
     s_close(fd);
+}
 
+static void cmd_reload(int sock, long size) {
+
+    char tid[16];
+
+    if (p2s_get_running_app_title_id(tid) != 0) {
+        sendNOK(sock);
+        PRINT_ERR("can't reload SceShell...\n");
+        return;
+    }
+
+    cmd_load(sock, size, tid);
 }
 
 static void cmd_reset() {
@@ -520,6 +523,10 @@ static void cmd_parse() {
 
             case CMD_UMOUNT:
                 cmd_umount(cmd.arg0);
+                break;
+
+            case CMD_LOAD:
+                cmd_load(client.cmd_sock, cmd.arg2, cmd.arg0);
                 break;
 
             case CMD_RELOAD:

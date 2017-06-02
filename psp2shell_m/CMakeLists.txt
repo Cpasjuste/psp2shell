@@ -13,8 +13,8 @@ set(SRC_FILES
         source/module.c
         source/thread.c
         source/pool.c
+        source/libmodule.c
         ../common/source/psp2cmd.c
-        ../common/source/libmodule.c
         )
 
 set(INC_FILES
