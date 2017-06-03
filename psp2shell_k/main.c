@@ -81,6 +81,8 @@ void kpsp2shell_wait_buffer(char *buffer, unsigned int size) {
 void kpsp2shell_set_ready(int rdy) {
 
     ready = rdy;
+    // "unblock" update_kbuf
+    ksceKernelSignalSema(u_mutex, 1);
 }
 
 void set_hooks() {

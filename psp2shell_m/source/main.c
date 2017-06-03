@@ -21,6 +21,7 @@
 #include <psp2/io/dirent.h>
 #include <psp2/net/net.h>
 #include <taihen.h>
+#include <main.h>
 
 #include "main.h"
 #include "utility.h"
@@ -709,14 +710,15 @@ static int thread_wait(SceSize args, void *argp) {
 static int thread_kbuf(SceSize args, void *argp) {
 
     char buffer[512];
+    memset(buffer, 0, 512);
 
     while (!quit) {
 
         memset(buffer, 0, 512);
-
         kpsp2shell_wait_buffer(buffer, 512);
-
-        psp2shell_print(buffer);
+        if (client.msg_sock > 0) {
+            psp2shell_print(buffer);
+        }
     }
 
     sceKernelExitDeleteThread(0);
@@ -759,6 +761,9 @@ void module_exit(void) {
 
 void psp2shell_exit() {
     quit = TRUE;
+    if (thid_kbuf >= 0) {
+        sceKernelDeleteThread(thid_kbuf);
+    }
     close_con();
     pool_destroy();
 }
