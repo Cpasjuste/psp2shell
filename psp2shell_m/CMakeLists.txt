@@ -12,10 +12,9 @@ set(SRC_FILES
         source/file.c
         source/module.c
         source/thread.c
-        source/pool.c
-        source/libmodule.c
+        source/taipool.c
         ../common/source/psp2cmd.c
-        )
+        source/cmd.c source/cmd.h)
 
 set(INC_FILES
         ../common/include

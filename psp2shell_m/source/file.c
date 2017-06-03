@@ -38,7 +38,7 @@
 #include "psp2cmd.h"
 #include "file.h"
 #include "utility.h"
-#include "pool.h"
+#include "taipool.h"
 
 #define SCE_ERROR_ERRNO_EEXIST 0x80010011
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -282,7 +282,7 @@ int s_copyFile(char *src_path, char *dst_path, s_FileProcessParam *param) {
     }
 
     //char buf[TRANSFER_SIZE];
-    unsigned char *buf = pool_data_malloc(SIZE_DATA);
+    unsigned char *buf = taipool_alloc(SIZE_DATA);
     if (buf == NULL) {
         return -3;
     }
@@ -295,6 +295,7 @@ int s_copyFile(char *src_path, char *dst_path, s_FileProcessParam *param) {
 
             sceIoClose(fddst);
             sceIoClose(fdsrc);
+            taipool_free(buf);
 
             return res;
         }
@@ -310,6 +311,7 @@ int s_copyFile(char *src_path, char *dst_path, s_FileProcessParam *param) {
 
                 sceIoClose(fddst);
                 sceIoClose(fdsrc);
+                taipool_free(buf);
 
                 return 0;
             }
@@ -318,6 +320,7 @@ int s_copyFile(char *src_path, char *dst_path, s_FileProcessParam *param) {
 
     sceIoClose(fddst);
     sceIoClose(fdsrc);
+    taipool_free(buf);
 
     return 1;
 }
@@ -605,7 +608,7 @@ void s_fileListEmpty(s_FileList *list) {
 
     while (entry) {
         s_FileListEntry *next = entry->next;
-        free(entry);
+        taipool_free(entry);
         entry = next;
     }
 
@@ -627,7 +630,7 @@ int s_fileListGetMountPointEntries(s_FileList *list) {
             SceIoStat stat;
             memset(&stat, 0, sizeof(SceIoStat));
             if (sceIoGetstat(mount_points[i], &stat) >= 0) {
-                s_FileListEntry *entry = malloc(sizeof(s_FileListEntry));
+                s_FileListEntry *entry = taipool_alloc(sizeof(s_FileListEntry));
                 strcpy(entry->name, mount_points[i]);
                 entry->name_length = strlen(entry->name);
                 entry->is_folder = 1;
@@ -665,7 +668,7 @@ int s_fileListGetDirectoryEntries(s_FileList *list, char *path) {
     if (dfd < 0)
         return dfd;
 
-    s_FileListEntry *entry = malloc(sizeof(s_FileListEntry));
+    s_FileListEntry *entry = taipool_alloc(sizeof(s_FileListEntry));
     strcpy(entry->name, DIR_UP);
     entry->name_length = strlen(entry->name);
     entry->is_folder = 1;
@@ -683,7 +686,7 @@ int s_fileListGetDirectoryEntries(s_FileList *list, char *path) {
             if (strcmp(dir.d_name, ".") == 0 || strcmp(dir.d_name, "..") == 0)
                 continue;
 
-            entry = malloc(sizeof(s_FileListEntry));
+            entry = taipool_alloc(sizeof(s_FileListEntry));
             strcpy(entry->name, dir.d_name);
 
             entry->is_folder = SCE_S_ISDIR(dir.d_stat.st_mode);

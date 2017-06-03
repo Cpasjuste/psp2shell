@@ -43,8 +43,7 @@
 #endif
 
 #include "main.h"
-#include "psp2cmd.h"
-#include "pool.h"
+#include "taipool.h"
 
 #define NET_STACK_SIZE 0x4000
 static unsigned char net_stack[NET_STACK_SIZE];
@@ -228,17 +227,19 @@ int p2s_recvall(int sock, void *buffer, int size, int flags) {
     return size;
 }
 
-static unsigned char *rcv_buffer = NULL;
+//static unsigned char *rcv_buffer = NULL;
 
 size_t p2s_recv_file(int sock, SceUID fd, long size) {
 
     size_t len, received = 0, left = (size_t) size;
     int bufSize = SIZE_DATA;
 
-    //unsigned char *buffer = pool_data_malloc(SIZE_DATA);
+    unsigned char *rcv_buffer = taipool_alloc(SIZE_DATA);
+    /*
     if (rcv_buffer == NULL) {
         rcv_buffer = pool_data_malloc(SIZE_DATA);
     }
+    */
 
     if (rcv_buffer == NULL) {
         return 0;
@@ -253,6 +254,8 @@ size_t p2s_recv_file(int sock, SceUID fd, long size) {
         left -= len;
         received += len;
     }
+
+    taipool_free(rcv_buffer);
 
     return received;
 }

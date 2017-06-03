@@ -32,6 +32,9 @@ void psp2shell_print_color_advanced(SceSize size, int color, const char *fmt, ..
 #define psp2shell_print(...) psp2shell_print_color_advanced(SIZE_PRINT, 0, __VA_ARGS__)
 #define psp2shell_print_color(x, ...) psp2shell_print_color_advanced(SIZE_PRINT, x, __VA_ARGS__)
 
+#define PRINT_ERR(...) psp2shell_print_color(COL_RED, __VA_ARGS__)
+#define PRINT_OK(...) psp2shell_print_color(COL_GREEN, __VA_ARGS__)
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus

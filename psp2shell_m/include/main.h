@@ -29,7 +29,7 @@ typedef struct {
     SceUID thid;
     int msg_sock;
     int cmd_sock;
-    char *cmd_buffer;
+    char cmd_buffer[SIZE_CMD];
     s_FileList fileList;
 } s_client;
 

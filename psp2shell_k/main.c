@@ -72,8 +72,10 @@ void kpsp2shell_wait_buffer(char *buffer, unsigned int size) {
     ENTER_SYSCALL(state);
 
     ksceKernelWaitSema(k_mutex, 1, NULL);
-    ksceKernelStrncpyKernelToUser((uintptr_t) buffer, kbuf, size);
-    ksceKernelSignalSema(u_mutex, 1);
+    if (ready) {
+        ksceKernelStrncpyKernelToUser((uintptr_t) buffer, kbuf, size);
+        ksceKernelSignalSema(u_mutex, 1);
+    }
 
     EXIT_SYSCALL(state);
 }
@@ -83,6 +85,7 @@ void kpsp2shell_set_ready(int rdy) {
     ready = rdy;
     // "unblock" update_kbuf
     ksceKernelSignalSema(u_mutex, 1);
+    ksceKernelSignalSema(k_mutex, 1);
 }
 
 void set_hooks() {
