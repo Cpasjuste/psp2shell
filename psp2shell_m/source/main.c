@@ -18,21 +18,16 @@
 
 #include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/modulemgr.h>
-
 #include <psp2/net/net.h>
-#include <taihen.h>
 
 #include "psp2cmd.h"
 #include "main.h"
+#include "cmd.h"
 #include "utility.h"
 #include "psp2shell.h"
-#include "module.h"
-#include "thread.h"
 #include "taipool.h"
-
 #include "libmodule.h"
 #include "../../psp2shell_k/include/psp2shell_k.h"
-#include "cmd.h"
 
 static SceUID thid_wait, thid_kbuf;
 static int listen_port = 3333;

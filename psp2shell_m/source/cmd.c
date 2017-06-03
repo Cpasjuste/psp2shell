@@ -107,7 +107,8 @@ static void cmd_title() {
 
     if (p2s_get_running_app_name(name) == 0) {
         p2s_get_running_app_title_id(id);
-        psp2shell_print("%s (%s)\n", name, id);
+        psp2shell_print("\n\n\tname: %s\n\tid: %s\n\tpid: 0x%08X\n\n\n",
+                        name, id, p2s_get_running_app_pid());
     } else {
         psp2shell_print("SceShell\n");
     }

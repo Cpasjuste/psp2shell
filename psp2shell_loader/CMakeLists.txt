@@ -21,7 +21,7 @@ target_link_libraries(${PROJECT_NAME}.elf
         SceCtrl_stub
         )
 
-add_custom_target(${PROJECT_NAME}.vpk
+add_custom_target(${PROJECT_NAME}.vpk ALL
         DEPENDS ${PROJECT_NAME}.elf
         COMMAND ${VITASDK}/bin/vita-elf-create ${PROJECT_NAME}.elf ${PROJECT_NAME}.velf
         COMMAND ${VITASDK}/bin/vita-make-fself ${PROJECT_NAME}.velf eboot.bin
