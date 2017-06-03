@@ -21,8 +21,5 @@ add_subdirectory(psp2shell_k)
 # main module
 add_subdirectory(psp2shell_m)
 
-# user module
-# add_subdirectory(psp2shell_u)
-
 add_subdirectory(psp2shell_loader) # no module support yet in vitasdk
 #add_subdirectory(psp2shell_cli) # external project for now, else cross-compile problem
