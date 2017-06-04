@@ -108,7 +108,7 @@ int p2s_moduleListForPid(SceUID pid) {
                 memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
                 res = kpsp2shell_get_module_info(pid, ids[i], &moduleInfo);
                 if (res == 0) {
-                    psp2shell_print_color(COL_GREEN, "%s\t\t\tuid: 0x%08X\n",
+                    psp2shell_print_color(COL_GREEN, "%s (uid: 0x%08X)\n",
                                           moduleInfo.module_name, moduleInfo.handle);
                 }
             }
