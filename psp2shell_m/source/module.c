@@ -16,10 +16,15 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/modulemgr.h>
+#include <taihen.h>
+
+#include "utility.h"
 #include "psp2shell.h"
 #include "module.h"
 #include "libmodule.h"
+#include "../../psp2shell_k/psp2shell_k.h"
 
 static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
 
@@ -54,11 +59,20 @@ static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
 
 int p2s_moduleInfo(SceUID uid) {
 
+    SceUID pid = p2s_get_running_app_pid();
+    if (pid < 0) {
+        pid = sceKernelGetProcessId();
+    }
+
+    return p2s_moduleInfoForPid(pid, uid);
+}
+
+int p2s_moduleInfoForPid(SceUID pid, SceUID uid) {
+
     SceKernelModuleInfo moduleInfo;
     memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
-    moduleInfo.size = sizeof(SceKernelModuleInfo);
 
-    int res = sceKernelGetModuleInfo(uid, &moduleInfo);
+    int res = kpsp2shell_get_module_info(pid, uid, &moduleInfo);
     if (res == 0) {
         printModuleInfoFull(&moduleInfo);
     } else {
@@ -70,28 +84,33 @@ int p2s_moduleInfo(SceUID uid) {
 
 int p2s_moduleList() {
 
-    SceUID ids[256];
-    int count = 256;
+    SceUID pid = p2s_get_running_app_pid();
+    if (pid < 0) {
+        pid = sceKernelGetProcessId();
+    }
 
-    int res = sceKernelGetModuleList(0xFF, ids, &count);
+    return p2s_moduleListForPid(pid);
+}
+
+int p2s_moduleListForPid(SceUID pid) {
+
+    SceUID ids[256];
+    size_t count = 256;
+
+    int res = kpsp2shell_get_module_list(pid, 0xFF, 1, ids, &count);
     if (res != 0) {
-        psp2shell_print_color(COL_RED, "modls failed: %i\n", res);
+        psp2shell_print_color(COL_RED, "module list failed: 0x%08X\n", res);
         return res;
     } else {
-        psp2shell_print("\tmodules count: %i\n\n", count);
-
         SceKernelModuleInfo moduleInfo;
-
         for (int i = 0; i < count; i++) {
-            memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
-            moduleInfo.size = sizeof(SceKernelModuleInfo);
-            res = sceKernelGetModuleInfo(ids[i], &moduleInfo);
-            if (res != 0) {
-                psp2shell_print_color(COL_RED, "getting modinfo of %i failed\n", ids[i]);
-                continue;
-            } else {
-                psp2shell_print_color(COL_GREEN, "%s (0x%08X)\n",
-                                      moduleInfo.module_name, moduleInfo.handle);
+            if (ids[i] > 0) {
+                memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
+                res = kpsp2shell_get_module_info(pid, ids[i], &moduleInfo);
+                if (res == 0) {
+                    psp2shell_print_color(COL_GREEN, "%s\t\t\tuid: 0x%08X\n",
+                                          moduleInfo.module_name, moduleInfo.handle);
+                }
             }
         }
     }
@@ -99,39 +118,21 @@ int p2s_moduleList() {
     return 0;
 }
 
-SceUID p2s_moduleLoad(char *modulePath) {
-
-    SceUID uid = sceKernelLoadModule(modulePath, 0, NULL);
-    if (uid < 0) {
-        psp2shell_print_color(COL_RED, "module load failed: 0x%08X\n", uid);
-    } else {
-        psp2shell_print_color(COL_GREEN, "module loaded: uid = 0x%08X\n", uid);
-    }
-
-    return uid;
-}
-
-int p2s_moduleStart(SceUID uid) {
-
-    int status;
-
-    int res = sceKernelStartModule(uid, 0, NULL, 0, NULL, &status);
-    if (res != 0) {
-        psp2shell_print_color(COL_RED, "module start failed: 0x%08X\n", status);
-    } else {
-        psp2shell_print_color(COL_GREEN, "module started\n");
-    }
-
-    return res;
-}
-
 SceUID p2s_moduleLoadStart(char *modulePath) {
 
-    int status;
+    SceUID pid = p2s_get_running_app_pid();
+    if (pid < 0) {
+        pid = sceKernelGetProcessId();
+    }
 
-    SceUID uid = sceKernelLoadStartModule(modulePath, 0, NULL, 0, NULL, &status);
+    return p2s_moduleLoadStartForPid(pid, modulePath);
+}
+
+SceUID p2s_moduleLoadStartForPid(SceUID pid, char *modulePath) {
+
+    SceUID uid = taiLoadStartModuleForPid(pid, modulePath, 0, NULL, 0);
     if (uid < 0) {
-        psp2shell_print_color(COL_RED, "module load/start failed: 0x%08X\n", status);
+        psp2shell_print_color(COL_RED, "module load/start failed: 0x%08X\n", uid);
     } else {
         psp2shell_print_color(COL_GREEN, "module loaded/started: uid = 0x%08X\n", uid);
     }
@@ -139,37 +140,21 @@ SceUID p2s_moduleLoadStart(char *modulePath) {
     return uid;
 }
 
-int p2s_moduleStop(SceUID uid) {
-
-    int status;
-
-    int res = sceKernelStopModule(uid, 0, NULL, 0, NULL, &status);
-    if (res != 0) {
-        psp2shell_print_color(COL_RED, "module stop failed: 0x%08X\n", status);
-    } else {
-        psp2shell_print_color(COL_GREEN, "module stopped\n");
-    }
-
-    return res;
-}
-
-int p2s_moduleUnload(SceUID uid) {
-
-    int res = sceKernelUnloadModule(uid, 0, NULL);
-    if (res != 0) {
-        psp2shell_print_color(COL_RED, "module unload failed: 0x%08X\n", res);
-    } else {
-        psp2shell_print_color(COL_GREEN, "module unloaded\n");
-    }
-
-    return res;
-}
-
 int p2s_moduleStopUnload(SceUID uid) {
 
+    SceUID pid = p2s_get_running_app_pid();
+    if (pid < 0) {
+        pid = sceKernelGetProcessId();
+    }
+
+    return p2s_moduleStopUnloadForPid(pid, uid);
+}
+
+int p2s_moduleStopUnloadForPid(SceUID pid, SceUID uid) {
+
     int status;
 
-    int res = sceKernelStopUnloadModule(uid, 0, NULL, 0, NULL, &status);
+    int res = taiStopUnloadModuleForPid(pid, uid, 0, NULL, 0, NULL, &status);
     if (res != 0) {
         psp2shell_print_color(COL_RED, "module stop/unload failed: 0x%08X\n", status);
     } else {

@@ -6,7 +6,6 @@
 #include <taihen.h>
 
 #include "debugScreen.h"
-#include "../../psp2shell_k/include/psp2shell_k.h"
 
 #define printf psvDebugScreenPrintf
 

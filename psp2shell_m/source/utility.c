@@ -15,7 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef __VITA_KERNEL__
 
 #include <psp2/kernel/threadmgr.h>
 #include <psp2/sysmodule.h>
@@ -24,25 +23,11 @@
 #include <psp2/io/fcntl.h>
 #include <psp2/io/dirent.h>
 #include <psp2/appmgr.h>
+#include <errno.h>
+
 #include "psp2shell.h"
-
-#endif
-
-#ifdef MODULE
-
-#include "libmodule.h"
-
-#else
-
-#include <string.h>
-#include <stdio.h>
-#include <malloc.h>
-#include <sys/errno.h>
-#include <psp2/kernel/processmgr.h>
-
-#endif
-
 #include "main.h"
+#include "libmodule.h"
 #include "taipool.h"
 
 #define NET_STACK_SIZE 0x4000
@@ -50,7 +35,7 @@ static unsigned char net_stack[NET_STACK_SIZE];
 
 SceUID p2s_get_running_app_pid() {
 
-    SceUID pid = 0;
+    SceUID pid = -1;
     SceUID ids[20];
 
     int count = sceAppMgrGetRunningAppIdListForShell(ids, 20);
@@ -100,7 +85,7 @@ int p2s_get_running_app_title_id(char *title_id) {
 }
 
 int p2s_launch_app_by_uri(const char *tid) {
-#ifndef __VITA_KERNEL__
+
     char uri[32];
 
     sceAppMgrDestroyOtherApp();
@@ -112,12 +97,12 @@ int p2s_launch_app_by_uri(const char *tid) {
         sceAppMgrLaunchAppByUri(0xFFFFF, uri);
         sceKernelDelayThread(10000);
     }
-#endif
+
     return 0;
 }
 
 int p2s_reset_running_app() {
-#ifndef __VITA_KERNEL__
+
     char name[256];
     char id[16];
     char uri[32];
@@ -139,12 +124,12 @@ int p2s_reset_running_app() {
         sceAppMgrLaunchAppByUri(0xFFFFF, uri);
         sceKernelDelayThread(10000);
     }
-#endif
+
     return 0;
 }
 
 void p2s_netInit() {
-#ifndef __VITA_KERNEL__
+
     int loaded = sceSysmoduleIsLoaded(SCE_SYSMODULE_NET);
     if (loaded != 0) {
         sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
@@ -158,7 +143,6 @@ void p2s_netInit() {
         }
         sceNetCtlInit();
     }
-#endif
 }
 
 int p2s_bind_port(int sock, int port) {
@@ -211,14 +195,7 @@ int p2s_recvall(int sock, void *buffer, int size, int flags) {
             break;
         };
         if (len == -1) {
-            // TODO: nostdlib
-#ifdef MODULE
             break;
-#else
-            if (errno != EAGAIN && errno != EWOULDBLOCK) {
-                break;
-            }
-#endif
         } else {
             sizeLeft -= len;
             buffer += len;
@@ -227,20 +204,12 @@ int p2s_recvall(int sock, void *buffer, int size, int flags) {
     return size;
 }
 
-//static unsigned char *rcv_buffer = NULL;
-
 size_t p2s_recv_file(int sock, SceUID fd, long size) {
 
     size_t len, received = 0, left = (size_t) size;
     int bufSize = SIZE_DATA;
 
     unsigned char *rcv_buffer = taipool_alloc(SIZE_DATA);
-    /*
-    if (rcv_buffer == NULL) {
-        rcv_buffer = pool_data_malloc(SIZE_DATA);
-    }
-    */
-
     if (rcv_buffer == NULL) {
         return 0;
     }

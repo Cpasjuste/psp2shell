@@ -3,8 +3,8 @@
 #include <libk/stdio.h>
 #include <taihen.h>
 
-#include "include/psp2shell_k.h"
-#include "include/kutility.h"
+#include "psp2shell_k.h"
+#include "kutility.h"
 
 static char kbuf[BUF_SIZE];
 
@@ -86,6 +86,47 @@ void kpsp2shell_set_ready(int rdy) {
     // "unblock" update_kbuf
     ksceKernelSignalSema(u_mutex, 1);
     ksceKernelSignalSema(k_mutex, 1);
+}
+
+int kpsp2shell_get_module_info(SceUID pid, SceUID modid, SceKernelModuleInfo *info) {
+
+    SceKernelModuleInfo kinfo;
+    memset(&kinfo, 0, sizeof(SceKernelModuleInfo));
+    kinfo.size = sizeof(SceKernelModuleInfo);
+
+    uint32_t state;
+    ENTER_SYSCALL(state);
+
+    int ret = ksceKernelGetModuleInfo(pid, modid, &kinfo);
+    if (ret >= 0) {
+        ksceKernelMemcpyKernelToUser((uintptr_t) info, &kinfo, sizeof(SceKernelModuleInfo));
+    }
+
+    EXIT_SYSCALL(state);
+
+    return ret;
+}
+
+int kpsp2shell_get_module_list(SceUID pid, int flags1, int flags2, SceUID *modids, size_t *num) {
+
+    size_t count = 256;
+    SceUID kmodids[256];
+
+    uint32_t state;
+    ENTER_SYSCALL(state);
+
+    memset(kmodids, 0, sizeof(SceUID) * 256);
+    int res = ksceKernelGetModuleList(pid, flags1, flags2, kmodids, &count);
+    if (res >= 0) {
+        ksceKernelMemcpyKernelToUser((uintptr_t) modids, &kmodids, sizeof(SceUID) * 256);
+        ksceKernelMemcpyKernelToUser((uintptr_t) num, &count, sizeof(size_t));
+    } else {
+        ksceKernelMemcpyKernelToUser((uintptr_t) num, &count, sizeof(size_t));
+    }
+
+    EXIT_SYSCALL(state);
+
+    return res;
 }
 
 void set_hooks() {

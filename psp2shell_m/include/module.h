@@ -19,20 +19,16 @@
 #ifndef _MODULE_H
 #define _MODULE_H
 
-int p2s_moduleInfo(SceUID uid);
-
 int p2s_moduleList();
+int p2s_moduleListForPid(SceUID pid);
 
-SceUID p2s_moduleLoad(char *modulePath);
-
-int p2s_moduleStart(SceUID uid);
+int p2s_moduleInfo(SceUID uid);
+int p2s_moduleInfoForPid(SceUID pid, SceUID uid);
 
 SceUID p2s_moduleLoadStart(char *modulePath);
-
-int p2s_moduleStop(SceUID uid);
-
-int p2s_moduleUnload(SceUID uid);
+SceUID p2s_moduleLoadStartForPid(SceUID pid, char *modulePath);
 
 int p2s_moduleStopUnload(SceUID uid);
+int p2s_moduleStopUnloadForPid(SceUID pid, SceUID uid);
 
 #endif //_MODULE_H

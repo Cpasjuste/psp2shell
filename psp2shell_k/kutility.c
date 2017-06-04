@@ -4,7 +4,7 @@
 
 #include <vitasdkkern.h>
 #include <libk/string.h>
-#include "include/kutility.h"
+#include "kutility.h"
 
 char log_buf[BUF_SIZE];
 

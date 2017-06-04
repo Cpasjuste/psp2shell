@@ -12,3 +12,5 @@ psp2shell_k:
             functions:
               - kpsp2shell_wait_buffer
               - kpsp2shell_set_ready
+              - kpsp2shell_get_module_info
+              - kpsp2shell_get_module_list

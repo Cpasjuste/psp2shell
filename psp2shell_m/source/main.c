@@ -27,7 +27,7 @@
 #include "psp2shell.h"
 #include "taipool.h"
 #include "libmodule.h"
-#include "../../psp2shell_k/include/psp2shell_k.h"
+#include "../../psp2shell_k/psp2shell_k.h"
 
 static SceUID thid_wait, thid_kbuf;
 static int listen_port = 3333;
@@ -86,14 +86,16 @@ static int open_server() {
 
 void psp2shell_print_color_advanced(SceSize size, int color, const char *fmt, ...) {
 
-    char msg[size];
-    memset(msg, 0, size);
+    char msg[size + 1];
+    memset(msg, 0, size + 1);
     va_list args;
     va_start(args, fmt);
     vsnprintf(msg, size, fmt, args);
     va_end(args);
 
-    snprintf(msg + strlen(msg), size, "%i", color);
+    int len = strlen(msg);
+    snprintf(msg + len, size, "%i", color);
+    msg[len + 1] = '\0';
 
     if (client->msg_sock > 0) {
         sceNetSend(client->msg_sock, msg, size, 0);
@@ -245,7 +247,7 @@ int module_start(SceSize argc, const void *args) {
     listen_port = 3333;
 
     // init pool
-    taipool_init(0x100000); // 1M
+    taipool_init_advanced(0x100000, POOL_TYPE_BLOCK); // 1M
 
     // load network modules
     p2s_netInit();

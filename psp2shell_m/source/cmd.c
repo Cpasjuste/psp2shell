@@ -456,32 +456,32 @@ void cmd_parse(s_client *client) {
                 p2s_moduleList();
                 break;
 
+            case CMD_MODLS_PID:
+                p2s_moduleListForPid((SceUID) strtoul(cmd.arg0, NULL, 16));
+                break;
+
             case CMD_MODINFO:
                 p2s_moduleInfo((SceUID) strtoul(cmd.arg0, NULL, 16));
                 break;
 
-            case CMD_MODLOAD:
-                p2s_moduleLoad(cmd.arg0);
-                break;
-
-            case CMD_MODSTART:
-                p2s_moduleStart((SceUID) strtoul(cmd.arg0, NULL, 16));
+            case CMD_MODINFO_PID:
+                p2s_moduleInfoForPid((SceUID) strtoul(cmd.arg0, NULL, 16), (SceUID) strtoul(cmd.arg1, NULL, 16));
                 break;
 
             case CMD_MODLOADSTART:
                 p2s_moduleLoadStart(cmd.arg0);
                 break;
 
-            case CMD_MODSTOP:
-                p2s_moduleStop((SceUID) strtoul(cmd.arg0, NULL, 16));
-                break;
-
-            case CMD_MODUNLOAD:
-                p2s_moduleUnload((SceUID) strtoul(cmd.arg0, NULL, 16));
+            case CMD_MODLOADSTART_PID:
+                p2s_moduleLoadStartForPid((SceUID) strtoul(cmd.arg0, NULL, 16), cmd.arg1);
                 break;
 
             case CMD_MODSTOPUNLOAD:
                 p2s_moduleStopUnload((SceUID) strtoul(cmd.arg0, NULL, 16));
+                break;
+
+            case CMD_MODSTOPUNLOAD_PID:
+                p2s_moduleStopUnloadForPid((SceUID) strtoul(cmd.arg0, NULL, 16), (SceUID) strtoul(cmd.arg1, NULL, 16));
                 break;
 
             case CMD_THLS:

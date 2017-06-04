@@ -1,22 +1,27 @@
+#include <psp2/kernel/sysmem.h>
 #include <psp2/kernel/threadmgr.h>
 #include <libk/string.h>
-#include <libmodule.h>
 #include "taipool.h"
+
+#define POOL_PADDING 0x100 // Difference between stack pointer and mempool start in bytes
+
+static int dummy_thread(SceSize args, void *argp) { return 0; }
 
 static void *mempool_addr = NULL;
 static SceUID mempool_id = 0;
-static uint32_t mempool_size = 0;
-static uint32_t mempool_free = 0;
+static size_t mempool_size = 0;
+static size_t mempool_free = 0;
+static int mempool_type = POOL_TYPE_THREAD;
 
 // memblock header struct
 typedef struct mempool_block_hdr {
     uint8_t used;
-    uint32_t size;
+    size_t size;
 } mempool_block_hdr;
 
 // Allocks a new block on mempool
 static void *_taipool_alloc_block(size_t size) {
-    int i = 0;
+    size_t i = 0;
     mempool_block_hdr *hdr = (mempool_block_hdr *) mempool_addr;
 
     // Checking for a big enough free memblock
@@ -26,14 +31,14 @@ static void *_taipool_alloc_block(size_t size) {
 
                 // Reserving memory
                 hdr->used = 1;
-                uint32_t old_size = hdr->size;
+                size_t old_size = hdr->size;
                 hdr->size = size;
 
                 // Splitting blocks
                 mempool_block_hdr *new_hdr = (mempool_block_hdr *) (mempool_addr + i + sizeof(mempool_block_hdr) +
                                                                     size);
                 new_hdr->used = 0;
-                new_hdr->size = old_size - size - sizeof(mempool_block_hdr);
+                new_hdr->size = old_size - (size + sizeof(mempool_block_hdr));
 
                 mempool_free -= (sizeof(mempool_block_hdr) + size);
                 return (void *) (mempool_addr + i + sizeof(mempool_block_hdr));
@@ -41,7 +46,7 @@ static void *_taipool_alloc_block(size_t size) {
         }
 
         // Jumping to next block
-        i += hdr->size + sizeof(mempool_block_hdr);
+        i += (hdr->size + sizeof(mempool_block_hdr));
         hdr = (mempool_block_hdr *) (mempool_addr + i);
 
     }
@@ -57,14 +62,14 @@ static void _taipool_free_block(void *ptr) {
 
 // Merge contiguous free blocks in a bigger one
 static void _taipool_merge_blocks() {
-    int i = 0;
+    size_t i = 0;
     mempool_block_hdr *hdr = (mempool_block_hdr *) mempool_addr;
     mempool_block_hdr *previousBlock = NULL;
 
     while (i < mempool_size) {
         if (!hdr->used) {
             if (previousBlock != NULL) {
-                previousBlock->size += hdr->size + sizeof(mempool_block_hdr);
+                previousBlock->size += (hdr->size + sizeof(mempool_block_hdr));
                 mempool_free += sizeof(mempool_block_hdr);
             } else {
                 previousBlock = hdr;
@@ -107,7 +112,7 @@ static void _taipool_compact_block(void *ptr, size_t size) {
     hdr->size = size;
     mempool_block_hdr *new_block = (mempool_block_hdr *) (ptr + hdr->size);
     new_block->used = 0;
-    new_block->size = old_size - size - sizeof(mempool_block_hdr);
+    new_block->size = old_size - (size + sizeof(mempool_block_hdr));
     mempool_free += new_block->size;
 }
 
@@ -124,7 +129,11 @@ void taipool_reset(void) {
 // Terminate taipool mempool
 void taipool_term(void) {
     if (mempool_addr != NULL) {
-        sceKernelFreeMemBlock(mempool_id);
+        if (mempool_type == POOL_TYPE_THREAD) {
+            sceKernelDeleteThread(mempool_id);
+        } else {
+            sceKernelFreeMemBlock(mempool_id);
+        }
         mempool_addr = NULL;
         mempool_size = 0;
         mempool_free = 0;
@@ -133,18 +142,46 @@ void taipool_term(void) {
 
 // Initialize taipool mempool
 int taipool_init(size_t size) {
+    return taipool_init_advanced(size, POOL_TYPE_THREAD);
+}
+
+// Initialize taipool mempool
+int taipool_init_advanced(size_t size, int poolType) {
+
+    mempool_type = poolType;
 
     if (mempool_addr != NULL) taipool_term();
 
-    // align 4K
-    mempool_id = sceKernelAllocMemBlock("p2spool", SCE_KERNEL_MEMBLOCK_TYPE_USER_RW, (size + 0xFFF) & (~0xFFF), 0);
-    if (mempool_id >= 0) {
-        sceKernelGetMemBlockBase(mempool_id, &mempool_addr);
-        mempool_size = size;
-        taipool_reset();
-        return 0;
-    }
+    if (mempool_type == POOL_TYPE_THREAD) {
+        // Creating a thread in order to reserve requested memory
+        mempool_id = sceKernelCreateThread("mempool_thread", dummy_thread, 0x40, size, 0, 0, NULL);
+        if (mempool_id >= 0) {
+            SceKernelThreadInfo mempool_info;
+            mempool_info.size = sizeof(SceKernelThreadInfo);
+            if (!sceKernelGetThreadInfo(mempool_id, &mempool_info)) {
+                mempool_addr = mempool_info.stack + POOL_PADDING;
+                mempool_size = mempool_info.stackSize - POOL_PADDING;
 
+                // Initializing mempool as a single block
+                taipool_reset();
+
+                return 0;
+            }
+        }
+    } else {
+        mempool_id = sceKernelAllocMemBlock("mempool_block", SCE_KERNEL_MEMBLOCK_TYPE_USER_RW,
+                                            (size + 0xFFF) & (~0xFFF), 0);
+        if (mempool_id >= 0) {
+            sceKernelGetMemBlockBase(mempool_id, &mempool_addr);
+            mempool_addr += POOL_PADDING;
+            mempool_size = size - POOL_PADDING;
+
+            // Initializing mempool as a single block
+            taipool_reset();
+
+            return 0;
+        }
+    }
     return mempool_id;
 }
 
