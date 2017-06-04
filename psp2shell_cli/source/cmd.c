@@ -414,11 +414,9 @@ int cmd_memw(int argc, char **argv) {
 int cmd_help(int argc, char **argv) {
 
     int i = 0;
-    printf("psp2shell commands: \n\n");
-    printf("-----------------------------------------------------\n");
     while (cmd[i].name != NULL) {
-        printf("%s %s\n%s\n", cmd[i].name, cmd[i].args, cmd[i].desc);
-        printf("-----------------------------------------------------\n");
+        printf(GRN "%s %s" RES, cmd[i].name, cmd[i].args);
+        printf(" -- %s\n", cmd[i].desc);
         i++;
     }
 
@@ -445,7 +443,7 @@ COMMAND cmd[] = {
         {"launch",    "<titleid>",                  "Launch title",                                  cmd_launch},
         {"reboot",    "",                           "Reboot.",                                       cmd_reboot},
 //        {"mount",   "<titleid>",                "Mount titleid",                                 cmd_mount},
-        {"umount",    "<dev:>",                     "Umount device.",                                cmd_umount},
+//        {"umount",    "<dev:>",                     "Umount device.",                                cmd_umount},
         {"title",     "",                           "Get running title (name, id, pid)",             cmd_title},
         {"modlist",   "",                           "List loaded modules (for running process).",    cmd_modls},
         {"modlistp",  "<pid>",                      "List loaded modules for pid.",                  cmd_modlsp},

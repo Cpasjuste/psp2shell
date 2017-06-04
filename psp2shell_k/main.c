@@ -84,8 +84,10 @@ void kpsp2shell_set_ready(int rdy) {
 
     ready = rdy;
     // "unblock" update_kbuf
-    ksceKernelSignalSema(u_mutex, 1);
-    ksceKernelSignalSema(k_mutex, 1);
+    if (ready == 1) {
+        ksceKernelSignalSema(u_mutex, 1);
+        ksceKernelSignalSema(k_mutex, 1);
+    }
 }
 
 int kpsp2shell_get_module_info(SceUID pid, SceUID modid, SceKernelModuleInfo *info) {
