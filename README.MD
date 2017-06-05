@@ -52,6 +52,7 @@ load TITLEID01 /path/to/my/app/build/eboot.bin
 ```
 
 **A little more**
+
 There are a few more commands available, like "ls", "rm", "send", "modlist", "modinfo"... You can type "help" in the shell for a list of available commands.
 
 

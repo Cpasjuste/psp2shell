@@ -6,21 +6,13 @@ include("${VITASDK}/share/vita.cmake" REQUIRED)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,-q -Wall -O3 -std=gnu99")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti -fno-exceptions")
 
-include_directories(
-)
-
-link_directories(
-        ${CMAKE_CURRENT_BINARY_DIR}
-)
-
+link_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_definitions(-DRELEASE)
-
-add_executable(psp2shell_k
+add_executable(${PROJECT_NAME}
         main.c
         kutility.c
         )
-
-target_link_libraries(psp2shell_k
+target_link_libraries(${PROJECT_NAME}
         taihenForKernel_stub
         SceLibKernel_stub
         SceSysmemForDriver_stub
@@ -32,12 +24,12 @@ target_link_libraries(psp2shell_k
         gcc
         )
 
-set_target_properties(psp2shell_k
+set_target_properties(${PROJECT_NAME}
         PROPERTIES LINK_FLAGS "-nostdlib"
         COMPILE_FLAGS "-D__VITA_KERNEL__"
         )
 
-vita_create_self(psp2shell_k.skprx psp2shell_k
+vita_create_self(${PROJECT_NAME}.skprx ${PROJECT_NAME}
         CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/psp2shell_k.yml)
 
 # fix "make" command not finding VITASDK env variable
@@ -77,5 +69,5 @@ macro(_vita_create_stubs target-dir source config)
     add_dependencies(${target-dir} ${source})
 endmacro(_vita_create_stubs)
 
-_vita_create_stubs(psp2shell_k-stubs psp2shell_k
+_vita_create_stubs(${PROJECT_NAME}-stubs ${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/psp2shell_k.yml KERNEL)

@@ -21,5 +21,14 @@ add_subdirectory(psp2shell_k)
 # main module
 add_subdirectory(psp2shell_m)
 
-add_subdirectory(psp2shell_loader)
+#add_subdirectory(psp2shell_loader)
 #add_subdirectory(psp2shell_cli) # external project for now, else cross-compile problem
+
+add_custom_target(release
+        DEPENDS psp2shell_k psp2shell_m
+        COMMAND mkdir -p ${CMAKE_BINARY_DIR}/release
+        COMMAND cp ${CMAKE_BINARY_DIR}/psp2shell_k/psp2shell_k.skprx ${CMAKE_BINARY_DIR}/release/
+        COMMAND cp ${CMAKE_BINARY_DIR}/psp2shell_m/psp2shell_m.suprx ${CMAKE_BINARY_DIR}/release/
+        COMMAND cp ${CMAKE_SOURCE_DIR}/README.MD ${CMAKE_BINARY_DIR}/release/
+        COMMAND cd ${CMAKE_BINARY_DIR}/release && zip -r ../psp2shell-${BUILD_DATE}.zip . && cd ..
+        )

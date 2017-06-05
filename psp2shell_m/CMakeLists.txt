@@ -15,7 +15,6 @@ set(SRC_FILES
         source/taipool.c
         ../common/source/psp2cmd.c
         source/cmd.c source/cmd.h)
-
 set(INC_FILES
         ../common/include
         include
@@ -29,10 +28,10 @@ set(CFLAGS -Wall -O2 -std=c99 -DPSP2 -DMODULE
 #-DDEBUG=1
 
 # user module
-add_executable(${PROJECT_NAME}.elf ${SRC_FILES})
-target_include_directories(${PROJECT_NAME}.elf PRIVATE ${INC_FILES})
-target_compile_options(${PROJECT_NAME}.elf PRIVATE ${CFLAGS} -DMODULE)
-target_link_libraries(${PROJECT_NAME}.elf
+add_executable(${PROJECT_NAME} ${SRC_FILES})
+target_include_directories(${PROJECT_NAME} PRIVATE ${INC_FILES})
+target_compile_options(${PROJECT_NAME} PRIVATE ${CFLAGS} -DMODULE)
+target_link_libraries(${PROJECT_NAME}
         ${CMAKE_BINARY_DIR}/psp2shell_k/psp2shell_k-stubs/libpsp2shell_k_stub.a
         taihen_stub
         SceLibKernel_stub
@@ -49,6 +48,6 @@ target_link_libraries(${PROJECT_NAME}.elf
         gcc
         -nostdlib)
 
-vita_create_self(${PROJECT_NAME}.suprx ${PROJECT_NAME}.elf
+vita_create_self(${PROJECT_NAME}.suprx ${PROJECT_NAME}
         CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/psp2shell_m.yml
         UNSAFE)
