@@ -1,86 +1,60 @@
-==========================
-| PSP2SHELL By Cpasjuste |
-==========================
+PSP2SHELL
+==========
 
-ABOUT
-=====
+**psp2shell is an utility/remote shell (plugin+client, wifi) to ease the development process on ps vita devices.** You should be able to print debug output over the shell (sceClibPrintf), send files, send/restart your application at anytime saving some precious time for the real stuff.
 
-- psp2shell is an utility/remote shell (library+client) to ease the development process on ps vita devices.
-    The client is currently available for linux x64 (ubuntu) and windows x64 (wip).
+-----
 
-BUILD (LINUX)
-=============
+**Building the plugins**
+```
+mkdir cmake-build && cd cmake-build
+cmake -DCMAKE_TOOLCHAIN_FILE="$VITASDK/share/vita.toolchain.cmake" -DCMAKE_BUILD_TYPE=Release ..
+make
+```
 
-- library :
-    - mkdir build && cd build && cmake -DCMAKE_TOOLCHAIN_FILE="$VITASDK/share/vita.toolchain.cmake" ../
-    - make psp2shell
+**Building the client**
+```
+cd psp2shell_cli && mkdir cmake-build && cd cmake-build
+cmake ..
+make
+```
 
-- client :
-    - cd psp2shell_cli && mkdir build && cd build && cmake ../
-    - make psp2shell_cli
+**Installation**
+>- copy "psp2shell_k.skprx" and "psp2shell_m.suprx" to "ux0:/tai/"
+>- add "ux0:/tai/psp2shell_k.skprx" to "*KERNEL" section of "ux0:/tai/config.txt"
+>- add "ux0:/tai/psp2shell_m.suprx" to "*main" section of "ux0:/tai/config.txt"
+>- reboot
 
-BUILD (WINDOWS)
-===============
+Tipcal usage
+--------
 
-You must have your environment set up with msys2.
+**Enable debug print in your application/module**
 
-Library:
+Use "**sceClibPrintf**" in your application/module to print debug messages to the shell.
 
- * `mkdir build && cd build && cmake -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake -DCMAKE_INSTALL_PREFIX=$VITASDK/arm-vita-eabi ..`
- * `make`
- * `make install` - to install to VITASDK
+**Get a shell, get messages**
 
-It is not currently possible to build the CLI for Windows.
+Connect to your ps vita device from your computer with the client (replace "ip" with your ps vita ip address) :
+```
+./psp2shell_cli ip 3333
+```
+From there, you'll be able to see your sceClibPrintf messages coming in. Note that, to not miss some messages, the module wait for the shell on every print. This means your application will run slower if you use a lot of debug output.
 
-BUILD (MACOS)
-=============
+**Update, restart your application**
 
-Library:
+Re-build your application then, from the shell, you can send the newly complied version of your application, and restart it automatically :
+```
+reload /path/to/my/app/build/eboot.bin
+```
+Note that if your application is not running (or crashed), you'll have to specify the title id (9 chars) of your application (so we know where to put the new eboot.bin) :
+```
+load TITLEID01 /path/to/my/app/build/eboot.bin
+```
 
-* `mkdir build && cd build && cmake -DCMAKE_TOOLCHAIN_FILE=../Vita.cmake -DCMAKE_INSTALL_PREFIX="$VITASDK/arm-vita-eabi" ..`
-* `make`
-* `make install` - to install to VITASDK
-
-Client: In order to build the client on macOS, install `readline` from
-Homebrew first. The "readline" provided by Apple is not actually readline.
-
-* `cd psp2shell_cli && mkdir build && cd build && cmake
-  -DCMAKE_C_FLAGS="-I/usr/local/opt/readline/include"
-  -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/opt/readline/lib"
-  -DCMAKE_INSTALL_PREFIX="$VITASDK" ..`
-* `make`
-* `make install`
-
-USAGE
-=====
-
-- add libpsp2shell.a and psp2shell.h to your app..
-
-- add psp2shell needed library flags to your app :
-	-lpsp2shell -lSceSysmodule_stub -lSceNet_stub \
-	-lSceNetCtl_stub -lSceKernel_stub -lScePower_stub -lSceAppMgr_stub
-
-- DO NOT use secure flag "-s" (vita-make-fself -s), this is needed for reloading,
-    you should then add the flag back when releasing your application.
-
-- Please note that when using psp2shell library, you're application
-    will never enter "deep sleep" ("power lock"), so the network connexion will not be lost.
-
-- init psp2shell in your app : psp2shell_init(3333, 0)
-
-- to print to the shell from your app use : psp2shell_print(..) / psp2shell_print_color(..)
-
-- connect to your app with psp2shell_cli : ./psp2shell_cli 192.168.x.x 3333
-
-- update/reload your app from the shell : reload "path/to/eboot.bin"
-
-- type help (or ?) for more commands
-    (cd, ls, pwd, rm, rmdir, mv, put, reset, reload...)
+**A little more**
+There are a few more commands available, like "ls", "rm", "send", "modlist", "modinfo"... You can type "help" in the shell for a list of available commands.
 
 
-THANKS
-======
-- consolex-bordeaux.fr : for offering a ps vita device
-- TheFl0w : for helping on a few functions
-- vitasdk developers : for the sdk :)
-- binn library author (https://github.com/liteserver/binn)
+Thanks
+----------
+consolex-bordeaux.fr, ScHlAuChi, noname120, motoharu, xyz, yifanlu, frangarcj, Rinnegatamante, davee and people i may forget for what they do for the ps vita.
