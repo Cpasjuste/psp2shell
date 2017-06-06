@@ -12,8 +12,9 @@ cmake -DCMAKE_TOOLCHAIN_FILE="$VITASDK/share/vita.toolchain.cmake" -DCMAKE_BUILD
 make
 ```
 
-**Building the client**
+**Building the client (linux/deb)**
 ```
+sudo apt-get install libreadline-dev
 cd psp2shell_cli && mkdir cmake-build && cd cmake-build
 cmake ..
 make
