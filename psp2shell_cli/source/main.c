@@ -250,26 +250,26 @@ void *msg_thread(void *unused) {
             }
         }
 
-        int color = msg[strlen(msg) - 1] - 48;
-        char str[SIZE_PRINT];
-        memset(str, 0, SIZE_PRINT);
+        size_t len = strlen(msg);
+        if (strlen(msg) < 2) {
+            continue;
+        }
+
+        int color = msg[len - 1] - 48;
+        msg[len - 1] = '\0';
 
         switch (color) {
             case COL_RED:
-                strncpy(str, msg, strlen(msg) - 1);
-                printf(RED "%s" RES, str);
+                printf(RED "%s" RES, msg);
                 break;
             case COL_YELLOW:
-                strncpy(str, msg, strlen(msg) - 1);
-                printf(YEL "%s" RES, str);
+                printf(YEL "%s" RES, msg);
                 break;
             case COL_GREEN:
-                strncpy(str, msg, strlen(msg) - 1);
-                printf(GRN "%s" RES, str);
+                printf(GRN "%s" RES, msg);
                 break;
             case COL_HEX:
-                strncpy(str, msg, strlen(msg) - 1);
-                print_hex(str);
+                print_hex(msg);
                 break;
             default:
                 printf("%s", msg);
@@ -277,7 +277,9 @@ void *msg_thread(void *unused) {
         }
 
         fflush(stdout);
-        rl_refresh_line(0, 0);
+        if (msg[len - 2] == '\n') { // allow printing to the shell without new line
+            rl_refresh_line(0, 0);
+        }
 
         // send "ok/continue"
         send(msg_sock, "\n", 1, 0);
