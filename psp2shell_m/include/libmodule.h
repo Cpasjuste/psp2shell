@@ -30,8 +30,8 @@ int sceKernelStartModule(SceUID modid, SceSize args, void *argp, int flags, void
 #endif
 
 #ifdef DEBUG
-void mdebug(const char *fmt, ...);
-#define printf mdebug
+int sceClibPrintf(const char *, ...);
+#define printf sceClibPrintf
 #endif
 
 #ifdef __VITA_KERNEL__

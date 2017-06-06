@@ -25,24 +25,26 @@ static void sendNOK(int sock) {
     sceNetSend(sock, "0\n", 2, 0);
 }
 
-static char *toAbsolutePath(s_FileList *fileList, char *path) {
+static void toAbsolutePath(s_FileList *fileList, char *path) {
 
     p2s_removeEndSlash(path);
-    char *p = strrchr(path, '/');
-    if (!p) { // relative path
-        sprintf(path, "%s/%s", fileList->path, path);
-    }
 
-    return path;
+    char *p = strrchr(path, ':');
+    if (!p) { // relative path
+        snprintf(path, MAX_PATH_LENGTH, "%s/%s", fileList->path, path);
+    }
 }
 
 static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
 
-    char *new_path;
+    char new_path[MAX_PATH_LENGTH];
+
     if (strncmp(dst, "0", 1) == 0) {
-        new_path = toAbsolutePath(&client->fileList, client->fileList.path);
+        strncpy(new_path, client->fileList.path, MAX_PATH_LENGTH);
+        toAbsolutePath(&client->fileList, new_path);
     } else {
-        new_path = toAbsolutePath(&client->fileList, dst);
+        strncpy(new_path, dst, MAX_PATH_LENGTH);
+        toAbsolutePath(&client->fileList, new_path);
     }
 
     // if dest is a directory, append source filename
@@ -186,10 +188,10 @@ static void cmd_cd(s_client *client, char *path) {
     } else if (s_exist(path)) {
         strcpy(client->fileList.path, path);
     } else {
-        char tmp[1024];
-        snprintf(tmp, 1024, "%s/%s", client->fileList.path, path);
+        char tmp[MAX_PATH_LENGTH];
+        snprintf(tmp, MAX_PATH_LENGTH, "%s/%s", client->fileList.path, path);
         if (s_exist(tmp)) {
-            strcpy(client->fileList.path, tmp);
+            strncpy(client->fileList.path, tmp, MAX_PATH_LENGTH);
         }
     }
 
@@ -198,7 +200,7 @@ static void cmd_cd(s_client *client, char *path) {
     int res = s_fileListGetEntries(&client->fileList, client->fileList.path);
     if (res < 0) {
         psp2shell_print_color(COL_RED, "could not cd to directory: %s\n", client->fileList.path);
-        strcpy(client->fileList.path, oldPath);
+        strncpy(client->fileList.path, oldPath, MAX_PATH_LENGTH);
         s_fileListGetEntries(&client->fileList, oldPath);
     }
 }
@@ -259,8 +261,14 @@ static void cmd_pwd(s_client *client) {
 
 static void cmd_mv(s_client *client, char *src, char *dst) {
 
-    char *new_src = toAbsolutePath(&client->fileList, src);
-    char *new_dst = toAbsolutePath(&client->fileList, dst);
+    char new_src[MAX_PATH_LENGTH];
+    char new_dst[MAX_PATH_LENGTH];
+
+    strncpy(new_src, src, MAX_PATH_LENGTH);
+    strncpy(new_dst, dst, MAX_PATH_LENGTH);
+
+    toAbsolutePath(&client->fileList, new_src);
+    toAbsolutePath(&client->fileList, new_dst);
 
     int res = s_movePath(new_src, new_dst, MOVE_INTEGRATE | MOVE_REPLACE, NULL);
     if (res != 1) {
@@ -272,7 +280,10 @@ static void cmd_mv(s_client *client, char *src, char *dst) {
 
 static void cmd_rm(s_client *client, char *file) {
 
-    char *new_path = toAbsolutePath(&client->fileList, file);
+    char new_path[MAX_PATH_LENGTH];
+    strncpy(new_path, file, MAX_PATH_LENGTH);
+
+    toAbsolutePath(&client->fileList, new_path);
 
     if (!s_isDir(new_path)) {
         int res = s_removePath(new_path, NULL);
@@ -288,7 +299,9 @@ static void cmd_rm(s_client *client, char *file) {
 
 static void cmd_rmdir(s_client *client, char *path) {
 
-    char *new_path = toAbsolutePath(&client->fileList, path);
+    char new_path[MAX_PATH_LENGTH];
+    strncpy(new_path, path, MAX_PATH_LENGTH);
+    toAbsolutePath(&client->fileList, new_path);
 
     int res = s_removePath(new_path, NULL);
     if (res != 1) {

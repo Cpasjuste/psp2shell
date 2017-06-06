@@ -7,6 +7,11 @@
 extern "C" {
 #endif
 
+#ifdef DEBUG
+int sceClibPrintf(const char *, ...);
+#define printf sceClibPrintf
+#endif
+
 enum colors_t {
     COL_NONE = 0,
     COL_RED = 1,

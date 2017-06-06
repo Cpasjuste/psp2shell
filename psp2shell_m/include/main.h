@@ -26,7 +26,6 @@
 #define FALSE 0
 
 typedef struct {
-    SceUID thid;
     int msg_sock;
     int cmd_sock;
     char cmd_buffer[SIZE_CMD];

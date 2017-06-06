@@ -85,6 +85,7 @@ void kpsp2shell_set_ready(int rdy) {
     ready = rdy;
     // "unblock" update_kbuf
     if (ready == 1) {
+        memset(kbuf, 0, BUF_SIZE);
         ksceKernelSignalSema(u_mutex, 1);
         ksceKernelSignalSema(k_mutex, 1);
     }

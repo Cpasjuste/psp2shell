@@ -29,32 +29,18 @@
 #include "libmodule.h"
 #include "../../psp2shell_k/psp2shell_k.h"
 
-static SceUID thid_wait, thid_kbuf;
+static SceUID thid_wait = -1;
+static SceUID thid_kbuf = -1;
+static SceUID thid_client = -1;
+#ifdef DEBUG
+static int listen_port = 5555;
+#else
 static int listen_port = 3333;
+#endif
 static int quit = 0;
 static s_client *client;
 static int server_sock_msg;
 static int server_sock_cmd;
-
-static void close_client() {
-
-    kpsp2shell_set_ready(0);
-
-    if (client != NULL) {
-
-        if (client->msg_sock >= 0) {
-            sceNetSocketClose(client->msg_sock);
-            client->msg_sock = -1;
-        }
-
-        if (client->cmd_sock >= 0) {
-            sceNetSocketClose(client->cmd_sock);
-            client->cmd_sock = -1;
-        }
-
-        s_fileListEmpty(&client->fileList);
-    }
-}
 
 static void close_server() {
 
@@ -85,6 +71,10 @@ static int open_server() {
 }
 
 void psp2shell_print_color_advanced(SceSize size, int color, const char *fmt, ...) {
+
+    if (client == NULL) {
+        return;
+    }
 
     char msg[size + 1];
     memset(msg, 0, size + 1);
@@ -124,8 +114,12 @@ int cmd_thread(SceSize args, void *argp) {
 
     printf("cmd_thread\n");
 
+    // setup clients data
+    client = taipool_alloc(sizeof(s_client));
+    memset(client, 0, sizeof(s_client));
+    client->msg_sock = *((int *) argp);
+
     // init client file listing memory
-    printf("client->fileList malloc\n");
     memset(&client->fileList, 0, sizeof(s_FileList));
     strcpy(client->fileList.path, HOME_PATH);
     s_fileListGetEntries(&client->fileList, HOME_PATH);
@@ -135,11 +129,12 @@ int cmd_thread(SceSize args, void *argp) {
     welcome();
 
     // get data sock
-    printf("get data sock\n");
     client->cmd_sock = p2s_get_sock(server_sock_cmd);
     printf("got data sock: %i\n", client->cmd_sock);
 
+#ifndef DEBUG
     kpsp2shell_set_ready(1);
+#endif
 
     while (!quit) {
 
@@ -152,15 +147,26 @@ int cmd_thread(SceSize args, void *argp) {
         if (read_size <= 0) {
             printf("sceNetRecv failed: %i\n", read_size);
             break;
-        } else if (read_size > 0) {
-            printf("sceNetRecv ok: %i\n", read_size);
+        } else if (read_size > 0 && !quit) {
             cmd_parse(client);
         }
     }
 
     printf("closing connection\n");
-
-    close_client();
+#ifndef DEBUG
+    kpsp2shell_set_ready(0);
+#endif
+    if (client->msg_sock >= 0) {
+        sceNetSocketClose(client->msg_sock);
+        client->msg_sock = -1;
+    }
+    if (client->cmd_sock >= 0) {
+        sceNetSocketClose(client->cmd_sock);
+        client->cmd_sock = -1;
+    }
+    s_fileListEmpty(&client->fileList);
+    taipool_free(client);
+    client = NULL;
 
     sceKernelExitDeleteThread(0);
 
@@ -168,12 +174,6 @@ int cmd_thread(SceSize args, void *argp) {
 }
 
 static int thread_wait(SceSize args, void *argp) {
-
-    // setup clients data
-    memset(client, 0, sizeof(s_client));
-    client->msg_sock = -1;
-    client->cmd_sock = -1;
-    memset(client->cmd_buffer, 0, SIZE_CMD);
 
     // setup sockets
     if (open_server() != 0) {
@@ -199,21 +199,22 @@ static int thread_wait(SceSize args, void *argp) {
             printf("client_sock == 0\n");
         }
 
-        printf("new connexion on port %i (sock=%i)\n", listen_port, client_sock);
+        if (quit) {
+            break;
+        }
 
+        printf("new connexion on port %i (sock=%i)\n", listen_port, client_sock);
         // max client/socket count reached
-        if (client->msg_sock > 0) {
+        if (client != NULL && client->msg_sock > 0) {
             printf("Connection refused, max client reached (1)\n");
             sceNetSocketClose(client_sock);
             continue;
         }
 
         printf("Connection accepted\n");
-
-        client->msg_sock = client_sock;
-        client->thid = sceKernelCreateThread("psp2shell_cmd", cmd_thread, 64, 0x4000, 0, 0x10000, 0);
-        if (client->thid >= 0)
-            sceKernelStartThread(client->thid, 0, NULL);
+        thid_client = sceKernelCreateThread("psp2shell_cmd", cmd_thread, 64, 0x4000, 0, 0x10000, 0);
+        if (thid_client >= 0)
+            sceKernelStartThread(thid_client, sizeof(int), (void *) &client_sock);
     }
 
     psp2shell_exit();
@@ -222,6 +223,8 @@ static int thread_wait(SceSize args, void *argp) {
     return 0;
 }
 
+#ifndef DEBUG
+
 static int thread_kbuf(SceSize args, void *argp) {
 
     char buffer[512];
@@ -229,10 +232,14 @@ static int thread_kbuf(SceSize args, void *argp) {
 
     while (!quit) {
 
-        memset(buffer, 0, 512);
-        kpsp2shell_wait_buffer(buffer, 512);
-        if (client->msg_sock > 0) {
-            psp2shell_print(buffer);
+        if (client != NULL) {
+            memset(buffer, 0, 512);
+            kpsp2shell_wait_buffer(buffer, 512);
+            if (client != NULL && client->msg_sock > 0) {
+                psp2shell_print(buffer);
+            }
+        } else {
+            sceKernelDelayThread(1000);
         }
     }
 
@@ -240,11 +247,11 @@ static int thread_kbuf(SceSize args, void *argp) {
     return 0;
 }
 
+#endif
+
 void _start() __attribute__ ((weak, alias ("module_start")));
 
 int module_start(SceSize argc, const void *args) {
-
-    listen_port = 3333;
 
     // init pool
     taipool_init_advanced(0x100000, POOL_TYPE_BLOCK); // 1M
@@ -252,13 +259,12 @@ int module_start(SceSize argc, const void *args) {
     // load network modules
     p2s_netInit();
 
-    client = taipool_alloc(sizeof(s_client));
-
+#ifndef DEBUG
     thid_kbuf = sceKernelCreateThread("psp2shell_kbuf", thread_kbuf, 64, 0x1000, 0, 0x10000, 0);
     if (thid_kbuf >= 0) {
         sceKernelStartThread(thid_kbuf, 0, NULL);
     }
-
+#endif
     thid_wait = sceKernelCreateThread("psp2shell_wait", thread_wait, 64, 0x1000, 0, 0x10000, 0);
     if (thid_wait >= 0) {
         sceKernelStartThread(thid_wait, 0, NULL);
@@ -278,15 +284,43 @@ void module_exit(void) {
 
 void psp2shell_exit() {
 
+    if (quit) {
+        return;
+    }
+
+    printf("psp2shell_exit\n");
     quit = 1;
 
-    close_client();
+#ifndef DEBUG
+    kpsp2shell_set_ready(0);
+#endif
 
+    printf("close_client\n");
+    if (client != NULL) {
+        if (client->msg_sock >= 0) {
+            sceNetSocketClose(client->msg_sock);
+            client->msg_sock = -1;
+        }
+        if (client->cmd_sock >= 0) {
+            sceNetSocketClose(client->cmd_sock);
+            client->cmd_sock = -1;
+        }
+        if (thid_client >= 0) {
+            sceKernelWaitThreadEnd(thid_client, NULL, NULL);
+        }
+    }
+
+    printf("close_server\n");
     close_server();
+    if (thid_wait >= 0) {
+        sceKernelWaitThreadEnd(thid_wait, NULL, NULL);
+    }
 
     if (thid_kbuf >= 0) {
+        printf("sceKernelDeleteThread: thid_kbuf\n");
         sceKernelDeleteThread(thid_kbuf);
     }
 
+    printf("taipool_term\n");
     taipool_term();
 }
