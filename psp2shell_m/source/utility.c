@@ -209,22 +209,22 @@ size_t p2s_recv_file(int sock, SceUID fd, long size) {
     size_t len, received = 0, left = (size_t) size;
     int bufSize = SIZE_DATA;
 
-    unsigned char *rcv_buffer = taipool_alloc(SIZE_DATA);
-    if (rcv_buffer == NULL) {
+    unsigned char *buffer = taipool_alloc(SIZE_DATA);
+    if (buffer == NULL) {
         return 0;
     }
 
-    memset(rcv_buffer, 0, SIZE_DATA);
+    memset(buffer, 0, SIZE_DATA);
 
     while (left > 0) {
         if (left < bufSize) bufSize = left;
-        len = (size_t) p2s_recvall(sock, rcv_buffer, bufSize, 0);
-        sceIoWrite(fd, rcv_buffer, (SceSize) len);
+        len = (size_t) p2s_recvall(sock, buffer, bufSize, 0);
+        sceIoWrite(fd, buffer, (SceSize) len);
         left -= len;
         received += len;
     }
 
-    taipool_free(rcv_buffer);
+    taipool_free(buffer);
 
     return received;
 }

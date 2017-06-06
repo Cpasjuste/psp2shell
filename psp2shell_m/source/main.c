@@ -72,26 +72,25 @@ static int open_server() {
 
 void psp2shell_print_color_advanced(SceSize size, int color, const char *fmt, ...) {
 
-    if (client == NULL) {
+    if (client == NULL || size >= SIZE_CMD) {
         return;
     }
 
-    char msg[size + 1];
-    memset(msg, 0, size + 1);
+    memset(client->msg_buffer, 0, size + 1);
     va_list args;
     va_start(args, fmt);
-    vsnprintf(msg, size, fmt, args);
+    vsnprintf(client->msg_buffer, size, fmt, args);
     va_end(args);
 
-    int len = strlen(msg);
-    snprintf(msg + len, size, "%i", color);
-    msg[len + 1] = '\0';
+    int len = strlen(client->msg_buffer);
+    snprintf(client->msg_buffer + len, size, "%i", color);
+    client->msg_buffer[len + 1] = '\0';
 
     if (client->msg_sock > 0) {
-        sceNetSend(client->msg_sock, msg, size, 0);
-        int ret = sceNetRecv(client->msg_sock, msg, 1, 0);
+        sceNetSend(client->msg_sock, client->msg_buffer, size, 0);
+        int ret = sceNetRecv(client->msg_sock, client->msg_buffer, 1, 0);
         if (ret < 0) { // wait for answer
-            printf("psp2shell_print: sceNetRecv failed: %i\n", ret);
+            printf("print: sceNetRecv failed: %i\n", ret);
         }
     }
 }
@@ -261,8 +260,8 @@ void _start() __attribute__ ((weak, alias ("module_start")));
 int module_start(SceSize argc, const void *args) {
 
     // init pool
-    int res = taipool_init_advanced(0x100000, POOL_TYPE_BLOCK); // 1M
-    printf("taipool_init_advanced(%i): 0x%08X\n", 0x100000, res);
+    int res = taipool_init_advanced(0x10000, POOL_TYPE_BLOCK); // 64K
+    printf("taipool_init_advanced(%i): 0x%08X\n", 0x10000, res);
 
     // load network modules
     p2s_netInit();

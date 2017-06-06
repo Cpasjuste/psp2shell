@@ -28,6 +28,7 @@
 typedef struct {
     int msg_sock;
     int cmd_sock;
+    char msg_buffer[SIZE_CMD];
     char cmd_buffer[SIZE_CMD];
     s_FileList fileList;
 } s_client;
