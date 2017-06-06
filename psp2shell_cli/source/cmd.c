@@ -434,7 +434,7 @@ COMMAND cmd[] = {
         {"ls",        "<remote_path>",              "List a directory.",                             cmd_ls},
         {"pwd",       "",                           "Get working directory.",                        cmd_pwd},
         {"rm",        "<remote_file>",              "Remove a file",                                 cmd_rm},
-        {"rmdir",     "<local_path> <remote_path>", "Remove a directory",                            cmd_rmdir},
+        {"rmdir",     "<remote_path>",              "Remove a directory",                            cmd_rmdir},
         {"mv",        "<remote_src> <remote_dst>",  "Move a file/directory",                         cmd_mv},
         {"put",       "<local_path> <remote_path>", "Upload a file.",                                cmd_put},
         {"reset",     "",                           "Restart the application.",                      cmd_reset},

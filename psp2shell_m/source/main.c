@@ -114,12 +114,21 @@ int cmd_thread(SceSize args, void *argp) {
 
     printf("cmd_thread\n");
 
+    int sock = *((int *) argp);
+
     // setup clients data
     client = taipool_alloc(sizeof(s_client));
-    memset(client, 0, sizeof(s_client));
-    client->msg_sock = *((int *) argp);
+    if (client == NULL) { // crap
+        printf("client alloc failed\n");
+        sceNetSocketClose(sock);
+        sceKernelExitDeleteThread(0);
+        return 0;
+    }
 
-    // init client file listing memory
+    memset(client, 0, sizeof(s_client));
+    client->msg_sock = sock;
+
+    // init client file listing memory/**/
     memset(&client->fileList, 0, sizeof(s_FileList));
     strcpy(client->fileList.path, HOME_PATH);
     s_fileListGetEntries(&client->fileList, HOME_PATH);
@@ -169,7 +178,6 @@ int cmd_thread(SceSize args, void *argp) {
     client = NULL;
 
     sceKernelExitDeleteThread(0);
-
     return 0;
 }
 
@@ -253,7 +261,8 @@ void _start() __attribute__ ((weak, alias ("module_start")));
 int module_start(SceSize argc, const void *args) {
 
     // init pool
-    taipool_init_advanced(0x100000, POOL_TYPE_BLOCK); // 1M
+    int res = taipool_init_advanced(0x100000, POOL_TYPE_BLOCK); // 1M
+    printf("taipool_init_advanced(%i): 0x%08X\n", 0x100000, res);
 
     // load network modules
     p2s_netInit();

@@ -98,7 +98,7 @@ void stop_module(Module *module) {
         module->uid = -1;
         printf("%s module unloaded\n", module->name);
     } else {
-        printf("could not unload %s: 0x%08X\n", ret);
+        printf("could not unload %s: 0x%08X\n", module->name, ret);
     }
 
     sceKernelDelayThread(1000 * 500);

@@ -173,8 +173,7 @@ int taipool_init_advanced(size_t size, int poolType) {
                                             (size + 0xFFF) & (~0xFFF), 0);
         if (mempool_id >= 0) {
             sceKernelGetMemBlockBase(mempool_id, &mempool_addr);
-            mempool_addr += POOL_PADDING;
-            mempool_size = size - POOL_PADDING;
+            mempool_size = size;
 
             // Initializing mempool as a single block
             taipool_reset();

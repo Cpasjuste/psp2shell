@@ -2,14 +2,15 @@
 #include <libk/string.h>
 #include <libk/stdio.h>
 #include <taihen.h>
+#include <libk/stdarg.h>
 
 #include "psp2shell_k.h"
 #include "kutility.h"
 
 static char kbuf[BUF_SIZE];
 
-static SceUID g_hooks[2];
-static tai_hook_ref_t ref_hooks[2];
+static SceUID g_hooks[3];
+static tai_hook_ref_t ref_hooks[3];
 static int __stdout_fd = 1073807367;
 
 static SceUID k_mutex, u_mutex;
@@ -21,6 +22,22 @@ void set_hooks();
 void delete_hooks();
 
 void update_kbuf(const char *buffer, unsigned int size);
+
+/*
+static int _printf(const char *fmt, ...) {
+
+    char temp_buf[512];
+    memset(temp_buf, 0, 512);
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(temp_buf, 512, fmt, args);
+    va_end(args);
+
+    update_kbuf(temp_buf, strlen(temp_buf));
+
+    return TAI_CONTINUE(int, ref_hooks[2], fmt, args);
+}
+*/
 
 int _sceIoWrite(SceUID fd, const void *data, SceSize size) {
 
@@ -154,6 +171,17 @@ void set_hooks() {
             _sceKernelGetStdout);
     //LOG("hook: sceKernelGetStdout: 0x%08X\n", g_hooks[1]);
 
+    /*
+    g_hooks[2] = taiHookFunctionExportForKernel(
+            KERNEL_PID,
+            &ref_hooks[2],
+            "SceSysmem",
+            0x88758561, // SceDebugForDriver
+            0x391B74B7, // printf
+            _printf);
+    LOG("hook: _printf: 0x%08X\n", g_hooks[2]);
+    */
+
     EXIT_SYSCALL(state);
 }
 
@@ -161,9 +189,12 @@ void delete_hooks() {
 
     if (g_hooks[0] >= 0)
         taiHookReleaseForKernel(g_hooks[0], ref_hooks[0]);
-
     if (g_hooks[1] >= 0)
         taiHookReleaseForKernel(g_hooks[1], ref_hooks[1]);
+    /*
+    if (g_hooks[2] >= 0)
+        taiHookReleaseForKernel(g_hooks[2], ref_hooks[2]);
+    */
 }
 
 void _start() __attribute__ ((weak, alias ("module_start")));
