@@ -64,7 +64,7 @@ static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
     ssize_t received = p2s_recv_file(client->cmd_sock, fd, size);
     s_close(fd);
 
-    psp2shell_print_color(COL_GREEN, "sent `%s` to `%s` (%i)", name, new_path, received);
+    PRINT_OK("received `%s` to `%s` (%i)\n", name, new_path, received);
 
     return received;
 }
@@ -157,7 +157,9 @@ static void cmd_reload(int sock, long size) {
 }
 
 static void cmd_reset() {
-    p2s_reset_running_app();
+    if (p2s_reset_running_app() != 0) {
+        PRINT_ERR("can't reset SceShell...\n");
+    }
 }
 
 static void cmd_cd(s_client *client, char *path) {
@@ -199,7 +201,7 @@ static void cmd_cd(s_client *client, char *path) {
     s_fileListEmpty(&client->fileList);
     int res = s_fileListGetEntries(&client->fileList, client->fileList.path);
     if (res < 0) {
-        psp2shell_print_color(COL_RED, "could not cd to directory: %s\n", client->fileList.path);
+        PRINT_ERR("could not cd to directory: %s\n", client->fileList.path);
         strncpy(client->fileList.path, oldPath, MAX_PATH_LENGTH);
         s_fileListGetEntries(&client->fileList, oldPath);
     }

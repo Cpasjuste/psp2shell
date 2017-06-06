@@ -228,7 +228,6 @@ static int thread_wait(SceSize args, void *argp) {
 static int thread_kbuf(SceSize args, void *argp) {
 
     char buffer[512];
-    memset(buffer, 0, 512);
 
     while (!quit) {
 

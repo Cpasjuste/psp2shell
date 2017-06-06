@@ -84,10 +84,9 @@ void kpsp2shell_set_ready(int rdy) {
 
     ready = rdy;
     // "unblock" update_kbuf
-    if (ready == 1) {
-        memset(kbuf, 0, BUF_SIZE);
-        ksceKernelSignalSema(u_mutex, 1);
+    if (ready == 0) {
         ksceKernelSignalSema(k_mutex, 1);
+        ksceKernelSignalSema(u_mutex, 1);
     }
 }
 
@@ -144,7 +143,7 @@ void set_hooks() {
             0xF2FF276E,
             0x34EFD876,
             _sceIoWrite);
-    LOG("hook: sceIoWrite: 0x%08X\n", g_hooks[0]);
+    //LOG("hook: sceIoWrite: 0x%08X\n", g_hooks[0]);
 
     g_hooks[1] = taiHookFunctionExportForKernel(
             KERNEL_PID,
@@ -153,7 +152,7 @@ void set_hooks() {
             0x2DD91812,
             0xE5AA625C,
             _sceKernelGetStdout);
-    LOG("hook: sceKernelGetStdout: 0x%08X\n", g_hooks[1]);
+    //LOG("hook: sceKernelGetStdout: 0x%08X\n", g_hooks[1]);
 
     EXIT_SYSCALL(state);
 }
