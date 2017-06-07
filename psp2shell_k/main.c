@@ -9,8 +9,9 @@
 
 static char kbuf[BUF_SIZE];
 
-static SceUID g_hooks[3];
-static tai_hook_ref_t ref_hooks[3];
+#define MAX_HOOKS 64
+static SceUID g_hooks[MAX_HOOKS];
+static tai_hook_ref_t ref_hooks[MAX_HOOKS];
 static int __stdout_fd = 1073807367;
 
 static SceUID k_mutex, u_mutex;
@@ -24,7 +25,7 @@ void delete_hooks();
 void update_kbuf(const char *buffer, unsigned int size);
 
 /*
-static int _printf(const char *fmt, ...) {
+static int _kDebugPrintf(const char *fmt, ...) {
 
     char temp_buf[512];
     memset(temp_buf, 0, 512);
@@ -33,11 +34,31 @@ static int _printf(const char *fmt, ...) {
     vsnprintf(temp_buf, 512, fmt, args);
     va_end(args);
 
-    update_kbuf(temp_buf, strlen(temp_buf));
+    //LOG("_printf: %s\n", temp_buf);
+    if (ready) {
+        update_kbuf(temp_buf, strlen(temp_buf));
+    }
 
     return TAI_CONTINUE(int, ref_hooks[2], fmt, args);
 }
 */
+
+static int _kDebugPrintf2(int num0, int num1, const char *fmt, ...) {
+
+    char temp_buf[512];
+    memset(temp_buf, 0, 512);
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(temp_buf, 512, fmt, args);
+    va_end(args);
+
+    //LOG("_printf2: %s\n", temp_buf);
+    if (ready) {
+        update_kbuf(temp_buf, strlen(temp_buf));
+    }
+
+    return TAI_CONTINUE(int, ref_hooks[3], num0, num1, fmt, args);
+}
 
 int _sceIoWrite(SceUID fd, const void *data, SceSize size) {
 
@@ -178,23 +199,28 @@ void set_hooks() {
             "SceSysmem",
             0x88758561, // SceDebugForDriver
             0x391B74B7, // printf
-            _printf);
-    LOG("hook: _printf: 0x%08X\n", g_hooks[2]);
+            _kDebugPrintf);
+    //LOG("hook: _printf: 0x%08X\n", g_hooks[2]);
     */
+
+    g_hooks[3] = taiHookFunctionExportForKernel(
+            KERNEL_PID,
+            &ref_hooks[3],
+            "SceSysmem",
+            0x88758561, // SceDebugForDriver
+            0x02B04343, // printf2
+            _kDebugPrintf2);
+    //LOG("hook: _printf2: 0x%08X\n", g_hooks[3]);
 
     EXIT_SYSCALL(state);
 }
 
 void delete_hooks() {
 
-    if (g_hooks[0] >= 0)
-        taiHookReleaseForKernel(g_hooks[0], ref_hooks[0]);
-    if (g_hooks[1] >= 0)
-        taiHookReleaseForKernel(g_hooks[1], ref_hooks[1]);
-    /*
-    if (g_hooks[2] >= 0)
-        taiHookReleaseForKernel(g_hooks[2], ref_hooks[2]);
-    */
+    for (int i = 0; i < MAX_HOOKS; i++) {
+        if (g_hooks[i] >= 0)
+            taiHookReleaseForKernel(g_hooks[i], ref_hooks[i]);
+    }
 }
 
 void _start() __attribute__ ((weak, alias ("module_start")));
