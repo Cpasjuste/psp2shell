@@ -499,6 +499,14 @@ void cmd_parse(s_client *client) {
                 p2s_moduleStopUnloadForPid((SceUID) strtoul(cmd.arg0, NULL, 16), (SceUID) strtoul(cmd.arg1, NULL, 16));
                 break;
 
+            case CMD_KMODLOADSTART:
+                p2s_kmoduleLoadStart(cmd.arg0);
+                break;
+
+            case CMD_KMODSTOPUNLOAD:
+                p2s_kmoduleStopUnload((SceUID) strtoul(cmd.arg0, NULL, 16));
+                break;
+
             case CMD_THLS:
                 ps_threadList();
                 break;

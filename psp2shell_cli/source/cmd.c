@@ -377,6 +377,32 @@ int cmd_modstopunloadp(int argc, char **argv) {
     return 0;
 }
 
+int cmd_kmodloadstart(int argc, char **argv) {
+
+    if (argc < 2) {
+        printf("incorrect number of arguments\n");
+        return -1;
+    }
+
+    char *cmd = build_msg(CMD_KMODLOADSTART, argv[1], "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
+
+    return 0;
+}
+
+int cmd_kmodstopunload(int argc, char **argv) {
+
+    if (argc < 2) {
+        printf("incorrect number of arguments\n");
+        return -1;
+    }
+
+    char *cmd = build_msg(CMD_KMODSTOPUNLOAD, argv[1], "0", 0);
+    send(data_sock, cmd, strlen(cmd), 0);
+
+    return 0;
+}
+
 int cmd_thls(int argc, char **argv) {
 
     char *cmd = build_msg(CMD_THLS, "0", "0", 0);
@@ -453,6 +479,8 @@ COMMAND cmd[] = {
         {"modstartp", "<pid> <path>",               "Load/Start module for pid.",                    cmd_modloadstartp},
         {"modstop",   "<uid>",                      "Stop/Unload module (for running process).",     cmd_modstopunload},
         {"modstopp",  "<pid> <uid>",                "Stop/Unload module for pid.",                   cmd_modstopunloadp},
+        {"kmodstart", "<path>",                     "Load/Start kernel module.",                     cmd_kmodloadstart},
+        {"kmodstop",  "<uid>",                      "Stop/Unload kernel module.",                    cmd_kmodstopunload},
         {"thlist",    "",                           "List (own) running threads.",                   cmd_thls},
         {"memr",      "<hex_address> <hex_size>",   "Read memory.",                                  cmd_memr},
         {"memw",      "<hex_address> <hex_data>",   "Write memory.",                                 cmd_memw},

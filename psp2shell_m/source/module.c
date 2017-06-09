@@ -163,3 +163,29 @@ int p2s_moduleStopUnloadForPid(SceUID pid, SceUID uid) {
 
     return res;
 }
+
+SceUID p2s_kmoduleLoadStart(char *modulePath) {
+
+    SceUID uid = taiLoadStartKernelModule(modulePath, 0, NULL, 0);
+    if (uid < 0) {
+        psp2shell_print_color(COL_RED, "module load/start failed: 0x%08X\n", uid);
+    } else {
+        psp2shell_print_color(COL_GREEN, "module loaded/started: uid = 0x%08X\n", uid);
+    }
+
+    return uid;
+}
+
+int p2s_kmoduleStopUnload(SceUID uid) {
+
+    int status;
+
+    int res = taiStopUnloadKernelModule(uid, 0, NULL, 0, NULL, &status);
+    if (res != 0) {
+        psp2shell_print_color(COL_RED, "module stop/unload failed: 0x%08X\n", status);
+    } else {
+        psp2shell_print_color(COL_GREEN, "module stopped/unloaded\n");
+    }
+
+    return res;
+}

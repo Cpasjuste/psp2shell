@@ -31,4 +31,8 @@ SceUID p2s_moduleLoadStartForPid(SceUID pid, char *modulePath);
 int p2s_moduleStopUnload(SceUID uid);
 int p2s_moduleStopUnloadForPid(SceUID pid, SceUID uid);
 
+
+SceUID p2s_kmoduleLoadStart(char *modulePath);
+int p2s_kmoduleStopUnload(SceUID uid);
+
 #endif //_MODULE_H
