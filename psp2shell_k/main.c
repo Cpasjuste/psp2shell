@@ -1,28 +1,28 @@
-#include <vitasdkkern.h>
 #include <libk/string.h>
 #include <libk/stdio.h>
-#include <taihen.h>
 #include <libk/stdarg.h>
+#include <vitasdkkern.h>
+#include <taihen.h>
 
 #include "psp2shell_k.h"
-#include "kutility.h"
 
-static char kbuf[BUF_SIZE];
+static char k_buf[K_BUF_SIZE];
 
 #define MAX_HOOKS 64
 static SceUID g_hooks[MAX_HOOKS];
 static tai_hook_ref_t ref_hooks[MAX_HOOKS];
 static int __stdout_fd = 1073807367;
 
-static SceUID k_mutex, u_mutex;
+static SceUID u_mutex;
 
 static int ready = 0;
+static bool is_writing = false;
 
 void set_hooks();
 
 void delete_hooks();
 
-void update_kbuf(const char *buffer, unsigned int size);
+void add_message(bool is_kernel, const char *buffer, unsigned int size);
 
 /*
 static int _kDebugPrintf(const char *fmt, ...) {
@@ -54,7 +54,16 @@ static int _kDebugPrintf2(int num0, int num1, const char *fmt, ...) {
 
     //LOG("_printf2: %s\n", temp_buf);
     if (ready) {
-        update_kbuf(temp_buf, strlen(temp_buf));
+        int timeout = 1000;
+        while (is_writing) {
+            ksceKernelDelayThread(1000);
+            timeout--;
+            if (timeout <= 0) {
+                // drop message
+                return TAI_CONTINUE(int, ref_hooks[3], num0, num1, fmt, args);
+            }
+        }
+        add_message(true, temp_buf, strlen(temp_buf));
     }
 
     return TAI_CONTINUE(int, ref_hooks[3], num0, num1, fmt, args);
@@ -67,7 +76,16 @@ int _sceIoWrite(SceUID fd, const void *data, SceSize size) {
     }
 
     if (fd == __stdout_fd && ready) {
-        update_kbuf(data, size);
+        int timeout = 1000;
+        while (is_writing) {
+            ksceKernelDelayThread(1000);
+            timeout--;
+            if (timeout <= 0) {
+                // drop message
+                return TAI_CONTINUE(int, ref_hooks[0], fd, data, size);
+            }
+        }
+        add_message(false, data, size);
     }
 
     return TAI_CONTINUE(int, ref_hooks[0], fd, data, size);
@@ -86,20 +104,25 @@ int _sceKernelGetStdout() {
     return fd;
 }
 
-void update_kbuf(const char *buffer, unsigned int size) {
+void add_message(bool is_kernel, const char *buffer, unsigned int size) {
 
-    if (size > BUF_SIZE) {
+    if (size > K_BUF_SIZE) {
         return;
     }
+
+    is_writing = true;
 
     uint32_t state;
     ENTER_SYSCALL(state);
 
-    memset(kbuf, 0, BUF_SIZE);
-    ksceKernelStrncpyUserToKernel(kbuf, (uintptr_t) buffer, size);
+    memset(k_buf, 0, K_BUF_SIZE);
+    if (is_kernel) {
+        memcpy(k_buf, buffer, size);
+    } else {
+        ksceKernelStrncpyUserToKernel(k_buf, (uintptr_t) buffer, size);
+    }
 
-    ksceKernelSignalSema(k_mutex, 1);
-    ksceKernelWaitSema(u_mutex, 1, NULL);
+    ksceKernelSignalSema(u_mutex, 1);
 
     EXIT_SYSCALL(state);
 }
@@ -109,11 +132,12 @@ void kpsp2shell_wait_buffer(char *buffer, unsigned int size) {
     uint32_t state;
     ENTER_SYSCALL(state);
 
-    ksceKernelWaitSema(k_mutex, 1, NULL);
+    ksceKernelWaitSema(u_mutex, 1, NULL);
     if (ready) {
-        ksceKernelStrncpyKernelToUser((uintptr_t) buffer, kbuf, size);
-        ksceKernelSignalSema(u_mutex, 1);
+        ksceKernelStrncpyKernelToUser((uintptr_t) buffer, k_buf, size);
     }
+
+    is_writing = false;
 
     EXIT_SYSCALL(state);
 }
@@ -121,11 +145,7 @@ void kpsp2shell_wait_buffer(char *buffer, unsigned int size) {
 void kpsp2shell_set_ready(int rdy) {
 
     ready = rdy;
-    // "unblock" update_kbuf
-    if (ready == 0) {
-        ksceKernelSignalSema(k_mutex, 1);
-        ksceKernelSignalSema(u_mutex, 1);
-    }
+    is_writing = false;
 }
 
 int kpsp2shell_get_module_info(SceUID pid, SceUID modid, SceKernelModuleInfo *info) {
@@ -227,7 +247,6 @@ void _start() __attribute__ ((weak, alias ("module_start")));
 
 int module_start(SceSize argc, const void *args) {
 
-    k_mutex = ksceKernelCreateSema("k_mutex", 0, 0, 1, NULL);
     u_mutex = ksceKernelCreateSema("u_mutex", 0, 0, 1, NULL);
 
     set_hooks();
@@ -237,7 +256,6 @@ int module_start(SceSize argc, const void *args) {
 
 int module_stop(SceSize argc, const void *args) {
 
-    ksceKernelDeleteMutex(k_mutex);
     ksceKernelDeleteMutex(u_mutex);
 
     delete_hooks();

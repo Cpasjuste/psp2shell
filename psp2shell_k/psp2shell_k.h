@@ -1,6 +1,10 @@
 #ifndef _PSP2SHELL_K_H_
 #define _PSP2SHELL_K_H_
 
+#include <libk/stdbool.h>
+
+#define K_BUF_SIZE 256
+
 void kpsp2shell_set_ready(int rdy);
 
 void kpsp2shell_wait_buffer(char *buffer, unsigned int size);

@@ -6,7 +6,7 @@
 #include <libk/string.h>
 #include "kutility.h"
 
-char log_buf[BUF_SIZE];
+char log_buf[K_BUF_SIZE];
 
 void log_write(const char *msg) {
 

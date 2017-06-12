@@ -234,18 +234,17 @@ static int thread_wait(SceSize args, void *argp) {
 
 static int thread_kbuf(SceSize args, void *argp) {
 
-    char buffer[512];
+    char buffer[K_BUF_SIZE];
 
     while (!quit) {
-
         if (client != NULL) {
-            memset(buffer, 0, 512);
-            kpsp2shell_wait_buffer(buffer, 512);
+            memset(buffer, 0, K_BUF_SIZE);
+            kpsp2shell_wait_buffer(buffer, K_BUF_SIZE);
             if (client != NULL && client->msg_sock > 0) {
                 psp2shell_print(buffer);
             }
         } else {
-            sceKernelDelayThread(1000);
+            sceKernelDelayThread(10000);
         }
     }
 

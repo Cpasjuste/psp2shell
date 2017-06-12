@@ -2,9 +2,9 @@
 #ifndef KUTILITY_H
 #define KUTILITY_H
 
-#define BUF_SIZE 512
+#include "psp2shell_k.h"
 
-extern char log_buf[BUF_SIZE];
+extern char log_buf[K_BUF_SIZE];
 
 void log_write(const char *msg);
 
