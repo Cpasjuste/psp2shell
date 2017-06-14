@@ -59,7 +59,9 @@ static int _kDebugPrintf2(int num0, int num1, const char *fmt, ...) {
             ksceKernelDelayThread(1000);
             timeout--;
             if (timeout <= 0) {
-                // drop message
+                // shell disconnected ?
+                is_writing = false;
+                ready = false;
                 return TAI_CONTINUE(int, ref_hooks[3], num0, num1, fmt, args);
             }
         }
@@ -81,7 +83,9 @@ int _sceIoWrite(SceUID fd, const void *data, SceSize size) {
             ksceKernelDelayThread(1000);
             timeout--;
             if (timeout <= 0) {
-                // drop message
+                // shell disconnected ?
+                is_writing = false;
+                ready = false;
                 return TAI_CONTINUE(int, ref_hooks[0], fd, data, size);
             }
         }

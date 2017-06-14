@@ -163,6 +163,7 @@ void set_timeout(int socket, int sec) {
     setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 }
 
+/*
 // TODO: crappy way to check psp2 disconnection
 bool psp2_alive() {
 
@@ -186,6 +187,7 @@ bool psp2_alive() {
 
     return alive;
 }
+*/
 
 void print_hex(char *line) {
 
@@ -234,7 +236,7 @@ void *msg_thread(void *unused) {
 
     char *msg = malloc(SIZE_PRINT);
 
-    set_timeout(msg_sock, 1);
+    //set_timeout(msg_sock, 1);
 
     // receive message from psp2shell
     while (true) {
@@ -243,11 +245,14 @@ void *msg_thread(void *unused) {
         memset(msg, 0, SIZE_PRINT);
         ssize_t recv_size = recv(msg_sock, msg, SIZE_PRINT, 0);
         if (recv_size <= 0) {
+            break;
+            /*
             if (((errno != EAGAIN) && (errno != EWOULDBLOCK)) || !psp2_alive()) {
                 break;
             } else {
                 continue;
             }
+            */
         }
 
         size_t len = strlen(msg);
@@ -384,15 +389,19 @@ int main(int argc, char **argv) {
 
             int error = 0;
             socklen_t len = sizeof(error);
-            int retval = getsockopt(msg_sock, SOL_SOCKET, SO_ERROR, &error, &len);
-            if (retval != 0 || error != 0) {
-                printf("socket is dead\n");
+
+            int ret = getsockopt(msg_sock, SOL_SOCKET, SO_ERROR, &error, &len);
+            if (ret != 0 || error != 0) {
+                printf("socket is dead...\n");
                 close_socks();
+                close_terminal();
             }
-            retval = getsockopt(data_sock, SOL_SOCKET, SO_ERROR, &error, &len);
-            if (retval != 0 || error != 0) {
-                printf("socket is dead\n");
+
+            ret = getsockopt(data_sock, SOL_SOCKET, SO_ERROR, &error, &len);
+            if (ret != 0 || error != 0) {
+                printf("socket is dead...\n");
                 close_socks();
+                close_terminal();
             }
 
             FD_ZERO(&fds);
