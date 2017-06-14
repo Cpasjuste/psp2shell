@@ -3,11 +3,11 @@
 
 #include <libk/stdbool.h>
 
-#define K_BUF_SIZE 256
+#define K_BUF_SIZE 0x1000
 
 void kpsp2shell_set_ready(int rdy);
 
-void kpsp2shell_wait_buffer(char *buffer, unsigned int size);
+int kpsp2shell_wait_buffer(char *buffer);
 
 int kpsp2shell_get_module_info(SceUID pid, SceUID modid, SceKernelModuleInfo *info);
 

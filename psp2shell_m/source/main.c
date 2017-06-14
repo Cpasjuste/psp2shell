@@ -238,13 +238,14 @@ static int thread_kbuf(SceSize args, void *argp) {
 
     while (!quit) {
         if (client != NULL) {
-            memset(buffer, 0, K_BUF_SIZE);
-            kpsp2shell_wait_buffer(buffer, K_BUF_SIZE);
-            if (client != NULL && client->msg_sock > 0) {
-                psp2shell_print(buffer);
+            int len = kpsp2shell_wait_buffer(buffer);
+            if (client != NULL && client->msg_sock > 0 && len > 0) {
+                psp2shell_print_color_advanced(len, 0, buffer);
+            } else {
+                sceKernelDelayThread(1000);
             }
         } else {
-            sceKernelDelayThread(10000);
+            sceKernelDelayThread(1000);
         }
     }
 
@@ -266,7 +267,7 @@ int module_start(SceSize argc, const void *args) {
     p2s_netInit();
 
 #ifndef DEBUG
-    thid_kbuf = sceKernelCreateThread("psp2shell_kbuf", thread_kbuf, 64, 0x1000, 0, 0x10000, 0);
+    thid_kbuf = sceKernelCreateThread("psp2shell_kbuf", thread_kbuf, 64, 0x2000, 0, 0x10000, 0);
     if (thid_kbuf >= 0) {
         sceKernelStartThread(thid_kbuf, 0, NULL);
     }
