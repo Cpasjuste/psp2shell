@@ -10,7 +10,7 @@ volatile static int lock = 0;
 volatile static char kbuf[K_BUF_SIZE] = {0};
 volatile static int at = 0;
 
-#define TRACEF(fmt, args...) do { \
+#define KPRINT(fmt, args...) do { \
   int len; \
   while (lock); \
   lock = 1; \
@@ -42,7 +42,7 @@ static int _kDebugPrintf(const char *fmt, ...) {
 
     //LOG("_printf: %s\n", temp_buf);
     if (ready) {
-        TRACEF("%s", temp_buf);
+        KPRINT("%s", temp_buf);
     }
 
     return TAI_CONTINUE(int, ref_hooks[2], fmt, args);
@@ -59,7 +59,7 @@ static int _kDebugPrintf2(int num0, int num1, const char *fmt, ...) {
 
     //LOG("_printf2: %s\n", temp_buf);
     if (ready) {
-        TRACEF("%s", temp_buf);
+        KPRINT("%s", temp_buf);
     }
 
     return TAI_CONTINUE(int, ref_hooks[3], num0, num1, fmt, args);
@@ -75,7 +75,7 @@ int _sceIoWrite(SceUID fd, const void *data, SceSize size) {
         char buf[size];
         memset(buf, 0, size);
         ksceKernelStrncpyUserToKernel(buf, (uintptr_t) data, size);
-        TRACEF("%s", buf);
+        KPRINT("%s", buf);
     }
 
     return TAI_CONTINUE(int, ref_hooks[0], fd, data, size);
@@ -115,8 +115,9 @@ void kpsp2shell_set_ready(int rdy) {
     ready = rdy;
 }
 
-int kpsp2shell_get_module_info(SceUID pid, SceUID modid, SceKernelModuleInfo *info) {
+int kpsp2shell_get_module_info(SceUID pid, SceUID uid, SceKernelModuleInfo *info) {
 
+    int ret = -1;
     SceKernelModuleInfo kinfo;
     memset(&kinfo, 0, sizeof(SceKernelModuleInfo));
     kinfo.size = sizeof(SceKernelModuleInfo);
@@ -124,7 +125,12 @@ int kpsp2shell_get_module_info(SceUID pid, SceUID modid, SceKernelModuleInfo *in
     uint32_t state;
     ENTER_SYSCALL(state);
 
-    int ret = ksceKernelGetModuleInfo(pid, modid, &kinfo);
+    SceUID kid = ksceKernelKernelUidForUserUid(pid, uid);
+    if (kid < 0) {
+        kid = uid;
+    }
+
+    ret = ksceKernelGetModuleInfo(pid, kid, &kinfo);
     if (ret >= 0) {
         ksceKernelMemcpyKernelToUser((uintptr_t) info, &kinfo, sizeof(SceKernelModuleInfo));
     }

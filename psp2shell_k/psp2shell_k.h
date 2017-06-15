@@ -9,7 +9,7 @@ void kpsp2shell_set_ready(int rdy);
 
 int kpsp2shell_wait_buffer(char *buffer);
 
-int kpsp2shell_get_module_info(SceUID pid, SceUID modid, SceKernelModuleInfo *info);
+int kpsp2shell_get_module_info(SceUID pid, SceUID uid, SceKernelModuleInfo *info);
 
 int kpsp2shell_get_module_list(SceUID pid, int flags1, int flags2, SceUID *modids, size_t *num);
 
