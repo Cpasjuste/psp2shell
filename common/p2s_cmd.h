@@ -1,21 +1,28 @@
-#ifndef CMD_COMMON_H
-#define CMD_COMMON_H
+#ifndef _P2S_H_
+#define _P2S_H_
+
+#include <psp2/kernel/modulemgr.h>
+#include "../psp2shell_k/psp2shell_k.h"
 
 #define P2S_ERR_SOCKET          0x80000001
 #define P2S_ERR_INVALID_CMD     0x80000002
 
-#define SIZE_CHAR   (256)
-#define SIZE_DATA   (8 * 1024)
-#define SIZE_PRINT  (512)
+#define P2S_SIZE_CHAR   (256)
+#define P2S_SIZE_DATA   (8 * 1024)
+#define P2S_SIZE_PRINT  (512)
 
-#define MAX_ARGS    (8)
+#define P2S_MAX_ARGS    (8)
 
-typedef struct S_CMD {
+typedef struct P2S_CMD {
     int type;
-    char args[MAX_ARGS][SIZE_PRINT];
-} S_CMD;
+    char args[P2S_MAX_ARGS][P2S_SIZE_PRINT];
+} P2S_CMD;
+#define P2S_SIZE_CMD    (sizeof(P2S_CMD) + 1024)
 
-#define SIZE_CMD    (sizeof(S_CMD) + 1024)
+typedef struct P2S_MSG {
+    int color;
+    char buffer[P2S_KMSG_SIZE];
+} P2S_MSG;
 
 enum cmd_t {
     CMD_START = 10,
@@ -63,7 +70,7 @@ enum cmd_t {
     CMD_NOK = 65
 };
 
-int p2s_cmd_receive(int sock, S_CMD *cmd);
+int p2s_cmd_receive(int sock, P2S_CMD *cmd);
 
 size_t p2s_cmd_receive_buffer(int sock, void *buffer, size_t size);
 
@@ -71,7 +78,7 @@ int p2s_cmd_receive_resp(int sock);
 
 void p2s_cmd_send(int sock, int cmdType);
 
-void p2s_cmd_send_cmd(int sock, S_CMD *cmd);
+void p2s_cmd_send_cmd(int sock, P2S_CMD *cmd);
 
 void p2s_cmd_send_fmt(int sock, const char *fmt, ...);
 
@@ -83,8 +90,8 @@ void p2s_cmd_send_int(int sock, int cmdType, int value);
 
 void p2s_cmd_send_long(int sock, int cmdType, long value);
 
-int p2s_cmd_to_string(char *buffer, S_CMD *c);
+int p2s_cmd_to_string(char *buffer, P2S_CMD *c);
 
-int p2s_string_to_cmd(S_CMD *c, const char *buffer);
+int p2s_cmd_to_cmd(P2S_CMD *c, const char *buffer);
 
-#endif
+#endif // _P2S_H_

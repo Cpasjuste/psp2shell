@@ -9,6 +9,7 @@
 #include <libk/string.h>
 #include <libk/stdlib.h>
 #include <libk/stdbool.h>
+#include <libk/stdarg.h>
 #include <sys/types.h>
 
 #define send sceNetSend
@@ -24,19 +25,19 @@
 
 #endif
 
-#include "cmd_common.h"
+#include "p2s_cmd.h"
 
-int p2s_cmd_receive(int sock, S_CMD *cmd) {
+int p2s_cmd_receive(int sock, P2S_CMD *cmd) {
 
-    char buffer[SIZE_CMD];
-    memset(buffer, 0, SIZE_CMD);
+    char buffer[P2S_SIZE_CMD];
+    memset(buffer, 0, P2S_SIZE_CMD);
 
-    ssize_t read = recv(sock, buffer, SIZE_CMD, 0);
+    ssize_t read = recv(sock, buffer, P2S_SIZE_CMD, 0);
     if (read < 2) {
         return read <= 0 ? P2S_ERR_SOCKET : P2S_ERR_INVALID_CMD;
     }
 
-    bool is_cmd = p2s_string_to_cmd(cmd, buffer) == 0;
+    bool is_cmd = p2s_cmd_to_cmd(cmd, buffer) == 0;
     if (!is_cmd) {
         return P2S_ERR_INVALID_CMD;
     }
@@ -46,16 +47,16 @@ int p2s_cmd_receive(int sock, S_CMD *cmd) {
 
 int p2s_cmd_receive_resp(int sock) {
 
-    char buffer[SIZE_CMD];
-    memset(buffer, 0, SIZE_CMD);
+    char buffer[P2S_SIZE_CMD];
+    memset(buffer, 0, P2S_SIZE_CMD);
 
-    ssize_t read = recv(sock, buffer, SIZE_CMD, 0);
+    ssize_t read = recv(sock, buffer, P2S_SIZE_CMD, 0);
     if (read < 2) {
         return -1;
     }
 
-    S_CMD cmd;
-    if (p2s_string_to_cmd(&cmd, buffer) != 0) {
+    P2S_CMD cmd;
+    if (p2s_cmd_to_cmd(&cmd, buffer) != 0) {
         return -1;
     }
 
@@ -96,10 +97,10 @@ void p2s_cmd_send(int sock, int cmdType) {
     send(sock, buffer, strlen(buffer), 0);
 }
 
-void p2s_cmd_send_cmd(int sock, S_CMD *cmd) {
+void p2s_cmd_send_cmd(int sock, P2S_CMD *cmd) {
 
-    char buffer[SIZE_CMD];
-    memset(buffer, 0, SIZE_CMD);
+    char buffer[P2S_SIZE_CMD];
+    memset(buffer, 0, P2S_SIZE_CMD);
 
     if (p2s_cmd_to_string(buffer, cmd) == 0) {
         send(sock, buffer, strlen(buffer), 0);
@@ -108,11 +109,11 @@ void p2s_cmd_send_cmd(int sock, S_CMD *cmd) {
 
 void p2s_cmd_send_fmt(int sock, const char *fmt, ...) {
 
-    char buffer[SIZE_CMD];
-    memset(buffer, 0, SIZE_CMD);
+    char buffer[P2S_SIZE_CMD];
+    memset(buffer, 0, P2S_SIZE_CMD);
     va_list args;
     va_start(args, fmt);
-    vsnprintf(buffer, SIZE_CMD, fmt, args);
+    vsnprintf(buffer, P2S_SIZE_CMD, fmt, args);
     va_end(args);
 
     send(sock, buffer, strlen(buffer), 0);
@@ -120,9 +121,9 @@ void p2s_cmd_send_fmt(int sock, const char *fmt, ...) {
 
 void p2s_cmd_send_string(int sock, int cmdType, const char *value) {
 
-    char buffer[SIZE_PRINT + 6];
-    memset(buffer, 0, SIZE_PRINT + 6);
-    snprintf(buffer, SIZE_PRINT + 6, "%i\"%s\"", cmdType, value);
+    char buffer[P2S_SIZE_PRINT + 6];
+    memset(buffer, 0, P2S_SIZE_PRINT + 6);
+    snprintf(buffer, P2S_SIZE_PRINT + 6, "%i\"%s\"", cmdType, value);
     send(sock, buffer, strlen(buffer), 0);
 }
 
@@ -142,23 +143,23 @@ void p2s_cmd_send_long(int sock, int cmdType, long value) {
     send(sock, buffer, strlen(buffer), 0);
 }
 
-int p2s_cmd_to_string(char *buffer, S_CMD *cmd) {
+int p2s_cmd_to_string(char *buffer, P2S_CMD *cmd) {
 
     if (!buffer || !cmd) {
         return -1;
     }
 
-    memset(buffer, 0, SIZE_CMD);
+    memset(buffer, 0, P2S_SIZE_CMD);
     sprintf(buffer, "%i", cmd->type);
-    for (int i = 0; i < MAX_ARGS; i++) {
-        snprintf(buffer + strlen(buffer), SIZE_CMD, "\"%s", cmd->args[i]);
+    for (int i = 0; i < P2S_MAX_ARGS; i++) {
+        snprintf(buffer + strlen(buffer), P2S_SIZE_CMD, "\"%s", cmd->args[i]);
     }
-    strncat(buffer, "\"", SIZE_CMD);
+    strncat(buffer, "\"", P2S_SIZE_CMD);
 
     return 0;
 }
 
-int p2s_string_to_cmd(S_CMD *cmd, const char *buffer) {
+int p2s_cmd_to_cmd(P2S_CMD *cmd, const char *buffer) {
 
     if (!cmd || !buffer) {
         return -1;
@@ -168,7 +169,7 @@ int p2s_string_to_cmd(S_CMD *cmd, const char *buffer) {
         return -1;
     }
 
-    memset(cmd, 0, sizeof(S_CMD));
+    memset(cmd, 0, sizeof(P2S_CMD));
 
     // type
     char tmp[2];
@@ -181,7 +182,7 @@ int p2s_string_to_cmd(S_CMD *cmd, const char *buffer) {
 
     const char *start, *end = buffer;
 
-    for (int i = 0; i < MAX_ARGS; i++) {
+    for (int i = 0; i < P2S_MAX_ARGS; i++) {
 
         start = strstr(end, "\"");
         if (!start) {

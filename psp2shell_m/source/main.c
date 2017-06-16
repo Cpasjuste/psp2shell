@@ -19,14 +19,14 @@
 #include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/modulemgr.h>
 #include <psp2/net/net.h>
+#include <main.h>
 
-#include "cmd_common.h"
-#include "main.h"
-#include "cmd.h"
-#include "utility.h"
-#include "psp2shell.h"
-#include "taipool.h"
-#include "libmodule.h"
+#include "p2s_cmd.h"
+#include "../include/main.h"
+#include "../include/utility.h"
+#include "../include/psp2shell.h"
+#include "../include/taipool.h"
+#include "../include/libmodule.h"
 #include "../../psp2shell_k/psp2shell_k.h"
 
 static SceUID thid_wait = -1;
@@ -37,10 +37,12 @@ static int listen_port = 5555;
 #else
 static int listen_port = 3333;
 #endif
-static int quit = 0;
 static s_client *client;
 static int server_sock_msg;
 static int server_sock_cmd;
+static int quit = 0;
+
+void p2s_cmd_parse(s_client *client, P2S_CMD *cmd);
 
 static void close_server() {
 
@@ -72,19 +74,20 @@ static int open_server() {
 
 void psp2shell_print_color_advanced(SceSize size, int color, const char *fmt, ...) {
 
-    if (client == NULL || size >= SIZE_CMD) {
+    if (size >= P2S_KMSG_SIZE || client == NULL) {
         return;
     }
 
-    memset(client->msg_buffer, 0, size + 1);
+    client->msg.color = color;
+    memset(client->msg.buffer, 0, size);
     va_list args;
     va_start(args, fmt);
-    vsnprintf(client->msg_buffer, size, fmt, args);
+    vsnprintf(client->msg.buffer, size, fmt, args);
     va_end(args);
 
-    int len = strlen(client->msg_buffer);
-    snprintf(client->msg_buffer + len, size, "%i", color);
-    client->msg_buffer[len + 1] = '\0';
+    //int len = strlen(client->msg.buffer);
+    //snprintf(client->msg_buffer + len, size, "%i", color);
+   //client->msg_buffer[len + 1] = '\0';
 
     if (client->msg_sock > 0) {
         sceNetSend(client->msg_sock, client->msg_buffer, size, 0);
@@ -144,11 +147,11 @@ int cmd_thread(SceSize args, void *argp) {
     kpsp2shell_set_ready(1);
 #endif
 
-    S_CMD cmd;
+    P2S_CMD cmd;
 
     while (!quit) {
 
-        int res = p2s_receive_cmd(sock, &cmd);
+        int res = p2s_cmd_receive(sock, &cmd);
         if (res != 0) {
             if (res == P2S_ERR_SOCKET) {
                 PRINT_ERR("p2s_receive_cmd sock failed: 0x%08X\n", res);
@@ -157,7 +160,7 @@ int cmd_thread(SceSize args, void *argp) {
                 PRINT_ERR("p2s_receive_cmd failed: 0x%08X\n", res);
             }
         } else {
-            cmd_parse(client, &cmd);
+            p2s_cmd_parse(client, &cmd);
         }
     }
 

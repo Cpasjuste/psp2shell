@@ -8,7 +8,7 @@ add_executable(${PROJECT_NAME}
         source/main.c
         source/cmd.c
         source/utility.c
-        ../common/cmd_common.c)
+        ../common/p2s_cmd.c)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
         include

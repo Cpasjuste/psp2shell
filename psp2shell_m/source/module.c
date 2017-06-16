@@ -20,10 +20,10 @@
 #include <psp2/kernel/modulemgr.h>
 #include <taihen.h>
 
-#include "utility.h"
-#include "psp2shell.h"
-#include "module.h"
-#include "libmodule.h"
+#include "../include/utility.h"
+#include "../include/psp2shell.h"
+#include "../include/module.h"
+#include "../include/libmodule.h"
 #include "../../psp2shell_k/psp2shell_k.h"
 
 static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {

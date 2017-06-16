@@ -25,11 +25,11 @@
 #include <psp2/appmgr.h>
 #include <errno.h>
 
-#include "psp2shell.h"
-#include "cmd_common.h"
-#include "main.h"
-#include "libmodule.h"
-#include "taipool.h"
+#include "../include/psp2shell.h"
+#include "p2s_cmd.h"
+#include "../include/main.h"
+#include "../include/libmodule.h"
+#include "../include/taipool.h"
 
 #define NET_STACK_SIZE 0x4000
 static unsigned char net_stack[NET_STACK_SIZE];
@@ -208,14 +208,14 @@ int p2s_recvall(int sock, void *buffer, int size, int flags) {
 size_t p2s_recv_file(int sock, SceUID fd, long size) {
 
     size_t len, received = 0, left = (size_t) size;
-    int bufSize = SIZE_DATA;
+    int bufSize = P2S_SIZE_DATA;
 
-    unsigned char *buffer = taipool_alloc(SIZE_DATA);
+    unsigned char *buffer = taipool_alloc(P2S_SIZE_DATA);
     if (buffer == NULL) {
         return 0;
     }
 
-    memset(buffer, 0, SIZE_DATA);
+    memset(buffer, 0, P2S_SIZE_DATA);
 
     while (left > 0) {
         if (left < bufSize) bufSize = left;

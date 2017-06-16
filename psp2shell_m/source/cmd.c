@@ -8,12 +8,11 @@
 #include <libk/stdio.h>
 #include <libk/stdlib.h>
 
-#include "psp2shell.h"
-#include "module.h"
-#include "thread.h"
-#include "main.h"
-#include "utility.h"
-#include "cmd.h"
+#include "../include/psp2shell.h"
+#include "../include/module.h"
+#include "../include/thread.h"
+#include "../include/main.h"
+#include "../include/utility.h"
 
 static void cmd_reset();
 
@@ -384,7 +383,7 @@ static void cmd_reboot() {
     scePowerRequestColdReset();
 }
 
-void cmd_parse(s_client *client, S_CMD *cmd) {
+void p2s_cmd_parse(s_client *client, P2S_CMD *cmd) {
 
     switch (cmd->type) {
 

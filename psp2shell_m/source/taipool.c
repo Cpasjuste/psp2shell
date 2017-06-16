@@ -1,7 +1,7 @@
 #include <psp2/kernel/sysmem.h>
 #include <psp2/kernel/threadmgr.h>
 #include <libk/string.h>
-#include "taipool.h"
+#include "../include/taipool.h"
 
 #define POOL_PADDING 0x100 // Difference between stack pointer and mempool start in bytes
 

@@ -14,7 +14,7 @@ set(SRC_FILES
         source/module.c
         source/thread.c
         source/taipool.c
-        ../common/cmd_common.c
+        ../common/p2s_cmd.c
         )
 set(INC_FILES
         ../common

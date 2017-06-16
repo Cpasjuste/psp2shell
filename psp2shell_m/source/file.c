@@ -32,13 +32,13 @@
 #include <stdio.h>
 
 #else
-#include "libmodule.h"
+#include "../include/libmodule.h"
 #endif
 
-#include "file.h"
-#include "utility.h"
-#include "taipool.h"
-#include "cmd_common.h"
+#include "../include/file.h"
+#include "../include/utility.h"
+#include "../include/taipool.h"
+#include "p2s_cmd.h"
 
 #define SCE_ERROR_ERRNO_EEXIST 0x80010011
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -282,14 +282,14 @@ int s_copyFile(char *src_path, char *dst_path, s_FileProcessParam *param) {
     }
 
     //char buf[TRANSFER_SIZE];
-    unsigned char *buf = taipool_alloc(SIZE_DATA);
+    unsigned char *buf = taipool_alloc(P2S_SIZE_DATA);
     if (buf == NULL) {
         return -3;
     }
-    memset(buf, 0, SIZE_DATA);
+    memset(buf, 0, P2S_SIZE_DATA);
 
     int read;
-    while ((read = sceIoRead(fdsrc, buf, SIZE_DATA)) > 0) {
+    while ((read = sceIoRead(fdsrc, buf, P2S_SIZE_DATA)) > 0) {
         int res = sceIoWrite(fddst, buf, (SceSize) read);
         if (res < 0) {
 
