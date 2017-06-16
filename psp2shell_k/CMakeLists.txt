@@ -10,7 +10,6 @@ link_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_definitions(-DRELEASE)
 add_executable(${PROJECT_NAME}
         main.c
-        kutility.c
         )
 target_link_libraries(${PROJECT_NAME}
         taihenForKernel_stub

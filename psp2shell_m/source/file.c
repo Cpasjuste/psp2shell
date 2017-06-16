@@ -35,10 +35,10 @@
 #include "libmodule.h"
 #endif
 
-#include "psp2cmd.h"
 #include "file.h"
 #include "utility.h"
 #include "taipool.h"
+#include "cmd_common.h"
 
 #define SCE_ERROR_ERRNO_EEXIST 0x80010011
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))

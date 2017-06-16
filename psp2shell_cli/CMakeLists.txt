@@ -8,11 +8,11 @@ add_executable(${PROJECT_NAME}
         source/main.c
         source/cmd.c
         source/utility.c
-        ../common/source/psp2cmd.c)
+        ../common/cmd_common.c)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
         include
-        ../common/include
+        ../common
         )
 
 target_link_libraries(${PROJECT_NAME}

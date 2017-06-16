@@ -17,14 +17,6 @@
 
 static void cmd_reset();
 
-static void sendOK(int sock) {
-    sceNetSend(sock, "1\n", 2, 0);
-}
-
-static void sendNOK(int sock) {
-    sceNetSend(sock, "0\n", 2, 0);
-}
-
 static void toAbsolutePath(s_FileList *fileList, char *path) {
 
     p2s_removeEndSlash(path);
@@ -55,11 +47,12 @@ static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
 
     SceUID fd = s_open(new_path, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
     if (fd < 0) {
-        sendNOK(client->cmd_sock);
+        p2s_cmd_send(client->cmd_sock, CMD_NOK);
         PRINT_ERR("could not open file for writing: %s\n", new_path);
         return -1;
     }
-    sendOK(client->cmd_sock);
+
+    p2s_cmd_send(client->cmd_sock, CMD_OK);
 
     ssize_t received = p2s_recv_file(client->cmd_sock, fd, size);
     s_close(fd);
@@ -127,12 +120,12 @@ static void cmd_load(int sock, long size, const char *tid) {
 
     SceUID fd = s_open(path, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 6);
     if (fd < 0) {
-        sendNOK(sock);
+        p2s_cmd_send(sock, CMD_NOK);
         PRINT_ERR("could not open file for writing: %s\n", path);
         return;
     }
 
-    sendOK(sock);
+    p2s_cmd_send(sock, CMD_OK);
 
     ssize_t received = p2s_recv_file(sock, fd, size);
     if (received > 0) {
@@ -148,7 +141,7 @@ static void cmd_reload(int sock, long size) {
     char tid[16];
 
     if (p2s_get_running_app_title_id(tid) != 0) {
-        sendNOK(sock);
+        p2s_cmd_send(sock, CMD_NOK);
         PRINT_ERR("can't reload SceShell...\n");
         return;
     }
@@ -391,129 +384,124 @@ static void cmd_reboot() {
     scePowerRequestColdReset();
 }
 
-void cmd_parse(s_client *client) {
+void cmd_parse(s_client *client, S_CMD *cmd) {
 
-    S_CMD cmd;
-    BOOL is_cmd = s_string_to_cmd(&cmd, client->cmd_buffer) == 0;
+    switch (cmd->type) {
 
-    if (is_cmd) {
+        case CMD_CD:
+            cmd_cd(client, cmd->args[0]);
+            break;
 
-        switch (cmd.type) {
+        case CMD_LS:
+            cmd_ls(client, cmd->args[0]);
+            break;
 
-            case CMD_CD:
-                cmd_cd(client, cmd.arg0);
-                break;
+        case CMD_PWD:
+            cmd_pwd(client);
+            break;
 
-            case CMD_LS:
-                cmd_ls(client, cmd.arg0);
-                break;
+        case CMD_RM:
+            cmd_rm(client, cmd->args[0]);
+            break;
 
-            case CMD_PWD:
-                cmd_pwd(client);
-                break;
+        case CMD_RMDIR:
+            cmd_rmdir(client, cmd->args[0]);
+            break;
 
-            case CMD_RM:
-                cmd_rm(client, cmd.arg0);
-                break;
+        case CMD_MV:
+            cmd_mv(client, cmd->args[0], cmd->args[1]);
+            break;
 
-            case CMD_RMDIR:
-                cmd_rmdir(client, cmd.arg0);
-                break;
+        case CMD_PUT:
+            cmd_put(client, strtoul(cmd->args[0], NULL, 0), cmd->args[1], cmd->args[2]);
+            break;
 
-            case CMD_MV:
-                cmd_mv(client, cmd.arg0, cmd.arg1);
-                break;
+        case CMD_LAUNCH:
+            p2s_launch_app_by_uri(cmd->args[0]);
+            break;
 
-            case CMD_PUT:
-                cmd_put(client, cmd.arg2, cmd.arg0, cmd.arg1);
-                break;
+        case CMD_TITLE:
+            cmd_title();
 
-            case CMD_LAUNCH:
-                p2s_launch_app_by_uri(cmd.arg0);
-                break;
+        case CMD_MOUNT:
+            cmd_mount(cmd->args[0]);
+            break;
 
-            case CMD_TITLE:
-                cmd_title();
+        case CMD_UMOUNT:
+            cmd_umount(cmd->args[0]);
+            break;
 
-            case CMD_MOUNT:
-                cmd_mount(cmd.arg0);
-                break;
+        case CMD_LOAD:
+            cmd_load(client->cmd_sock, strtoul(cmd->args[0], NULL, 0), cmd->args[1]);
+            break;
 
-            case CMD_UMOUNT:
-                cmd_umount(cmd.arg0);
-                break;
+        case CMD_RELOAD:
+            cmd_reload(client->cmd_sock, strtoul(cmd->args[0], NULL, 0));
+            break;
 
-            case CMD_LOAD:
-                cmd_load(client->cmd_sock, cmd.arg2, cmd.arg0);
-                break;
+        case CMD_RESET:
+            cmd_reset();
+            break;
 
-            case CMD_RELOAD:
-                cmd_reload(client->cmd_sock, cmd.arg2);
-                break;
+        case CMD_REBOOT:
+            cmd_reboot();
+            break;
 
-            case CMD_RESET:
-                cmd_reset();
-                break;
+        case CMD_MEMR:
+            cmd_memr(cmd->args[0], cmd->args[1]);
+            break;
 
-            case CMD_REBOOT:
-                cmd_reboot();
-                break;
+        case CMD_MEMW:
+            cmd_memw(cmd->args[0], cmd->args[1]);
+            break;
 
-            case CMD_MEMR:
-                cmd_memr(cmd.arg0, cmd.arg1);
-                break;
+        case CMD_MODLS:
+            p2s_moduleList();
+            break;
 
-            case CMD_MEMW:
-                cmd_memw(cmd.arg0, cmd.arg1);
-                break;
+        case CMD_MODLS_PID:
+            p2s_moduleListForPid((SceUID) strtoul(cmd->args[0], NULL, 16));
+            break;
 
-            case CMD_MODLS:
-                p2s_moduleList();
-                break;
+        case CMD_MODINFO:
+            p2s_moduleInfo((SceUID) strtoul(cmd->args[0], NULL, 16));
+            break;
 
-            case CMD_MODLS_PID:
-                p2s_moduleListForPid((SceUID) strtoul(cmd.arg0, NULL, 16));
-                break;
+        case CMD_MODINFO_PID:
+            p2s_moduleInfoForPid((SceUID) strtoul(cmd->args[0], NULL, 16), (SceUID) strtoul(cmd->args[1], NULL, 16));
+            break;
 
-            case CMD_MODINFO:
-                p2s_moduleInfo((SceUID) strtoul(cmd.arg0, NULL, 16));
-                break;
+        case CMD_MODLOADSTART:
+            p2s_moduleLoadStart(cmd->args[0]);
+            break;
 
-            case CMD_MODINFO_PID:
-                p2s_moduleInfoForPid((SceUID) strtoul(cmd.arg0, NULL, 16), (SceUID) strtoul(cmd.arg1, NULL, 16));
-                break;
+        case CMD_MODLOADSTART_PID:
+            p2s_moduleLoadStartForPid((SceUID) strtoul(cmd->args[0], NULL, 16), cmd->args[1]);
+            break;
 
-            case CMD_MODLOADSTART:
-                p2s_moduleLoadStart(cmd.arg0);
-                break;
+        case CMD_MODSTOPUNLOAD:
+            p2s_moduleStopUnload((SceUID) strtoul(cmd->args[0], NULL, 16));
+            break;
 
-            case CMD_MODLOADSTART_PID:
-                p2s_moduleLoadStartForPid((SceUID) strtoul(cmd.arg0, NULL, 16), cmd.arg1);
-                break;
+        case CMD_MODSTOPUNLOAD_PID:
+            p2s_moduleStopUnloadForPid((SceUID) strtoul(cmd->args[0], NULL, 16),
+                                       (SceUID) strtoul(cmd->args[1], NULL, 16));
+            break;
 
-            case CMD_MODSTOPUNLOAD:
-                p2s_moduleStopUnload((SceUID) strtoul(cmd.arg0, NULL, 16));
-                break;
+        case CMD_KMODLOADSTART:
+            p2s_kmoduleLoadStart(cmd->args[0]);
+            break;
 
-            case CMD_MODSTOPUNLOAD_PID:
-                p2s_moduleStopUnloadForPid((SceUID) strtoul(cmd.arg0, NULL, 16), (SceUID) strtoul(cmd.arg1, NULL, 16));
-                break;
+        case CMD_KMODSTOPUNLOAD:
+            p2s_kmoduleStopUnload((SceUID) strtoul(cmd->args[0], NULL, 16));
+            break;
 
-            case CMD_KMODLOADSTART:
-                p2s_kmoduleLoadStart(cmd.arg0);
-                break;
+        case CMD_THLS:
+            ps_threadList();
+            break;
 
-            case CMD_KMODSTOPUNLOAD:
-                p2s_kmoduleStopUnload((SceUID) strtoul(cmd.arg0, NULL, 16));
-                break;
-
-            case CMD_THLS:
-                ps_threadList();
-                break;
-
-            default:
-                PRINT_ERR("Unrecognized command\n");
-                break;
-        }
+        default:
+            PRINT_ERR("Unrecognized command\n");
+            break;
     }
 }

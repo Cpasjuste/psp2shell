@@ -12,7 +12,7 @@
 #include <stdbool.h>
 #include <fcntl.h>
 
-#include "psp2cmd.h"
+#include "cmd_common.h"
 #include "cmd.h"
 #include "utility.h"
 #include "main.h"
@@ -156,39 +156,6 @@ int connect_psp2(char *address, int port) {
     return 0;
 }
 
-void set_timeout(int socket, int sec) {
-    struct timeval timeout;
-    timeout.tv_sec = sec;
-    timeout.tv_usec = 0;
-    setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-}
-
-/*
-// TODO: crappy way to check psp2 disconnection
-bool psp2_alive() {
-
-    bool alive = true;
-
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    set_timeout(sockfd, 1);
-
-    struct sockaddr_in sin;
-    sin.sin_family = AF_INET;
-    sin.sin_port = htons(65432);
-    inet_pton(AF_INET, _argv[1], &sin.sin_addr);
-    if (connect(sockfd, (struct sockaddr *) &sin, sizeof(sin)) == -1) {
-        if (errno != 111) { // connection refused
-            printf("Error connecting to %s: %d (%s)\n", _argv[1], errno, strerror(errno));
-            close(msg_sock);
-            alive = false;
-        }
-    }
-    close(sockfd);
-
-    return alive;
-}
-*/
-
 void print_hex(char *line) {
 
     size_t num_tokens;
@@ -236,8 +203,6 @@ void *msg_thread(void *unused) {
 
     char *msg = malloc(SIZE_PRINT);
 
-    //set_timeout(msg_sock, 1);
-
     // receive message from psp2shell
     while (true) {
 
@@ -246,13 +211,6 @@ void *msg_thread(void *unused) {
         ssize_t recv_size = recv(msg_sock, msg, SIZE_PRINT, 0);
         if (recv_size <= 0) {
             break;
-            /*
-            if (((errno != EAGAIN) && (errno != EWOULDBLOCK)) || !psp2_alive()) {
-                break;
-            } else {
-                continue;
-            }
-            */
         }
 
         size_t len = strlen(msg);

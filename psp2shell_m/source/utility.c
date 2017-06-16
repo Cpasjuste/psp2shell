@@ -26,6 +26,7 @@
 #include <errno.h>
 
 #include "psp2shell.h"
+#include "cmd_common.h"
 #include "main.h"
 #include "libmodule.h"
 #include "taipool.h"

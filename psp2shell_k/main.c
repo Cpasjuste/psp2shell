@@ -6,26 +6,29 @@
 
 #include "psp2shell_k.h"
 
-volatile static int lock = 0;
-volatile static char kbuf[K_BUF_SIZE] = {0};
 volatile static int at = 0;
+volatile static int lock = 0;
+volatile static char k_buf[P2S_KMSG_SIZE] = {0};
 
-#define KPRINT(fmt, args...) do { \
-  int len; \
+#define P2S_MSG_LEN 256
+
+#define p2s_print_len(len, fmt, args...) do { \
   while (lock); \
   lock = 1; \
-  len = snprintf((char *)kbuf+at, K_BUF_SIZE-at, fmt, args); \
-  if (at + len < K_BUF_SIZE) \
+  snprintf((char *)k_buf+at, P2S_KMSG_SIZE-at, fmt, args); \
+  if (at + len <= P2S_KMSG_SIZE) \
     at += len; \
   lock = 0; \
 } while (0)
 
-#define MAX_HOOKS 64
+#define p2s_print(fmt, args...) p2s_print_len(strlen(fmt), fmt, args)
+
+#define MAX_HOOKS 32
 static SceUID g_hooks[MAX_HOOKS];
 static tai_hook_ref_t ref_hooks[MAX_HOOKS];
 static int __stdout_fd = 1073807367;
 
-static int ready = 0;
+static bool ready = false;
 
 void set_hooks();
 
@@ -33,16 +36,15 @@ void delete_hooks();
 
 static int _kDebugPrintf(const char *fmt, ...) {
 
-    char temp_buf[512];
-    memset(temp_buf, 0, 512);
+    char temp_buf[P2S_MSG_LEN];
+    memset(temp_buf, 0, P2S_MSG_LEN);
     va_list args;
     va_start(args, fmt);
-    vsnprintf(temp_buf, 512, fmt, args);
+    vsnprintf(temp_buf, P2S_MSG_LEN, fmt, args);
     va_end(args);
 
-    //LOG("_printf: %s\n", temp_buf);
     if (ready) {
-        KPRINT("%s", temp_buf);
+        p2s_print("%s", temp_buf);
     }
 
     return TAI_CONTINUE(int, ref_hooks[2], fmt, args);
@@ -50,38 +52,37 @@ static int _kDebugPrintf(const char *fmt, ...) {
 
 static int _kDebugPrintf2(int num0, int num1, const char *fmt, ...) {
 
-    char temp_buf[512];
-    memset(temp_buf, 0, 512);
+    char temp_buf[P2S_MSG_LEN];
+    memset(temp_buf, 0, P2S_MSG_LEN);
     va_list args;
     va_start(args, fmt);
-    vsnprintf(temp_buf, 512, fmt, args);
+    vsnprintf(temp_buf, P2S_MSG_LEN, fmt, args);
     va_end(args);
 
-    //LOG("_printf2: %s\n", temp_buf);
     if (ready) {
-        KPRINT("%s", temp_buf);
+        p2s_print("%s", temp_buf);
     }
 
     return TAI_CONTINUE(int, ref_hooks[3], num0, num1, fmt, args);
 }
 
-int _sceIoWrite(SceUID fd, const void *data, SceSize size) {
+static int _sceIoWrite(SceUID fd, const void *data, SceSize size) {
 
     if (ref_hooks[0] <= 0) {
         return 0;
     }
 
-    if (fd == __stdout_fd && ready && size < K_BUF_SIZE) {
-        char buf[size];
-        memset(buf, 0, size);
-        ksceKernelStrncpyUserToKernel(buf, (uintptr_t) data, size);
-        KPRINT("%s", buf);
+    if (fd == __stdout_fd && ready && size < P2S_MSG_LEN) {
+        char temp_buf[size];
+        memset(temp_buf, 0, size);
+        ksceKernelStrncpyUserToKernel(temp_buf, (uintptr_t) data, size);
+        p2s_print_len(size, "%s", temp_buf);
     }
 
     return TAI_CONTINUE(int, ref_hooks[0], fd, data, size);
 }
 
-int _sceKernelGetStdout() {
+static int _sceKernelGetStdout() {
 
     if (ref_hooks[1] <= 0) {
         return 0;
@@ -89,28 +90,31 @@ int _sceKernelGetStdout() {
 
     int fd = TAI_CONTINUE(int, ref_hooks[1]);
     __stdout_fd = fd;
-    //LOG("hook: __stdout_fd: 0x%08X\n", __stdout_fd);
 
     return fd;
 }
 
-int kpsp2shell_wait_buffer(char *buffer) {
+SceSize kpsp2shell_wait_buffer(char *buffer) {
 
     int state = 0;
     int count = 0;
 
     ENTER_SYSCALL(state);
+
     while (lock);
     lock = 1;
+
     count = at;
-    ksceKernelStrncpyKernelToUser((uintptr_t) buffer, (char *) kbuf, at + 1);
+    ksceKernelStrncpyKernelToUser((uintptr_t) buffer, (char *) k_buf, at + 1);
     at = 0;
     lock = 0;
+
     EXIT_SYSCALL(state);
-    return count;
+
+    return (SceSize) count;
 }
 
-void kpsp2shell_set_ready(int rdy) {
+void kpsp2shell_set_ready(bool rdy) {
 
     ready = rdy;
 }
@@ -162,6 +166,13 @@ int kpsp2shell_get_module_list(SceUID pid, int flags1, int flags2, SceUID *modid
     return res;
 }
 
+/*
+int unload_allowed_patched(void) {
+    TAI_CONTINUE(int, ref_hooks[4]);
+    return 1; // always allowed
+}
+*/
+
 void set_hooks() {
 
     uint32_t state;
@@ -202,6 +213,16 @@ void set_hooks() {
             0x02B04343, // printf2
             _kDebugPrintf2);
     //LOG("hook: _printf2: 0x%08X\n", g_hooks[3]);
+
+    /*
+    g_hooks[4] = taiHookFunctionImportForKernel(
+            KERNEL_PID,
+            &ref_hooks[4],     // Output a reference
+            "SceKernelModulemgr",
+            0x11F9B314,
+            0xBBA13D9C,
+            unload_allowed_patched);
+    */
 
     EXIT_SYSCALL(state);
 }

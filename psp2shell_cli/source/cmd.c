@@ -10,18 +10,12 @@
 
 #include "main.h"
 #include "utility.h"
-#include "psp2cmd.h"
+#include "cmd_common.h"
 #include "cmd.h"
 
 extern void close_terminal();
 
 extern void close_socks();
-
-bool response_ok(int sock) {
-    char buf[2];
-    recv(sock, buf, 2, 0);
-    return buf[0] == '1';
-}
 
 ssize_t send_file(FILE *file, long size) {
 
@@ -43,24 +37,6 @@ ssize_t send_file(FILE *file, long size) {
     return progress;
 }
 
-char CMD_MSG[SIZE_CMD];
-
-char *build_msg(int type, char *arg0,
-                char *arg1, long arg2) {
-
-    S_CMD cmd;
-    memset(&cmd, 0, sizeof(S_CMD));
-
-    cmd.type = type;
-    strncpy(cmd.arg0, arg0, SIZE_PRINT);
-    strncpy(cmd.arg1, arg1, SIZE_PRINT);
-    cmd.arg2 = arg2;
-
-    s_cmd_to_string(CMD_MSG, &cmd);
-
-    return CMD_MSG;
-}
-
 int cmd_cd(int argc, char **argv) {
 
     if (argc < 2) {
@@ -68,24 +44,21 @@ int cmd_cd(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_CD, argv[1], "0", 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_string(data_sock, CMD_CD, argv[1]);
 
     return 0;
 }
 
 int cmd_ls(int argc, char **argv) {
 
-    char *cmd = build_msg(CMD_LS, argc < 2 ? "root" : argv[1], "0", 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_string(data_sock, CMD_LS, argc < 2 ? "root" : argv[1]);
 
     return 0;
 }
 
 int cmd_pwd(int argc, char **argv) {
 
-    char *cmd = build_msg(CMD_PWD, "0", "0", 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send(data_sock, CMD_PWD);
 
     return 0;
 }
@@ -100,9 +73,9 @@ int cmd_rm(int argc, char **argv) {
     printf("remove `%s` ? (y/N)\n", argv[1]);
     char c;
     scanf("%c", &c);
+
     if (c == 'y') {
-        char *cmd = build_msg(CMD_RM, argv[1], "0", 0);
-        send(data_sock, cmd, strlen(cmd), 0);
+        p2s_cmd_send_string(data_sock, CMD_RM, argv[1]);
     }
     return 0;
 }
@@ -118,8 +91,7 @@ int cmd_rmdir(int argc, char **argv) {
     char c;
     scanf("%c", &c);
     if (c == 'y') {
-        char *cmd = build_msg(CMD_RMDIR, argv[1], "0", 0);
-        send(data_sock, cmd, strlen(cmd), 0);
+        p2s_cmd_send_string(data_sock, CMD_RMDIR, argv[1]);
     }
 
     return 0;
@@ -132,8 +104,7 @@ int cmd_mv(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_MV, argv[1], argv[2], 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_strings(data_sock, CMD_MV, 2, (char *[]) {argv[1], argv[2]});
 
     return 0;
 }
@@ -149,10 +120,11 @@ int cmd_put(int argc, char **argv) {
     long size = ftell(fp);
     fseek(fp, 0L, SEEK_SET);
 
-    char *cmd = build_msg(CMD_PUT, basename(argv[1]), argc < 3 ? "0" : argv[2], size);
-    send(data_sock, cmd, strlen(cmd), 0);
 
-    if (response_ok(data_sock)) {
+    p2s_cmd_send_fmt(data_sock, "%i\"%s\"\"%s\"\"%ld\"",
+                     CMD_PUT, basename(argv[1]), argc < 3 ? "0" : argv[2], size);
+
+    if (p2s_cmd_receive_resp(data_sock) == 0) {
         send_file(fp, size);
     }
 

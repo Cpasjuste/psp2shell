@@ -20,7 +20,7 @@
 #include <psp2/kernel/modulemgr.h>
 #include <psp2/net/net.h>
 
-#include "psp2cmd.h"
+#include "cmd_common.h"
 #include "main.h"
 #include "cmd.h"
 #include "utility.h"
@@ -144,19 +144,20 @@ int cmd_thread(SceSize args, void *argp) {
     kpsp2shell_set_ready(1);
 #endif
 
+    S_CMD cmd;
+
     while (!quit) {
 
-        memset(client->cmd_buffer, 0, SIZE_CMD);
-
-        int read_size = sceNetRecv(
-                client->cmd_sock,
-                client->cmd_buffer, SIZE_CMD, 0);
-
-        if (read_size <= 0) {
-            printf("sceNetRecv failed: %i\n", read_size);
-            break;
-        } else if (read_size > 0 && !quit) {
-            cmd_parse(client);
+        int res = p2s_receive_cmd(sock, &cmd);
+        if (res != 0) {
+            if (res == P2S_ERR_SOCKET) {
+                PRINT_ERR("p2s_receive_cmd sock failed: 0x%08X\n", res);
+                break;
+            } else {
+                PRINT_ERR("p2s_receive_cmd failed: 0x%08X\n", res);
+            }
+        } else {
+            cmd_parse(client, &cmd);
         }
     }
 
@@ -234,18 +235,19 @@ static int thread_wait(SceSize args, void *argp) {
 
 static int thread_kbuf(SceSize args, void *argp) {
 
-    char buffer[K_BUF_SIZE];
+    char buffer[P2S_KMSG_SIZE];
 
     while (!quit) {
+
         if (client != NULL) {
-            int len = kpsp2shell_wait_buffer(buffer);
+            SceSize len = kpsp2shell_wait_buffer(buffer);
             if (client != NULL && client->msg_sock > 0 && len > 0) {
-                psp2shell_print_color_advanced(len, 0, buffer);
+                psp2shell_print_color_advanced(len, 0, "%s", buffer);
             } else {
-                sceKernelDelayThread(1000);
+                sceKernelDelayThread(100);
             }
         } else {
-            sceKernelDelayThread(1000);
+            sceKernelDelayThread(100);
         }
     }
 

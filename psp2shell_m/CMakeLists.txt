@@ -8,15 +8,16 @@ execute_process(COMMAND "date" "+%Y.%m.%d" OUTPUT_VARIABLE BUILD_DATE OUTPUT_STR
 
 set(SRC_FILES
         source/main.c
+        source/cmd.c
         source/utility.c
         source/file.c
         source/module.c
         source/thread.c
         source/taipool.c
-        ../common/source/psp2cmd.c
-        source/cmd.c source/cmd.h)
+        ../common/cmd_common.c
+        )
 set(INC_FILES
-        ../common/include
+        ../common
         include
         )
 

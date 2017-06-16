@@ -1,11 +1,11 @@
 #ifndef _psp2_shell_h_
 #define _psp2_shell_h_
 
-#include "psp2cmd.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "cmd_common.h"
 
 #ifdef DEBUG
 int sceClibPrintf(const char *, ...);
