@@ -8,17 +8,11 @@ extern "C" {
 #include "p2s_cmd.h"
 
 #ifdef DEBUG
+
 int sceClibPrintf(const char *, ...);
+
 #define printf sceClibPrintf
 #endif
-
-enum colors_t {
-    COL_NONE = 0,
-    COL_RED = 1,
-    COL_YELLOW = 2,
-    COL_GREEN = 3,
-    COL_HEX = 9
-};
 
 // init psp2shell on specified port with delay in seconds.
 // setting a delay will pause (delay) the application

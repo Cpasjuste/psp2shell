@@ -1,7 +1,6 @@
 #ifndef _P2S_H_
 #define _P2S_H_
 
-#include <psp2/kernel/modulemgr.h>
 #include "../psp2shell_k/psp2shell_k.h"
 
 #define P2S_ERR_SOCKET          0x80000001
@@ -17,12 +16,13 @@ typedef struct P2S_CMD {
     int type;
     char args[P2S_MAX_ARGS][P2S_SIZE_PRINT];
 } P2S_CMD;
-#define P2S_SIZE_CMD    (sizeof(P2S_CMD) + 1024)
+#define P2S_SIZE_CMD    (sizeof(P2S_CMD) + (P2S_MAX_ARGS * 8))
 
 typedef struct P2S_MSG {
     int color;
     char buffer[P2S_KMSG_SIZE];
 } P2S_MSG;
+#define P2S_SIZE_MSG    (sizeof(P2S_MSG) + (P2S_MAX_ARGS * 8))
 
 enum cmd_t {
     CMD_START = 10,
@@ -66,6 +66,12 @@ enum cmd_t {
     CMD_EXIT,
     CMD_HELP,
 
+    COL_NONE,
+    COL_RED,
+    COL_YELLOW,
+    COL_GREEN,
+    COL_HEX,
+
     CMD_OK = 64,
     CMD_NOK = 65
 };
@@ -74,7 +80,7 @@ int p2s_cmd_receive(int sock, P2S_CMD *cmd);
 
 size_t p2s_cmd_receive_buffer(int sock, void *buffer, size_t size);
 
-int p2s_cmd_receive_resp(int sock);
+int p2s_cmd_wait_result(int sock);
 
 void p2s_cmd_send(int sock, int cmdType);
 
@@ -83,8 +89,6 @@ void p2s_cmd_send_cmd(int sock, P2S_CMD *cmd);
 void p2s_cmd_send_fmt(int sock, const char *fmt, ...);
 
 void p2s_cmd_send_string(int sock, int cmdType, const char *value);
-
-void p2s_cmd_send_strings(int sock, int cmdType, int argc, char *argv[]);
 
 void p2s_cmd_send_int(int sock, int cmdType, int value);
 

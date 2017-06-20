@@ -21,7 +21,6 @@
 #include <psp2/net/net.h>
 #include <main.h>
 
-#include "p2s_cmd.h"
 #include "../include/main.h"
 #include "../include/utility.h"
 #include "../include/psp2shell.h"
@@ -85,16 +84,11 @@ void psp2shell_print_color_advanced(SceSize size, int color, const char *fmt, ..
     vsnprintf(client->msg.buffer, size, fmt, args);
     va_end(args);
 
-    //int len = strlen(client->msg.buffer);
-    //snprintf(client->msg_buffer + len, size, "%i", color);
-   //client->msg_buffer[len + 1] = '\0';
-
     if (client->msg_sock > 0) {
-        sceNetSend(client->msg_sock, client->msg_buffer, size, 0);
-        int ret = sceNetRecv(client->msg_sock, client->msg_buffer, 1, 0);
-        if (ret < 0) { // wait for answer
-            printf("print: sceNetRecv failed: %i\n", ret);
-        }
+        printf("p2s_cmd_send_fmt: %s\n", client->msg.buffer);
+        p2s_cmd_send_fmt(client->msg_sock, "%i\"%s\"", color, client->msg.buffer);
+        // TODO: wait for client to receive message, should maybe add a timeout
+        p2s_cmd_wait_result(client->msg_sock);
     }
 }
 
@@ -151,13 +145,13 @@ int cmd_thread(SceSize args, void *argp) {
 
     while (!quit) {
 
-        int res = p2s_cmd_receive(sock, &cmd);
+        int res = p2s_cmd_receive(client->cmd_sock, &cmd);
         if (res != 0) {
             if (res == P2S_ERR_SOCKET) {
-                PRINT_ERR("p2s_receive_cmd sock failed: 0x%08X\n", res);
+                PRINT_ERR("p2s_cmd_receive sock failed: 0x%08X\n", res);
                 break;
             } else {
-                PRINT_ERR("p2s_receive_cmd failed: 0x%08X\n", res);
+                PRINT_ERR("p2s_cmd_receive failed: 0x%08X\n", res);
             }
         } else {
             p2s_cmd_parse(client, &cmd);
@@ -216,7 +210,7 @@ static int thread_wait(SceSize args, void *argp) {
 
         printf("new connexion on port %i (sock=%i)\n", listen_port, client_sock);
         // max client/socket count reached
-        if (client != NULL && client->msg_sock > 0) {
+        if (client != NULL && client->cmd_sock > 0) {
             printf("Connection refused, max client reached (1)\n");
             sceNetSocketClose(client_sock);
             continue;

@@ -10,27 +10,27 @@
 
 #include "main.h"
 #include "utility.h"
-#include "cmd_common.h"
+#include "p2s_cmd.h"
 #include "cmd.h"
 
 extern void close_terminal();
 
 extern void close_socks();
 
-ssize_t send_file(FILE *file, long size) {
+ssize_t send_file(int sock, FILE *file, long size) {
 
     ssize_t len, progress = 0;
-    char *buf = malloc(SIZE_DATA);
-    memset(buf, 0, SIZE_DATA);
+    char *buf = malloc(P2S_SIZE_DATA);
+    memset(buf, 0, P2S_SIZE_DATA);
 
-    while ((len = fread(buf, sizeof(char), SIZE_DATA, file)) > 0) {
-        if (send(data_sock, buf, (size_t) len, 0) < 0) {
+    while ((len = fread(buf, sizeof(char), P2S_SIZE_DATA, file)) > 0) {
+        if (send(sock, buf, (size_t) len, 0) < 0) {
             printf("ERROR: Failed to send file. (errno = %d)\n", errno);
             break;
         }
         progress += len;
         printf("\t[%lu/%lu]\n", progress, size);
-        memset(buf, 0, SIZE_DATA);
+        memset(buf, 0, P2S_SIZE_DATA);
     }
 
     free(buf);
@@ -44,21 +44,21 @@ int cmd_cd(int argc, char **argv) {
         return -1;
     }
 
-    p2s_cmd_send_string(data_sock, CMD_CD, argv[1]);
+    p2s_cmd_send_string(cmd_sock, CMD_CD, argv[1]);
 
     return 0;
 }
 
 int cmd_ls(int argc, char **argv) {
 
-    p2s_cmd_send_string(data_sock, CMD_LS, argc < 2 ? "root" : argv[1]);
+    p2s_cmd_send_string(cmd_sock, CMD_LS, argc < 2 ? "root" : argv[1]);
 
     return 0;
 }
 
 int cmd_pwd(int argc, char **argv) {
 
-    p2s_cmd_send(data_sock, CMD_PWD);
+    p2s_cmd_send(cmd_sock, CMD_PWD);
 
     return 0;
 }
@@ -75,7 +75,7 @@ int cmd_rm(int argc, char **argv) {
     scanf("%c", &c);
 
     if (c == 'y') {
-        p2s_cmd_send_string(data_sock, CMD_RM, argv[1]);
+        p2s_cmd_send_string(cmd_sock, CMD_RM, argv[1]);
     }
     return 0;
 }
@@ -91,7 +91,7 @@ int cmd_rmdir(int argc, char **argv) {
     char c;
     scanf("%c", &c);
     if (c == 'y') {
-        p2s_cmd_send_string(data_sock, CMD_RMDIR, argv[1]);
+        p2s_cmd_send_string(cmd_sock, CMD_RMDIR, argv[1]);
     }
 
     return 0;
@@ -104,7 +104,7 @@ int cmd_mv(int argc, char **argv) {
         return -1;
     }
 
-    p2s_cmd_send_strings(data_sock, CMD_MV, 2, (char *[]) {argv[1], argv[2]});
+    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"\"%s\"", CMD_MV, argv[1], argv[2]);
 
     return 0;
 }
@@ -121,15 +121,14 @@ int cmd_put(int argc, char **argv) {
     fseek(fp, 0L, SEEK_SET);
 
 
-    p2s_cmd_send_fmt(data_sock, "%i\"%s\"\"%s\"\"%ld\"",
+    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"\"%s\"\"%ld\"",
                      CMD_PUT, basename(argv[1]), argc < 3 ? "0" : argv[2], size);
 
-    if (p2s_cmd_receive_resp(data_sock) == 0) {
-        send_file(fp, size);
+    if (p2s_cmd_wait_result(cmd_sock) == 0) {
+        send_file(cmd_sock, fp, size);
     }
 
     fclose(fp);
-    printf("done\n");
 
     return 0;
 }
@@ -141,16 +140,14 @@ int cmd_launch(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_LAUNCH, argv[1], "0", 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_string(cmd_sock, CMD_LAUNCH, argv[1]);
 
     return 0;
 }
 
 int cmd_reset(int argc, char **argv) {
 
-    char *cmd = build_msg(CMD_RESET, "0", "0", 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send(cmd_sock, CMD_RESET);
 
     return 0;
 }
@@ -171,15 +168,14 @@ int cmd_load(int argc, char **argv) {
     long size = ftell(fp);
     fseek(fp, 0L, SEEK_SET);
 
-    char *cmd = build_msg(CMD_LOAD, argv[1], "0", size);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"\"%ld\"",
+                     CMD_LOAD, argv[1], size);
 
-    if (response_ok(data_sock)) {
-        send_file(fp, size);
+    if (p2s_cmd_wait_result(cmd_sock) == 0) {
+        send_file(cmd_sock, fp, size);
     }
 
     fclose(fp);
-    printf("done\n");
 
     return 0;
 }
@@ -195,31 +191,27 @@ int cmd_reload(int argc, char **argv) {
     long size = ftell(fp);
     fseek(fp, 0L, SEEK_SET);
 
-    char *cmd = build_msg(CMD_RELOAD, "0", "0", size);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_long(cmd_sock, CMD_LAUNCH, size);
 
-    if (response_ok(data_sock)) {
-        send_file(fp, size);
+    if (p2s_cmd_wait_result(cmd_sock) == 0) {
+        send_file(cmd_sock, fp, size);
     }
 
     fclose(fp);
-    printf("done\n");
 
     return 0;
 }
 
 int cmd_title(int argc, char **argv) {
 
-    char *cmd = build_msg(CMD_TITLE, "0", "0", 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send(cmd_sock, CMD_TITLE);
 
     return 0;
 }
 
 int cmd_reboot(int argc, char **argv) {
 
-    char *cmd = build_msg(CMD_REBOOT, "0", "0", 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send(cmd_sock, CMD_REBOOT);
 
     return 0;
 }
@@ -231,8 +223,7 @@ int cmd_mount(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_MOUNT, argv[1], "0", 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_string(cmd_sock, CMD_MOUNT, argv[1]);
 
     return 0;
 }
@@ -244,16 +235,14 @@ int cmd_umount(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_UMOUNT, argv[1], "0", 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_string(cmd_sock, CMD_UMOUNT, argv[1]);
 
     return 0;
 }
 
 int cmd_modls(int argc, char **argv) {
 
-    char *cmd = build_msg(CMD_MODLS, "0", "0", 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send(cmd_sock, CMD_MODLS);
 
     return 0;
 }
@@ -265,8 +254,7 @@ int cmd_modlsp(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_MODLS_PID, argv[1], "0", 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_string(cmd_sock, CMD_MODLS_PID, argv[1]);
 
     return 0;
 }
@@ -278,8 +266,7 @@ int cmd_modinfo(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_MODINFO, argv[1], "0", 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_string(cmd_sock, CMD_MODINFO, argv[1]);
 
     return 0;
 }
@@ -291,8 +278,7 @@ int cmd_modinfop(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_MODINFO_PID, argv[1], argv[2], 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"\"%s\"", CMD_MODINFO_PID, argv[1], argv[2]);
 
     return 0;
 }
@@ -304,8 +290,7 @@ int cmd_modloadstart(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_MODLOADSTART, argv[1], "0", 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_string(cmd_sock, CMD_MODLOADSTART, argv[1]);
 
     return 0;
 }
@@ -317,8 +302,7 @@ int cmd_modloadstartp(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_MODLOADSTART_PID, argv[1], argv[2], 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"\"%s\"", CMD_MODLOADSTART_PID, argv[1], argv[2]);
 
     return 0;
 }
@@ -330,8 +314,7 @@ int cmd_modstopunload(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_MODSTOPUNLOAD, argv[1], "0", 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_string(cmd_sock, CMD_MODSTOPUNLOAD, argv[1]);
 
     return 0;
 }
@@ -343,8 +326,7 @@ int cmd_modstopunloadp(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_MODSTOPUNLOAD_PID, argv[1], argv[2], 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"\"%s\"", CMD_MODSTOPUNLOAD_PID, argv[1], argv[2]);
 
     return 0;
 }
@@ -356,8 +338,7 @@ int cmd_kmodloadstart(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_KMODLOADSTART, argv[1], "0", 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_string(cmd_sock, CMD_KMODLOADSTART, argv[1]);
 
     return 0;
 }
@@ -369,16 +350,14 @@ int cmd_kmodstopunload(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_KMODSTOPUNLOAD, argv[1], "0", 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_string(cmd_sock, CMD_KMODSTOPUNLOAD, argv[1]);
 
     return 0;
 }
 
 int cmd_thls(int argc, char **argv) {
 
-    char *cmd = build_msg(CMD_THLS, "0", "0", 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send(cmd_sock, CMD_THLS);
 
     return 0;
 }
@@ -390,8 +369,7 @@ int cmd_memr(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_MEMR, argv[1], argv[2], 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"\"%s\"", CMD_MEMR, argv[1], argv[2]);
 
     return 0;
 }
@@ -403,8 +381,7 @@ int cmd_memw(int argc, char **argv) {
         return -1;
     }
 
-    char *cmd = build_msg(CMD_MEMW, argv[1], argv[2], 0);
-    send(data_sock, cmd, strlen(cmd), 0);
+    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"\"%s\"", CMD_MEMW, argv[1], argv[2]);
 
     return 0;
 }

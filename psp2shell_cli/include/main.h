@@ -2,6 +2,6 @@
 #define MAIN_H
 
 extern int msg_sock;
-extern int data_sock;
+extern int cmd_sock;
 
 #endif // MAIN_H

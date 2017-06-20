@@ -12,22 +12,14 @@
 #include <stdbool.h>
 #include <fcntl.h>
 
-#include "cmd_common.h"
+#include "p2s_cmd.h"
 #include "cmd.h"
 #include "utility.h"
 #include "main.h"
 #include "errno.h"
 
-enum colors_t {
-    COL_NONE = 0,
-    COL_RED = 1,
-    COL_YELLOW = 2,
-    COL_GREEN = 3,
-    COL_HEX = 9
-};
-
 int msg_sock = -1;
-int data_sock = -1;
+int cmd_sock = -1;
 int done = 0;
 char **_argv;
 
@@ -86,9 +78,9 @@ void sig_handler(int sig) {
 
 void close_socks() {
     close(msg_sock);
-    close(data_sock);
+    close(cmd_sock);
     msg_sock = -1;
-    data_sock = -1;
+    cmd_sock = -1;
 }
 
 int get_sock(int sock, char *ip, int port, bool verbose) {
@@ -143,10 +135,10 @@ int connect_psp2(char *address, int port) {
         exit(EXIT_FAILURE);
     }
 
-    if ((data_sock = get_sock(data_sock, address, port + 1, false)) < 0) {
+    if ((cmd_sock = get_sock(cmd_sock, address, port + 1, false)) < 0) {
         printf("get_sock failed (port=%i)\n", port + 1);
         close(msg_sock);
-        return data_sock;
+        return cmd_sock;
     }
 
     setup_terminal();
@@ -201,61 +193,55 @@ void print_hex(char *line) {
 
 void *msg_thread(void *unused) {
 
-    char *msg = malloc(SIZE_PRINT);
+    P2S_CMD msg;
 
     // receive message from psp2shell
     while (true) {
 
-        // handle vita network/socket disconnect/timeout
-        memset(msg, 0, SIZE_PRINT);
-        ssize_t recv_size = recv(msg_sock, msg, SIZE_PRINT, 0);
-        if (recv_size <= 0) {
-            break;
+        int res = p2s_cmd_receive(msg_sock, &msg);
+        if (res != 0) {
+            if (res == P2S_ERR_SOCKET) {
+                printf("p2s_cmd_receive sock failed: 0x%08X\n", res);
+                break;
+            } else {
+                printf("p2s_cmd_receive failed: 0x%08X\n", res);
+            }
         }
 
-        size_t len = strlen(msg);
-        if (strlen(msg) < 2) {
-            continue;
-        }
-
-        int color = msg[len - 1] - 48;
-        msg[len - 1] = '\0';
-
-        switch (color) {
+        switch (msg.type) {
             case COL_RED:
-                printf(RED "%s" RES, msg);
+                printf(RED "%s" RES, msg.args[0]);
                 break;
             case COL_YELLOW:
-                printf(YEL "%s" RES, msg);
+                printf(YEL "%s" RES, msg.args[0]);
                 break;
             case COL_GREEN:
-                printf(GRN "%s" RES, msg);
+                printf(GRN "%s" RES, msg.args[0]);
                 break;
             case COL_HEX:
-                print_hex(msg);
+                print_hex(msg.args[0]);
                 break;
             default:
-                printf("%s", msg);
+                printf("%s", msg.args[0]);
                 break;
         }
 
         fflush(stdout);
-        if (msg[len - 2] == '\n') { // allow printing to the shell without new line
+        if (msg.args[0][strlen(msg.args[0]) - 1] == '\n') { // allow printing to the shell without new line
             rl_refresh_line(0, 0);
         }
 
         // send "ok/continue"
-        send(msg_sock, "\n", 1, 0);
+        p2s_cmd_send(msg_sock, CMD_OK);
     }
 
     printf("disconnected\n");
     signal(SIGINT, SIG_DFL);
     close_terminal();
-    free(msg);
     close(msg_sock);
-    close(data_sock);
+    close(cmd_sock);
     msg_sock = -1;
-    data_sock = -1;
+    cmd_sock = -1;
 
     // restart
     execvp(_argv[0], _argv);
@@ -355,7 +341,7 @@ int main(int argc, char **argv) {
                 close_terminal();
             }
 
-            ret = getsockopt(data_sock, SOL_SOCKET, SO_ERROR, &error, &len);
+            ret = getsockopt(cmd_sock, SOL_SOCKET, SO_ERROR, &error, &len);
             if (ret != 0 || error != 0) {
                 printf("socket is dead...\n");
                 close_socks();

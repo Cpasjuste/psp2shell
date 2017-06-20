@@ -2,7 +2,7 @@
 // Created by cpasjuste on 17/05/17.
 //
 
-#ifdef PSP2
+#ifdef __PSP2__
 
 #include <psp2/net/net.h>
 #include <libk/stdio.h>
@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdarg.h>
 #include <sys/socket.h>
 
 #endif
@@ -45,7 +46,7 @@ int p2s_cmd_receive(int sock, P2S_CMD *cmd) {
     return 0;
 }
 
-int p2s_cmd_receive_resp(int sock) {
+int p2s_cmd_wait_result(int sock) {
 
     char buffer[P2S_SIZE_CMD];
     memset(buffer, 0, P2S_SIZE_CMD);

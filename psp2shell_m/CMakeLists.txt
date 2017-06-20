@@ -21,7 +21,7 @@ set(INC_FILES
         include
         )
 
-set(CFLAGS -Wall -O2 -std=c99 -DPSP2 -DMODULE
+set(CFLAGS -Wall -O2 -std=c99 -D__PSP2__ -DMODULE
         -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format
         -Wno-strict-aliasing -Wno-attributes -ffreestanding
         -DVERSION=\"${BUILD_DATE}\"
