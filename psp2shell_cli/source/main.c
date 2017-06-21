@@ -229,7 +229,8 @@ void *msg_thread(void *unused) {
         }
 
         fflush(stdout);
-        if (msg.buffer[strlen(msg.buffer) - 1] == '\n') { // allow printing to the shell without new line
+        ssize_t len = strlen(msg.buffer);
+        if (msg.buffer[len - 1] == '\n') { // allow printing to the shell without new line
             rl_refresh_line(0, 0);
         }
 

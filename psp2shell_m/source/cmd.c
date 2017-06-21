@@ -37,7 +37,9 @@ static void toAbsolutePath(s_FileList *fileList, char *path) {
 
     char *p = strrchr(path, ':');
     if (!p) { // relative path
-        snprintf(path, MAX_PATH_LENGTH, "%s/%s", fileList->path, path);
+        char np[MAX_PATH_LENGTH];
+        strncpy(np, path, MAX_PATH_LENGTH);
+        snprintf(path, MAX_PATH_LENGTH, "%s/%s", fileList->path, np);
     }
 }
 
