@@ -189,3 +189,15 @@ int p2s_kmoduleStopUnload(SceUID uid) {
 
     return res;
 }
+
+int p2s_moduleDumpForPid(SceUID pid, SceUID uid, const char *dst) {
+
+    int res = kpsp2shell_dump_module(pid, uid, dst);
+    if (res != 0) {
+        PRINT_ERR("\nmodule dump failed: 0x%08X\n\n", res);
+    } else {
+        PRINT_OK("\nmodule dump success\n\n");
+    }
+
+    return res;
+}

@@ -24,6 +24,9 @@
 
 #include "psp2shell_k.h"
 
+#define CHUNK_SIZE 2048
+static uint8_t chunk[CHUNK_SIZE];
+
 volatile static int at = 0;
 volatile static int lock = 0;
 volatile static char k_buf[P2S_KMSG_SIZE] = {0};
@@ -33,13 +36,15 @@ volatile static char k_buf[P2S_KMSG_SIZE] = {0};
 #define p2s_print_len(len, fmt, args...) do { \
   while (lock); \
   lock = 1; \
-  snprintf((char *)k_buf+at, P2S_KMSG_SIZE-at, fmt, args); \
-  if (at + len <= P2S_KMSG_SIZE) \
-    at += len; \
+  int size = snprintf((char *)k_buf+at, P2S_KMSG_SIZE-at, fmt, args); \
+  if (len > 0) \
+    size = len; \
+  if (at + size <= P2S_KMSG_SIZE) \
+    at += size; \
   lock = 0; \
 } while (0)
 
-#define p2s_print(fmt, args...) p2s_print_len(strlen(fmt), fmt, args)
+#define p2s_print(fmt, args...) p2s_print_len(0, fmt, args)
 
 #define MAX_HOOKS 32
 static SceUID g_hooks[MAX_HOOKS];
@@ -137,9 +142,82 @@ void kpsp2shell_set_ready(bool rdy) {
     ready = rdy;
 }
 
+int kpsp2shell_dump(SceUID pid, const char *filename, void *addr, unsigned int size) {
+
+    SceUID fd;
+    fd = ksceIoOpen(filename, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 6);
+    if (fd <= 0) {
+        return fd;
+    }
+
+    int i = 0;
+    size_t bufsize = 0;
+
+    while (i < size) {
+        if (size - i > CHUNK_SIZE) {
+            bufsize = CHUNK_SIZE;
+        } else {
+            bufsize = size - i;
+        }
+        ksceKernelMemcpyUserToKernelForPid(pid, chunk, (uintptr_t) (addr + i), bufsize);
+        i += bufsize;
+
+        ksceIoWrite(fd, chunk, bufsize);
+    }
+
+    ksceIoClose(fd);
+
+    return 0;
+}
+
+int kpsp2shell_dump_module(SceUID pid, SceUID uid, const char *dst) {
+
+    int ret;
+    SceKernelModuleInfo kinfo;
+    memset(&kinfo, 0, sizeof(SceKernelModuleInfo));
+    kinfo.size = sizeof(SceKernelModuleInfo);
+
+    uint32_t state;
+    ENTER_SYSCALL(state);
+
+    SceUID kid = ksceKernelKernelUidForUserUid(pid, uid);
+    if (kid < 0) {
+        kid = uid;
+    }
+
+    ret = ksceKernelGetModuleInfo(pid, kid, &kinfo);
+
+    if (ret >= 0) {
+
+        char path[128];
+
+        for (int i = 0; i < 4; i++) {
+
+            SceKernelSegmentInfo *seginfo = &kinfo.segments[i];
+
+            if (seginfo->memsz <= 0 || seginfo->vaddr == NULL || seginfo->size != sizeof(*seginfo)) {
+                continue;
+            }
+
+            memset(path, 0, 128);
+            ksceKernelStrncpyUserToKernel(path, (uintptr_t) dst, 128);
+            snprintf(path + strlen(path), 128, "/%s_0x%08X_seg%d.bin",
+                     kinfo.module_name, (uintptr_t) seginfo->vaddr, i);
+
+            p2s_print("dumping: %s\n", path);
+
+            ret = kpsp2shell_dump(pid, path, seginfo->vaddr, seginfo->memsz);
+        }
+    }
+
+    EXIT_SYSCALL(state);
+
+    return ret;
+}
+
 int kpsp2shell_get_module_info(SceUID pid, SceUID uid, SceKernelModuleInfo *info) {
 
-    int ret = -1;
+    int ret;
     SceKernelModuleInfo kinfo;
     memset(&kinfo, 0, sizeof(SceKernelModuleInfo));
     kinfo.size = sizeof(SceKernelModuleInfo);

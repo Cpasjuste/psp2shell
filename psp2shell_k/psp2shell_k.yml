@@ -14,3 +14,4 @@ psp2shell_k:
               - kpsp2shell_set_ready
               - kpsp2shell_get_module_info
               - kpsp2shell_get_module_list
+              - kpsp2shell_dump_module

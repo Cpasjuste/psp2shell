@@ -518,6 +518,12 @@ void p2s_cmd_parse(s_client *client, P2S_CMD *cmd) {
             p2s_kmoduleStopUnload((SceUID) strtoul(cmd->args[0], NULL, 16));
             break;
 
+        case CMD_MODDUMP:
+            p2s_moduleDumpForPid((SceUID) strtoul(cmd->args[0], NULL, 16),
+                                 (SceUID) strtoul(cmd->args[1], NULL, 16),
+                                 cmd->args[2]);
+            break;
+
         case CMD_THLS:
             ps_threadList();
             break;

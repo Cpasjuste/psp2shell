@@ -354,6 +354,18 @@ int cmd_kmodstopunload(int argc, char **argv) {
     return 0;
 }
 
+int cmd_moddump(int argc, char **argv) {
+
+    if (argc < 4) {
+        printf("incorrect number of arguments\n");
+        return -1;
+    }
+
+    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"%s\"%s\"", CMD_MODDUMP, argv[1], argv[2], argv[3]);
+
+    return 0;
+}
+
 int cmd_thls(int argc, char **argv) {
 
     p2s_cmd_send(cmd_sock, CMD_THLS);
@@ -429,6 +441,7 @@ COMMAND cmd[] = {
         {"modstopp",  "<pid> <uid>",                "Stop/Unload module for pid.",                   cmd_modstopunloadp},
         {"kmodstart", "<path>",                     "Load/Start kernel module.",                     cmd_kmodloadstart},
         {"kmodstop",  "<uid>",                      "Stop/Unload kernel module.",                    cmd_kmodstopunload},
+        {"moddump",   "<pid> <uid> <path>",         "Dump module segments.",                         cmd_moddump},
         {"thlist",    "",                           "List (own) running threads.",                   cmd_thls},
         {"memr",      "<hex_address> <hex_size>",   "Read memory.",                                  cmd_memr},
         {"memw",      "<hex_address> <hex_data>",   "Write memory.",                                 cmd_memw},
