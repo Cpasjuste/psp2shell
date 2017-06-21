@@ -27,21 +27,22 @@
 #define CHUNK_SIZE 2048
 static uint8_t chunk[CHUNK_SIZE];
 
-volatile static int at = 0;
-volatile static int lock = 0;
+volatile static int k_buf_at = 0;
+volatile static int k_buf_lock = 0;
+volatile static int k_buf_len = 0;
 volatile static char k_buf[P2S_KMSG_SIZE] = {0};
 
 #define P2S_MSG_LEN 256
 
 #define p2s_print_len(len, fmt, args...) do { \
-  while (lock); \
-  lock = 1; \
-  int size = snprintf((char *)k_buf+at, P2S_KMSG_SIZE-at, fmt, args); \
+  while (k_buf_lock); \
+  k_buf_lock = 1; \
+  k_buf_len = snprintf((char *)k_buf+k_buf_at, P2S_KMSG_SIZE - k_buf_at, fmt, args); \
   if (len > 0) \
-    size = len; \
-  if (at + size <= P2S_KMSG_SIZE) \
-    at += size; \
-  lock = 0; \
+    k_buf_len = len; \
+  if (k_buf_at + k_buf_len <= P2S_KMSG_SIZE) \
+    k_buf_at += k_buf_len; \
+  k_buf_lock = 0; \
 } while (0)
 
 #define p2s_print(fmt, args...) p2s_print_len(0, fmt, args)
@@ -124,13 +125,13 @@ SceSize kpsp2shell_wait_buffer(char *buffer) {
 
     ENTER_SYSCALL(state);
 
-    while (lock);
-    lock = 1;
+    while (k_buf_lock);
+    k_buf_lock = 1;
 
-    count = at;
-    ksceKernelStrncpyKernelToUser((uintptr_t) buffer, (char *) k_buf, at + 1);
-    at = 0;
-    lock = 0;
+    count = k_buf_at;
+    ksceKernelStrncpyKernelToUser((uintptr_t) buffer, (char *) k_buf, k_buf_at + 1);
+    k_buf_at = 0;
+    k_buf_lock = 0;
 
     EXIT_SYSCALL(state);
 
