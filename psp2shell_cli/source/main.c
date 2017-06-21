@@ -13,6 +13,7 @@
 #include <fcntl.h>
 
 #include "p2s_cmd.h"
+#include "p2s_msg.h"
 #include "cmd.h"
 #include "utility.h"
 #include "main.h"
@@ -193,46 +194,47 @@ void print_hex(char *line) {
 
 void *msg_thread(void *unused) {
 
-    P2S_CMD msg;
+    P2S_MSG msg;
 
     // receive message from psp2shell
     while (true) {
 
-        int res = p2s_cmd_receive(msg_sock, &msg);
+        int res = p2s_msg_receive(msg_sock, &msg);
         if (res != 0) {
             if (res == P2S_ERR_SOCKET) {
-                printf("p2s_cmd_receive sock failed: 0x%08X\n", res);
+                printf("p2s_msg_receive sock failed: 0x%08X\n", res);
                 break;
             } else {
-                printf("p2s_cmd_receive failed: 0x%08X\n", res);
+                printf("p2s_msg_receive failed: 0x%08X\n", res);
+                continue;
             }
         }
 
-        switch (msg.type) {
+        switch (msg.color) {
             case COL_RED:
-                printf(RED "%s" RES, msg.args[0]);
+                printf(RED "%s" RES, msg.buffer);
                 break;
             case COL_YELLOW:
-                printf(YEL "%s" RES, msg.args[0]);
+                printf(YEL "%s" RES, msg.buffer);
                 break;
             case COL_GREEN:
-                printf(GRN "%s" RES, msg.args[0]);
+                printf(GRN "%s" RES, msg.buffer);
                 break;
             case COL_HEX:
-                print_hex(msg.args[0]);
+                print_hex(msg.buffer);
                 break;
             default:
-                printf("%s", msg.args[0]);
+                printf("%s", msg.buffer);
                 break;
         }
 
         fflush(stdout);
-        if (msg.args[0][strlen(msg.args[0]) - 1] == '\n') { // allow printing to the shell without new line
+        if (msg.buffer[strlen(msg.buffer) - 1] == '\n') { // allow printing to the shell without new line
             rl_refresh_line(0, 0);
         }
 
         // send "ok/continue"
-        p2s_cmd_send(msg_sock, CMD_OK);
+        send(msg_sock, "\n", 1, 0);
     }
 
     printf("disconnected\n");

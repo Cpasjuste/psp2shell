@@ -13,8 +13,8 @@ set(SRC_FILES
         source/file.c
         source/module.c
         source/thread.c
-        source/taipool.c
         ../common/p2s_cmd.c
+        ../common/p2s_msg.c
         )
 set(INC_FILES
         ../common

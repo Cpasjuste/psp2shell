@@ -67,13 +67,13 @@ void start_module(Module *module) {
               taiStartKernelModule(module->uid, 0, NULL, 0, NULL, &res);
 
     if (ret >= 0) {
-        printf("%s module started\n", modules->name);
+        printf("%s module started\n", module->name);
     } else {
-        printf("could not start %s: 0x%08X", modules->name, res);
+        printf("could not start %s: 0x%08X", module->name, res);
         if (module->type == MOD_TYPE_U) {
-            sceKernelUnloadModule(modules->uid, 0, NULL);
+            sceKernelUnloadModule(module->uid, 0, NULL);
         } else {
-            taiUnloadKernelModule(modules->uid, 0, NULL);
+            taiUnloadKernelModule(module->uid, 0, NULL);
         }
         module->uid = -1;
     }

@@ -1,6 +1,20 @@
-//
-// Created by cpasjuste on 03/06/17.
-//
+/*
+	PSP2SHELL
+	Copyright (C) 2016, Cpasjuste
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include <vitasdk.h>
 #include <taihen.h>
@@ -8,11 +22,11 @@
 #include <libk/stdio.h>
 #include <libk/stdlib.h>
 
-#include "../include/psp2shell.h"
-#include "../include/module.h"
-#include "../include/thread.h"
-#include "../include/main.h"
-#include "../include/utility.h"
+#include "psp2shell.h"
+#include "module.h"
+#include "thread.h"
+#include "main.h"
+#include "utility.h"
 
 static void cmd_reset();
 
@@ -29,6 +43,7 @@ static void toAbsolutePath(s_FileList *fileList, char *path) {
 static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
 
     char new_path[MAX_PATH_LENGTH];
+    memset(new_path, 0, MAX_PATH_LENGTH);
 
     if (strncmp(dst, "0", 1) == 0) {
         strncpy(new_path, client->fileList.path, MAX_PATH_LENGTH);
@@ -44,6 +59,8 @@ static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
         strcat(new_path, name);
     }
 
+    printf("cmd_put: open = %s\n", new_path);
+
     SceUID fd = s_open(new_path, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
     if (fd < 0) {
         p2s_cmd_send(client->cmd_sock, CMD_NOK);
@@ -51,12 +68,15 @@ static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
         return -1;
     }
 
+    printf("cmd_put: send CMD_OK\n");
     p2s_cmd_send(client->cmd_sock, CMD_OK);
 
+    printf("cmd_put: p2s_recv_file\n");
     ssize_t received = p2s_recv_file(client->cmd_sock, fd, size);
     s_close(fd);
 
-    PRINT_OK("received `%s` to `%s` (%i)\n", name, new_path, received);
+    printf("received `%s` to `%s` (%i)\n", name, new_path, received);
+    PRINT_OK("\nreceived `%s` to `%s` (%i)\n\n", name, new_path, received);
 
     return received;
 }
@@ -101,10 +121,10 @@ static void cmd_title() {
 
     if (p2s_get_running_app_name(name) == 0) {
         p2s_get_running_app_title_id(id);
-        psp2shell_print("\n\n\tname: %s\n\tid: %s\n\tpid: 0x%08X\n\n\n",
-                        name, id, p2s_get_running_app_pid());
+        PRINT_OK("\n\n\tname: %s\n\tid: %s\n\tpid: 0x%08X\n\n",
+                 name, id, p2s_get_running_app_pid());
     } else {
-        psp2shell_print("SceShell\n");
+        PRINT_OK("\nSceShell\n\n");
     }
 }
 
@@ -130,7 +150,7 @@ static void cmd_load(int sock, long size, const char *tid) {
     if (received > 0) {
         p2s_launch_app_by_uri(tid);
     } else {
-        psp2shell_print_color(COL_RED, "reload failed, received size < 0\n");
+        PRINT_ERR("reload failed, received size < 0\n");
     }
     s_close(fd);
 }
@@ -215,7 +235,7 @@ static void cmd_ls(s_client *client, char *path) {
     res = s_fileListGetEntries(fileList, fileList->path);
 
     if (res < 0) {
-        psp2shell_print_color(COL_RED, "directory does not exist: %s\n", path);
+        PRINT_ERR("directory does not exist: %s\n", path);
         if (!noPath) {
             s_fileListEmpty(fileList);
         }
@@ -242,7 +262,8 @@ static void cmd_ls(s_client *client, char *path) {
         strncat(msg, "\n", 256);
         file_entry = file_entry->next;
     }
-    psp2shell_print("%s\n", msg);
+
+    PRINT_OK("%s\n\n", msg);
 
     if (!noPath) {
         s_fileListEmpty(fileList);
@@ -250,7 +271,7 @@ static void cmd_ls(s_client *client, char *path) {
 }
 
 static void cmd_pwd(s_client *client) {
-    psp2shell_print("\n\n%s\n\n", client->fileList.path);
+    PRINT_OK("\n%s\n\n", client->fileList.path);
 }
 
 static void cmd_mv(s_client *client, char *src, char *dst) {
@@ -266,9 +287,9 @@ static void cmd_mv(s_client *client, char *src, char *dst) {
 
     int res = s_movePath(new_src, new_dst, MOVE_INTEGRATE | MOVE_REPLACE, NULL);
     if (res != 1) {
-        psp2shell_print_color(COL_RED, "error: %i\n", res);
+        PRINT_ERR("\nerror: %i\n\n", res);
     } else {
-        psp2shell_print_color(COL_GREEN, "moved `%s` to `%s`\n", new_src, new_dst);
+        PRINT_OK("\nmoved `%s` to `%s`\n\n", new_src, new_dst);
     }
 }
 
@@ -282,12 +303,12 @@ static void cmd_rm(s_client *client, char *file) {
     if (!s_isDir(new_path)) {
         int res = s_removePath(new_path, NULL);
         if (res != 1) {
-            psp2shell_print_color(COL_RED, "error: %i\n", res);
+            PRINT_ERR("\nerror: %i\n\n", res);
         } else {
-            psp2shell_print_color(COL_GREEN, "file deleted: %s\n", new_path);
+            PRINT_OK("\nfile deleted: %s\n\n", new_path);
         }
     } else {
-        psp2shell_print_color(COL_RED, "not a file: %s\n", new_path);
+        PRINT_ERR("\nnot a file: %s\n\n", new_path);
     }
 }
 
@@ -299,9 +320,9 @@ static void cmd_rmdir(s_client *client, char *path) {
 
     int res = s_removePath(new_path, NULL);
     if (res != 1) {
-        psp2shell_print_color(COL_RED, "error: %i\n", res);
+        PRINT_ERR("\nerror: %i\n\n", res);
     } else {
-        psp2shell_print_color(COL_GREEN, "directory deleted: %s\n", new_path);
+        PRINT_OK("\ndirectory deleted: %s\n\n", new_path);
     }
 }
 
@@ -315,10 +336,9 @@ static void cmd_memr(const char *address_str, const char *size_str) {
 
     while ((unsigned int) addr < max) {
 
-        psp2shell_print_color_advanced(64, COL_HEX,
-                                       "0x%08X: %08X %08X %08X %08X\n",
-                                       addr,
-                                       addr[0], addr[1], addr[2], addr[3]
+        psp2shell_print_advanced(COL_HEX, "0x%08X: %08X %08X %08X %08X\n",
+                                 addr,
+                                 addr[0], addr[1], addr[2], addr[3]
         );
 
         addr += 4;
@@ -412,7 +432,8 @@ void p2s_cmd_parse(s_client *client, P2S_CMD *cmd) {
             break;
 
         case CMD_PUT:
-            cmd_put(client, strtoul(cmd->args[0], NULL, 0), cmd->args[1], cmd->args[2]);
+            PRINT_OK("cmd_put: `%s` `%s` `%s`\n", cmd->args[0], cmd->args[1], cmd->args[2]);
+            cmd_put(client, strtoul(cmd->args[2], NULL, 0), cmd->args[0], cmd->args[1]);
             break;
 
         case CMD_LAUNCH:
@@ -431,7 +452,7 @@ void p2s_cmd_parse(s_client *client, P2S_CMD *cmd) {
             break;
 
         case CMD_LOAD:
-            cmd_load(client->cmd_sock, strtoul(cmd->args[0], NULL, 0), cmd->args[1]);
+            cmd_load(client->cmd_sock, strtoul(cmd->args[1], NULL, 0), cmd->args[0]);
             break;
 
         case CMD_RELOAD:

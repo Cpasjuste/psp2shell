@@ -28,33 +28,33 @@
 
 static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
 
-    psp2shell_print_color(COL_GREEN, "module_name: %s\n", moduleInfo->module_name);
-    psp2shell_print("\tpath: %s\n", moduleInfo->path);
-    psp2shell_print("\thandle: 0x%08X\n", moduleInfo->handle);
-    psp2shell_print("\tflags: 0x%08X\n", moduleInfo->flags);
-    psp2shell_print("\tmodule_start: 0x%08X\n", moduleInfo->module_start);
-    psp2shell_print("\tmodule_stop: 0x%08X\n", moduleInfo->module_stop);
-    psp2shell_print("\texidxTop: 0x%08X\n", moduleInfo->exidxTop);
-    psp2shell_print("\texidxBtm: 0x%08X\n", moduleInfo->exidxBtm);
-    psp2shell_print("\ttlsInit: 0x%08X\n", moduleInfo->tlsInit);
-    psp2shell_print("\ttlsInitSize: 0x%08X\n", moduleInfo->tlsInitSize);
-    psp2shell_print("\ttlsAreaSize: 0x%08X\n", moduleInfo->tlsAreaSize);
-    psp2shell_print("\ttype: %i\n", moduleInfo->type);
-    psp2shell_print("\tunk28: 0x%08X\n", moduleInfo->unk28);
-    psp2shell_print("\tunk30: 0x%08X\n", moduleInfo->unk30);
-    psp2shell_print("\tunk40: 0x%08X\n", moduleInfo->unk40);
-    psp2shell_print("\tunk44: 0x%08X\n", moduleInfo->unk44);
+    PRINT_OK("module_name: %s\n", moduleInfo->module_name);
+    PRINT_OK("\tpath: %s\n", moduleInfo->path);
+    PRINT_OK("\thandle: 0x%08X\n", moduleInfo->handle);
+    PRINT_OK("\tflags: 0x%08X\n", moduleInfo->flags);
+    PRINT_OK("\tmodule_start: 0x%08X\n", moduleInfo->module_start);
+    PRINT_OK("\tmodule_stop: 0x%08X\n", moduleInfo->module_stop);
+    PRINT_OK("\texidxTop: 0x%08X\n", moduleInfo->exidxTop);
+    PRINT_OK("\texidxBtm: 0x%08X\n", moduleInfo->exidxBtm);
+    PRINT_OK("\ttlsInit: 0x%08X\n", moduleInfo->tlsInit);
+    PRINT_OK("\ttlsInitSize: 0x%08X\n", moduleInfo->tlsInitSize);
+    PRINT_OK("\ttlsAreaSize: 0x%08X\n", moduleInfo->tlsAreaSize);
+    PRINT_OK("\ttype: %i\n", moduleInfo->type);
+    PRINT_OK("\tunk28: 0x%08X\n", moduleInfo->unk28);
+    PRINT_OK("\tunk30: 0x%08X\n", moduleInfo->unk30);
+    PRINT_OK("\tunk40: 0x%08X\n", moduleInfo->unk40);
+    PRINT_OK("\tunk44: 0x%08X\n", moduleInfo->unk44);
     for (int i = 0; i < 4; ++i) {
         if (moduleInfo->segments[i].memsz <= 0) {
             continue;
         }
-        psp2shell_print("\tsegment[%i].perms: 0x%08X\n", i, moduleInfo->segments[i].perms);
-        psp2shell_print("\tsegment[%i].vaddr: 0x%08X\n", i, moduleInfo->segments[i].vaddr);
-        psp2shell_print("\tsegment[%i].memsz: 0x%08X\n", i, moduleInfo->segments[i].memsz);
-        psp2shell_print("\tsegment[%i].flags: 0x%08X\n", i, moduleInfo->segments[i].flags);
-        psp2shell_print("\tsegment[%i].res: %i\n", i, moduleInfo->segments[i].res);
+        PRINT_OK("\tsegment[%i].perms: 0x%08X\n", i, moduleInfo->segments[i].perms);
+        PRINT_OK("\tsegment[%i].vaddr: 0x%08X\n", i, moduleInfo->segments[i].vaddr);
+        PRINT_OK("\tsegment[%i].memsz: 0x%08X\n", i, moduleInfo->segments[i].memsz);
+        PRINT_OK("\tsegment[%i].flags: 0x%08X\n", i, moduleInfo->segments[i].flags);
+        PRINT_OK("\tsegment[%i].res: %i\n", i, moduleInfo->segments[i].res);
     }
-    psp2shell_print("\n\n");
+    PRINT_OK("\n\n");
 }
 
 int p2s_moduleInfo(SceUID uid) {
@@ -76,7 +76,7 @@ int p2s_moduleInfoForPid(SceUID pid, SceUID uid) {
     if (res == 0) {
         printModuleInfoFull(&moduleInfo);
     } else {
-        psp2shell_print_color(COL_RED, "getting module info failed: 0x%08X\n", res);
+        PRINT_ERR("\ngetting module info failed: 0x%08X\n", res);
     }
 
     return res;
@@ -99,7 +99,7 @@ int p2s_moduleListForPid(SceUID pid) {
 
     int res = kpsp2shell_get_module_list(pid, 0xFF, 1, ids, &count);
     if (res != 0) {
-        psp2shell_print_color(COL_RED, "module list failed: 0x%08X\n", res);
+        PRINT_ERR("module list failed: 0x%08X\n", res);
         return res;
     } else {
         SceKernelModuleInfo moduleInfo;
@@ -108,8 +108,8 @@ int p2s_moduleListForPid(SceUID pid) {
                 memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
                 res = kpsp2shell_get_module_info(pid, ids[i], &moduleInfo);
                 if (res == 0) {
-                    psp2shell_print_color(COL_GREEN, "%s (uid: 0x%08X)\n",
-                                          moduleInfo.module_name, moduleInfo.handle);
+                    PRINT_OK("%s (uid: 0x%08X)\n",
+                             moduleInfo.module_name, moduleInfo.handle);
                 }
             }
         }
@@ -132,9 +132,9 @@ SceUID p2s_moduleLoadStartForPid(SceUID pid, char *modulePath) {
 
     SceUID uid = taiLoadStartModuleForPid(pid, modulePath, 0, NULL, 0);
     if (uid < 0) {
-        psp2shell_print_color(COL_RED, "module load/start failed: 0x%08X\n", uid);
+        PRINT_ERR("\nmodule load/start failed: 0x%08X\n\n", uid);
     } else {
-        psp2shell_print_color(COL_GREEN, "module loaded/started: uid = 0x%08X\n", uid);
+        PRINT_OK("\nmodule loaded/started: uid = 0x%08X\n\n", uid);
     }
 
     return uid;
@@ -156,9 +156,9 @@ int p2s_moduleStopUnloadForPid(SceUID pid, SceUID uid) {
 
     int res = taiStopUnloadModuleForPid(pid, uid, 0, NULL, 0, NULL, &status);
     if (res != 0) {
-        psp2shell_print_color(COL_RED, "module stop/unload failed: 0x%08X\n", status);
+        PRINT_ERR("\nmodule stop/unload failed: 0x%08X\n\n", status);
     } else {
-        psp2shell_print_color(COL_GREEN, "module stopped/unloaded\n");
+        PRINT_OK("\nmodule stopped/unloaded\n\n");
     }
 
     return res;
@@ -168,9 +168,9 @@ SceUID p2s_kmoduleLoadStart(char *modulePath) {
 
     SceUID uid = taiLoadStartKernelModule(modulePath, 0, NULL, 0);
     if (uid < 0) {
-        psp2shell_print_color(COL_RED, "module load/start failed: 0x%08X\n", uid);
+        PRINT_ERR("\nmodule load/start failed: 0x%08X\n\n", uid);
     } else {
-        psp2shell_print_color(COL_GREEN, "module loaded/started: uid = 0x%08X\n", uid);
+        PRINT_OK("\nmodule loaded/started: uid = 0x%08X\n\n", uid);
     }
 
     return uid;
@@ -182,9 +182,9 @@ int p2s_kmoduleStopUnload(SceUID uid) {
 
     int res = taiStopUnloadKernelModule(uid, 0, NULL, 0, NULL, &status);
     if (res != 0) {
-        psp2shell_print_color(COL_RED, "module stop/unload failed: 0x%08X\n", status);
+        PRINT_ERR("\nmodule stop/unload failed: 0x%08X\n\n", status);
     } else {
-        psp2shell_print_color(COL_GREEN, "module stopped/unloaded\n");
+        PRINT_OK("\nmodule stopped/unloaded\n\n");
     }
 
     return res;

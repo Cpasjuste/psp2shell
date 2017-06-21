@@ -26,13 +26,15 @@
 #include <errno.h>
 
 #include "../include/psp2shell.h"
-#include "p2s_cmd.h"
 #include "../include/main.h"
 #include "../include/libmodule.h"
-#include "../include/taipool.h"
 
 #define NET_STACK_SIZE 0x4000
 static unsigned char net_stack[NET_STACK_SIZE];
+
+void *p2s_malloc(size_t size);
+
+void p2s_free(void *p);
 
 SceUID p2s_get_running_app_pid() {
 
@@ -210,7 +212,7 @@ size_t p2s_recv_file(int sock, SceUID fd, long size) {
     size_t len, received = 0, left = (size_t) size;
     int bufSize = P2S_SIZE_DATA;
 
-    unsigned char *buffer = taipool_alloc(P2S_SIZE_DATA);
+    unsigned char *buffer = p2s_malloc(P2S_SIZE_DATA);
     if (buffer == NULL) {
         return 0;
     }
@@ -225,7 +227,7 @@ size_t p2s_recv_file(int sock, SceUID fd, long size) {
         received += len;
     }
 
-    taipool_free(buffer);
+    p2s_free(buffer);
 
     return received;
 }
@@ -268,4 +270,26 @@ void p2s_log_write(const char *msg) {
 
     sceIoWrite(fd, msg, strlen(msg));
     sceIoClose(fd);
+}
+
+void *p2s_malloc(size_t size) {
+
+    void *p = NULL;
+
+    SceUID uid = sceKernelAllocMemBlock(
+            "m", SCE_KERNEL_MEMBLOCK_TYPE_USER_RW, (size + 0xFFF) & (~0xFFF), 0);
+
+    if (uid >= 0) {
+        sceKernelGetMemBlockBase(uid, &p);
+    }
+
+    return p;
+}
+
+void p2s_free(void *p) {
+
+    SceUID uid = sceKernelFindMemBlockByAddr(p, 1);
+    if (uid >= 0) {
+        sceKernelFreeMemBlock(uid);
+    }
 }

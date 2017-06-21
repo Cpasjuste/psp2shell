@@ -1,6 +1,20 @@
-//
-// Created by cpasjuste on 17/05/17.
-//
+/*
+	PSP2SHELL
+	Copyright (C) 2016, Cpasjuste
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #ifdef __PSP2__
 
@@ -14,6 +28,13 @@
 
 #define send sceNetSend
 #define recv sceNetRecv
+
+#ifdef DEBUG
+
+int sceClibPrintf(const char *, ...);
+
+#define printf sceClibPrintf
+#endif
 
 #else
 
@@ -95,7 +116,7 @@ void p2s_cmd_send(int sock, int cmdType) {
     char buffer[4];
     memset(buffer, 0, 4);
     snprintf(buffer, 4, "%i", cmdType);
-    send(sock, buffer, strlen(buffer), 0);
+    send(sock, buffer, 4, 0);
 }
 
 void p2s_cmd_send_cmd(int sock, P2S_CMD *cmd) {
@@ -122,9 +143,9 @@ void p2s_cmd_send_fmt(int sock, const char *fmt, ...) {
 
 void p2s_cmd_send_string(int sock, int cmdType, const char *value) {
 
-    char buffer[P2S_SIZE_PRINT + 6];
-    memset(buffer, 0, P2S_SIZE_PRINT + 6);
-    snprintf(buffer, P2S_SIZE_PRINT + 6, "%i\"%s\"", cmdType, value);
+    char buffer[P2S_SIZE_STRING + 6];
+    memset(buffer, 0, P2S_SIZE_STRING + 6);
+    snprintf(buffer, P2S_SIZE_STRING + 6, "%i\"%s\"", cmdType, value);
     send(sock, buffer, strlen(buffer), 0);
 }
 
@@ -181,7 +202,8 @@ int p2s_cmd_to_cmd(P2S_CMD *cmd, const char *buffer) {
         return -1;
     }
 
-    const char *start, *end = buffer;
+    //printf("p2s_cmd_to_cmd:\n%s\n", buffer);
+    const char *start = NULL, *end = buffer;
 
     for (int i = 0; i < P2S_MAX_ARGS; i++) {
 
@@ -197,6 +219,7 @@ int p2s_cmd_to_cmd(P2S_CMD *cmd, const char *buffer) {
         }
 
         strncpy(cmd->args[i], start, end - start);
+        //printf("cmd->args[%i]: %s\n", i, cmd->args[i]);
     }
 
     return 0;

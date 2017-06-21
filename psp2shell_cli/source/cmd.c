@@ -104,7 +104,7 @@ int cmd_mv(int argc, char **argv) {
         return -1;
     }
 
-    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"\"%s\"", CMD_MV, argv[1], argv[2]);
+    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"%s\"", CMD_MV, argv[1], argv[2]);
 
     return 0;
 }
@@ -120,8 +120,7 @@ int cmd_put(int argc, char **argv) {
     long size = ftell(fp);
     fseek(fp, 0L, SEEK_SET);
 
-
-    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"\"%s\"\"%ld\"",
+    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"%s\"%ld\"",
                      CMD_PUT, basename(argv[1]), argc < 3 ? "0" : argv[2], size);
 
     if (p2s_cmd_wait_result(cmd_sock) == 0) {
@@ -168,7 +167,7 @@ int cmd_load(int argc, char **argv) {
     long size = ftell(fp);
     fseek(fp, 0L, SEEK_SET);
 
-    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"\"%ld\"",
+    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"%ld\"",
                      CMD_LOAD, argv[1], size);
 
     if (p2s_cmd_wait_result(cmd_sock) == 0) {
@@ -278,7 +277,7 @@ int cmd_modinfop(int argc, char **argv) {
         return -1;
     }
 
-    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"\"%s\"", CMD_MODINFO_PID, argv[1], argv[2]);
+    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"%s\"", CMD_MODINFO_PID, argv[1], argv[2]);
 
     return 0;
 }
@@ -302,7 +301,7 @@ int cmd_modloadstartp(int argc, char **argv) {
         return -1;
     }
 
-    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"\"%s\"", CMD_MODLOADSTART_PID, argv[1], argv[2]);
+    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"%s\"", CMD_MODLOADSTART_PID, argv[1], argv[2]);
 
     return 0;
 }
@@ -326,7 +325,7 @@ int cmd_modstopunloadp(int argc, char **argv) {
         return -1;
     }
 
-    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"\"%s\"", CMD_MODSTOPUNLOAD_PID, argv[1], argv[2]);
+    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"%s\"", CMD_MODSTOPUNLOAD_PID, argv[1], argv[2]);
 
     return 0;
 }
@@ -369,7 +368,7 @@ int cmd_memr(int argc, char **argv) {
         return -1;
     }
 
-    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"\"%s\"", CMD_MEMR, argv[1], argv[2]);
+    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"%s\"", CMD_MEMR, argv[1], argv[2]);
 
     return 0;
 }
@@ -381,7 +380,7 @@ int cmd_memw(int argc, char **argv) {
         return -1;
     }
 
-    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"\"%s\"", CMD_MEMW, argv[1], argv[2]);
+    p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"%s\"", CMD_MEMW, argv[1], argv[2]);
 
     return 0;
 }

@@ -59,4 +59,8 @@ int p2s_removeEndSlash(char *path);
 
 int p2s_addEndSlash(char *path);
 
+void *p2s_malloc(size_t size);
+
+void p2s_free(void *p);
+
 #endif // UTILITY_H

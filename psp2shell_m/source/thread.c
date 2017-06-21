@@ -52,8 +52,8 @@ static void printThreadInfoFull(SceKernelThreadInfo *threadInfo, int thid) {
 
 static void printThreadInfo(SceKernelThreadInfo *threadInfo, int thid) {
 
-    psp2shell_print_color(COL_GREEN, "%s id: 0x%08X, stack: 0x%08X (0x%08X)\n",
-                          threadInfo->name, thid, threadInfo->stack, threadInfo->stackSize);
+    PRINT_OK("%s id: 0x%08X, stack: 0x%08X (0x%08X)\n",
+             threadInfo->name, thid, threadInfo->stack, threadInfo->stackSize);
 }
 
 int ps_threadList() {

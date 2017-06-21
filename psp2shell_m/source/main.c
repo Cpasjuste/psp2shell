@@ -21,12 +21,10 @@
 #include <psp2/net/net.h>
 #include <main.h>
 
-#include "../include/main.h"
-#include "../include/utility.h"
-#include "../include/psp2shell.h"
-#include "../include/taipool.h"
-#include "../include/libmodule.h"
-#include "../../psp2shell_k/psp2shell_k.h"
+#include "main.h"
+#include "utility.h"
+#include "psp2shell.h"
+#include "libmodule.h"
 
 static SceUID thid_wait = -1;
 static SceUID thid_kbuf = -1;
@@ -71,24 +69,35 @@ static int open_server() {
     return 0;
 }
 
-void psp2shell_print_color_advanced(SceSize size, int color, const char *fmt, ...) {
+void psp2shell_print_advanced(int color, const char *fmt, ...) {
 
-    if (size >= P2S_KMSG_SIZE || client == NULL) {
+    if (client->msg_sock < 0) {
         return;
     }
 
     client->msg.color = color;
-    memset(client->msg.buffer, 0, size);
+    memset(client->msg.buffer, 0, P2S_KMSG_SIZE);
     va_list args;
     va_start(args, fmt);
-    vsnprintf(client->msg.buffer, size, fmt, args);
+    vsnprintf(client->msg.buffer, P2S_KMSG_SIZE, fmt, args);
     va_end(args);
 
     if (client->msg_sock > 0) {
-        printf("p2s_cmd_send_fmt: %s\n", client->msg.buffer);
-        p2s_cmd_send_fmt(client->msg_sock, "%i\"%s\"", color, client->msg.buffer);
-        // TODO: wait for client to receive message, should maybe add a timeout
-        p2s_cmd_wait_result(client->msg_sock);
+
+        p2s_msg_send_msg(client->msg_sock, &client->msg);
+
+        // wait for client to receive message
+        long timeout = 1000000000;
+        sceNetSetsockopt(
+                client->msg_sock,
+                SCE_NET_SOL_SOCKET, SCE_NET_SO_RCVTIMEO,
+                &timeout, 4);
+        sceNetRecv(client->msg_sock, client->msg.buffer, 1, 0);
+        timeout = 0;
+        sceNetSetsockopt(
+                client->msg_sock,
+                SCE_NET_SOL_SOCKET, SCE_NET_SO_RCVTIMEO,
+                &timeout, 4);
     }
 }
 
@@ -103,7 +112,7 @@ static void welcome() {
     strcat(msg, "|  |_> >___ \\ |  |_> >       \\  \\___ \\|   Y  \\  ___/|  |_|  |__\n");
     strcat(msg, "|   __/____  >|   __/\\_______ \\/____  >___|  /\\___  >____/____/\n");
     sprintf(msg + strlen(msg), "|__|       \\/ |__|           \\/     \\/     \\/     \\/ %s\n\n", VERSION);
-    psp2shell_print_color(COL_GREEN, msg);
+    PRINT_OK(msg);
 }
 
 int cmd_thread(SceSize args, void *argp) {
@@ -111,15 +120,6 @@ int cmd_thread(SceSize args, void *argp) {
     printf("cmd_thread\n");
 
     int sock = *((int *) argp);
-
-    // setup clients data
-    client = taipool_alloc(sizeof(s_client));
-    if (client == NULL) { // crap
-        printf("client alloc failed\n");
-        sceNetSocketClose(sock);
-        sceKernelExitDeleteThread(0);
-        return 0;
-    }
 
     memset(client, 0, sizeof(s_client));
     client->msg_sock = sock;
@@ -141,11 +141,9 @@ int cmd_thread(SceSize args, void *argp) {
     kpsp2shell_set_ready(1);
 #endif
 
-    P2S_CMD cmd;
-
     while (!quit) {
 
-        int res = p2s_cmd_receive(client->cmd_sock, &cmd);
+        int res = p2s_cmd_receive(client->cmd_sock, &client->cmd);
         if (res != 0) {
             if (res == P2S_ERR_SOCKET) {
                 PRINT_ERR("p2s_cmd_receive sock failed: 0x%08X\n", res);
@@ -154,7 +152,7 @@ int cmd_thread(SceSize args, void *argp) {
                 PRINT_ERR("p2s_cmd_receive failed: 0x%08X\n", res);
             }
         } else {
-            p2s_cmd_parse(client, &cmd);
+            p2s_cmd_parse(client, &client->cmd);
         }
     }
 
@@ -171,8 +169,6 @@ int cmd_thread(SceSize args, void *argp) {
         client->cmd_sock = -1;
     }
     s_fileListEmpty(&client->fileList);
-    taipool_free(client);
-    client = NULL;
 
     sceKernelExitDeleteThread(0);
     return 0;
@@ -182,6 +178,7 @@ static int thread_wait(SceSize args, void *argp) {
 
     // setup sockets
     if (open_server() != 0) {
+        printf("open_server failed\n");
         psp2shell_exit();
         sceKernelExitDeleteThread(0);
         return -1;
@@ -210,7 +207,7 @@ static int thread_wait(SceSize args, void *argp) {
 
         printf("new connexion on port %i (sock=%i)\n", listen_port, client_sock);
         // max client/socket count reached
-        if (client != NULL && client->cmd_sock > 0) {
+        if (client->cmd_sock > 0) {
             printf("Connection refused, max client reached (1)\n");
             sceNetSocketClose(client_sock);
             continue;
@@ -236,10 +233,10 @@ static int thread_kbuf(SceSize args, void *argp) {
 
     while (!quit) {
 
-        if (client != NULL) {
+        if (client->msg_sock > 0) {
             SceSize len = kpsp2shell_wait_buffer(buffer);
-            if (client != NULL && client->msg_sock > 0 && len > 0) {
-                psp2shell_print_color_advanced(len, 0, "%s", buffer);
+            if (client->msg_sock > 0 && len > 0) {
+                psp2shell_print_advanced(COL_NONE, "%s", buffer);
             } else {
                 sceKernelDelayThread(100);
             }
@@ -258,12 +255,17 @@ void _start() __attribute__ ((weak, alias ("module_start")));
 
 int module_start(SceSize argc, const void *args) {
 
-    // init pool
-    int res = taipool_init_advanced(0x10000, POOL_TYPE_BLOCK); // 64K
-    printf("taipool_init_advanced(%i): 0x%08X\n", 0x10000, res);
-
     // load network modules
     p2s_netInit();
+
+    // setup clients data
+    client = p2s_malloc(sizeof(s_client));
+    if (client == NULL) { // crap
+        printf("client alloc failed\n");
+        psp2shell_exit();
+        sceKernelExitDeleteThread(0);
+        return SCE_KERNEL_START_FAILED;
+    }
 
 #ifndef DEBUG
     thid_kbuf = sceKernelCreateThread("psp2shell_kbuf", thread_kbuf, 64, 0x2000, 0, 0x10000, 0);
@@ -314,6 +316,8 @@ void psp2shell_exit() {
         if (thid_client >= 0) {
             sceKernelWaitThreadEnd(thid_client, NULL, NULL);
         }
+        p2s_free(client);
+        client = NULL;
     }
 
     printf("close_server\n");
@@ -326,7 +330,4 @@ void psp2shell_exit() {
         printf("sceKernelDeleteThread: thid_kbuf\n");
         sceKernelDeleteThread(thid_kbuf);
     }
-
-    printf("taipool_term\n");
-    taipool_term();
 }

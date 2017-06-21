@@ -3,29 +3,23 @@
 
 #include "../psp2shell_k/psp2shell_k.h"
 
-#define P2S_ERR_SOCKET          0x80000001
-#define P2S_ERR_INVALID_CMD     0x80000002
+#define P2S_ERR_SOCKET      0x80000001
+#define P2S_ERR_INVALID_CMD 0x80000002
 
-#define P2S_SIZE_CHAR   (256)
-#define P2S_SIZE_DATA   (8 * 1024)
-#define P2S_SIZE_PRINT  (512)
+#define P2S_SIZE_DATA       (8 * 1024)
+#define P2S_SIZE_STRING     (512)
 
-#define P2S_MAX_ARGS    (8)
+#define P2S_MAX_ARGS        (3)
 
 typedef struct P2S_CMD {
     int type;
-    char args[P2S_MAX_ARGS][P2S_SIZE_PRINT];
+    char args[P2S_MAX_ARGS][P2S_SIZE_STRING];
 } P2S_CMD;
-#define P2S_SIZE_CMD    (sizeof(P2S_CMD) + (P2S_MAX_ARGS * 8))
+#define P2S_SIZE_CMD    (sizeof(P2S_CMD) + (P2S_MAX_ARGS * 10))
 
-typedef struct P2S_MSG {
-    int color;
-    char buffer[P2S_KMSG_SIZE];
-} P2S_MSG;
-#define P2S_SIZE_MSG    (sizeof(P2S_MSG) + (P2S_MAX_ARGS * 8))
-
-enum cmd_t {
+enum p2s_cmd_t {
     CMD_START = 10,
+
     CMD_LS,
     CMD_CD,
     CMD_RM,
@@ -65,12 +59,6 @@ enum cmd_t {
     CMD_REBOOT,
     CMD_EXIT,
     CMD_HELP,
-
-    COL_NONE,
-    COL_RED,
-    COL_YELLOW,
-    COL_GREEN,
-    COL_HEX,
 
     CMD_OK = 64,
     CMD_NOK = 65
