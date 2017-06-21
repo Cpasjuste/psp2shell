@@ -43,7 +43,7 @@ int p2s_get_running_app_name(char *name);
 
 int p2s_get_running_app_title_id(char *title_id);
 
-void p2s_netInit();
+int p2s_netInit();
 
 int p2s_bind_port(int sock, int port);
 

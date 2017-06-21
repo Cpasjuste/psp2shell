@@ -133,21 +133,33 @@ int p2s_reset_running_app() {
     return 0;
 }
 
-void p2s_netInit() {
+int p2s_netInit() {
 
     int loaded = sceSysmoduleIsLoaded(SCE_SYSMODULE_NET);
     if (loaded != 0) {
         sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
+        loaded = sceSysmoduleIsLoaded(SCE_SYSMODULE_NET);
+        if (loaded != 0) {
+            return -1;
+        }
+
         int ret = sceNetShowNetstat();
         if (ret == SCE_NET_ERROR_ENOTINIT) {
             SceNetInitParam netInitParam;
             netInitParam.memory = net_stack;
             netInitParam.size = NET_STACK_SIZE;
             netInitParam.flags = 0;
-            sceNetInit(&netInitParam);
+            if (sceNetInit(&netInitParam) != 0) {
+                return -1;
+            }
         }
-        sceNetCtlInit();
+
+        if (sceNetCtlInit() != 0) {
+            return -1;
+        }
     }
+
+    return 0;
 }
 
 int p2s_bind_port(int sock, int port) {

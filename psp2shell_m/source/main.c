@@ -183,6 +183,25 @@ int cmd_thread(SceSize args, void *argp) {
 
 static int thread_wait(SceSize args, void *argp) {
 
+    // load/wait network modules
+    while (p2s_netInit() != 0) {
+        if(quit) {
+            psp2shell_exit();
+            sceKernelExitDeleteThread(0);
+            return -1;
+        }
+        sceKernelDelayThread(1000);
+    }
+
+    // setup clients data
+    client = p2s_malloc(sizeof(s_client));
+    if (client == NULL) { // crap
+        printf("client alloc failed\n");
+        psp2shell_exit();
+        sceKernelExitDeleteThread(0);
+        return -1;
+    }
+
     // setup sockets
     if (open_server() != 0) {
         printf("open_server failed\n");
@@ -265,25 +284,13 @@ void _start() __attribute__ ((weak, alias ("module_start")));
 
 int module_start(SceSize argc, const void *args) {
 
-    // load network modules
-    p2s_netInit();
-
-    // setup clients data
-    client = p2s_malloc(sizeof(s_client));
-    if (client == NULL) { // crap
-        printf("client alloc failed\n");
-        psp2shell_exit();
-        sceKernelExitDeleteThread(0);
-        return SCE_KERNEL_START_FAILED;
-    }
-
 #ifndef DEBUG
     thid_kbuf = sceKernelCreateThread("psp2shell_kbuf", thread_kbuf, 64, 0x2000, 0, 0x10000, 0);
     if (thid_kbuf >= 0) {
         sceKernelStartThread(thid_kbuf, 0, NULL);
     }
 #endif
-    thid_wait = sceKernelCreateThread("psp2shell_wait", thread_wait, 64, 0x1000, 0, 0x10000, 0);
+    thid_wait = sceKernelCreateThread("psp2shell_wait", thread_wait, 64, 0x2000, 0, 0x10000, 0);
     if (thid_wait >= 0) {
         sceKernelStartThread(thid_wait, 0, NULL);
     }
