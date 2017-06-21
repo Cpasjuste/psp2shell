@@ -12,6 +12,7 @@
 #include <stdbool.h>
 
 #include "p2s_cmd.h"
+#include "p2s_msg.h"
 #include "cmd.h"
 #include "utility.h"
 #include "main.h"
@@ -192,26 +193,47 @@ void print_hex(char *line) {
 
 void *msg_thread(void *unused) {
 
-    char buffer[P2S_KMSG_SIZE];
+    P2S_MSG msg;
 
     // receive message from psp2shell
     while (true) {
 
-        memset(buffer, 0, P2S_KMSG_SIZE);
-        ssize_t len = recv(msg_sock, buffer, P2S_KMSG_SIZE, 0);
-        if (len <= 0) {
-            break;
+        int res = p2s_msg_receive(msg_sock, &msg);
+        if (res != 0) {
+            if (res == P2S_ERR_SOCKET) {
+                printf("p2s_msg_receive sock failed: 0x%08X\n", res);
+                break;
+            } else {
+                // print raw data (like kernel print)
+                msg.color = COL_NONE;
+            }
         }
 
-        printf("%s", buffer);
+        switch (msg.color) {
+            case COL_RED:
+                printf(RED "%s" RES, msg.buffer);
+                break;
+            case COL_YELLOW:
+                printf(YEL "%s" RES, msg.buffer);
+                break;
+            case COL_GREEN:
+                printf(GRN "%s" RES, msg.buffer);
+                break;
+            case COL_HEX:
+                print_hex(msg.buffer);
+                break;
+            default:
+                printf("%s", msg.buffer);
+                break;
+        }
+
         fflush(stdout);
+        if (msg.buffer[strlen(msg.buffer) - 1] == '\n') { // allow printing to the shell without new line
+            rl_refresh_line(0, 0);
+        }
 
         // send "ok/continue"
         send(msg_sock, "\n", 1, 0);
-
-        if (buffer[strlen(buffer) - 1] == '\n') { // allow printing to the shell without new line
-            rl_refresh_line(0, 0);
-        }
     }
 
     printf("disconnected\n");

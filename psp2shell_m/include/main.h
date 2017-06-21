@@ -20,6 +20,7 @@
 #define MAIN_H
 
 #include "p2s_cmd.h"
+#include "p2s_msg.h"
 #include "file.h"
 
 #define BOOL int
@@ -30,7 +31,7 @@ typedef struct {
     int msg_sock;
     int cmd_sock;
     P2S_CMD cmd;
-    char msg_buffer[P2S_KMSG_SIZE];
+    P2S_MSG msg;
     s_FileList fileList;
 } s_client;
 

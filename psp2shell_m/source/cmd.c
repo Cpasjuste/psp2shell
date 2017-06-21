@@ -229,7 +229,7 @@ static void cmd_ls(s_client *client, char *path) {
         if (strcmp(client->fileList.path, HOME_PATH) == 0) {
             strncpy(fileList.path, path, MAX_PATH_LENGTH);
         } else {
-            TODO:
+            // TODO:
             char new_path[MAX_PATH_LENGTH];
             memset(new_path, 0, MAX_PATH_LENGTH);
             strncpy(new_path, path, MAX_PATH_LENGTH);
@@ -335,10 +335,9 @@ static void cmd_memr(const char *address_str, const char *size_str) {
 
     unsigned int *addr = (unsigned int *) address;
 
-    PRINT("\n ");
     while ((unsigned int) addr < max) {
 
-        psp2shell_print("0x%08X: %08X %08X %08X %08X\n",
+        PRINT_OK("0x%08X: %08X %08X %08X %08X\n",
                         addr,
                         addr[0], addr[1], addr[2], addr[3]
         );

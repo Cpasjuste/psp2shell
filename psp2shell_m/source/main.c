@@ -86,21 +86,22 @@ static void p2s_msg_wait_reply() {
                      SCE_NET_SOL_SOCKET, SCE_NET_SO_RCVTIMEO, &timeout, 4);
 }
 
-void psp2shell_print(const char *fmt, ...) {
+void psp2shell_print_color(int color, const char *fmt, ...) {
 
     if (client->msg_sock < 0) {
         return;
     }
 
-    memset(client->msg_buffer, 0, P2S_KMSG_SIZE);
+    client->msg.color = color;
+    memset(client->msg.buffer, 0, P2S_KMSG_SIZE);
     va_list args;
     va_start(args, fmt);
-    vsnprintf(client->msg_buffer, P2S_KMSG_SIZE, fmt, args);
+    vsnprintf(client->msg.buffer, P2S_KMSG_SIZE, fmt, args);
     va_end(args);
 
     if (client->msg_sock >= 0) {
 
-        if (sceNetSend(client->msg_sock, client->msg_buffer, strlen(client->msg_buffer), 0) >= 0) {
+        if (p2s_msg_send_msg(client->msg_sock, &client->msg) == 0) {
             // wait for client to receive message
             p2s_msg_wait_reply();
         }
