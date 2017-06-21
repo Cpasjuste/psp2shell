@@ -183,11 +183,12 @@ void print_hex(char *line) {
 
         line[strlen(line) - 1] = '\0';
 
-        printf("%s | %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+        printf(GRN "%s | %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n" RES,
                line,
                chars[0], chars[1], chars[2], chars[3], chars[4],
                chars[5], chars[6], chars[7], chars[8], chars[9],
                chars[10], chars[11], chars[12], chars[13], chars[14], chars[15]);
+        rl_refresh_line(0, 0);
     }
 }
 
