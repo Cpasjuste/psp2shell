@@ -97,7 +97,9 @@ int p2s_launch_app_by_uri(const char *tid) {
     snprintf(uri, 32, "psgm:play?titleid=%s", tid);
 
     for (int i = 0; i < 40; i++) {
-        sceAppMgrLaunchAppByUri(0xFFFFF, uri);
+        if (sceAppMgrLaunchAppByUri(0xFFFFF, uri) != 0) {
+            break;
+        }
         sceKernelDelayThread(10000);
     }
 

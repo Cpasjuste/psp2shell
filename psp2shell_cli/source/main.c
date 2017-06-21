@@ -10,10 +10,8 @@
 #include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
-#include <fcntl.h>
 
 #include "p2s_cmd.h"
-#include "p2s_msg.h"
 #include "cmd.h"
 #include "utility.h"
 #include "main.h"
@@ -184,7 +182,7 @@ void print_hex(char *line) {
 
         line[strlen(line) - 1] = '\0';
 
-        printf(GRN "%s | %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n" RES,
+        printf("%s | %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
                line,
                chars[0], chars[1], chars[2], chars[3], chars[4],
                chars[5], chars[6], chars[7], chars[8], chars[9],
@@ -194,47 +192,26 @@ void print_hex(char *line) {
 
 void *msg_thread(void *unused) {
 
-    P2S_MSG msg;
+    char buffer[P2S_KMSG_SIZE];
 
     // receive message from psp2shell
     while (true) {
 
-        int res = p2s_msg_receive(msg_sock, &msg);
-        if (res != 0) {
-            if (res == P2S_ERR_SOCKET) {
-                printf("p2s_msg_receive sock failed: 0x%08X\n", res);
-                break;
-            } else {
-                printf("p2s_msg_receive failed: 0x%08X\n", res);
-                continue;
-            }
+        memset(buffer, 0, P2S_KMSG_SIZE);
+        ssize_t len = recv(msg_sock, buffer, P2S_KMSG_SIZE, 0);
+        if (len <= 0) {
+            break;
         }
 
-        switch (msg.color) {
-            case COL_RED:
-                printf(RED "%s" RES, msg.buffer);
-                break;
-            case COL_YELLOW:
-                printf(YEL "%s" RES, msg.buffer);
-                break;
-            case COL_GREEN:
-                printf(GRN "%s" RES, msg.buffer);
-                break;
-            case COL_HEX:
-                print_hex(msg.buffer);
-                break;
-            default:
-                printf("%s", msg.buffer);
-                break;
-        }
-
+        printf("%s", buffer);
         fflush(stdout);
-        if (msg.buffer[strlen(msg.buffer) - 1] == '\n') { // allow printing to the shell without new line
-            rl_refresh_line(0, 0);
-        }
 
         // send "ok/continue"
         send(msg_sock, "\n", 1, 0);
+
+        if (buffer[strlen(buffer) - 1] == '\n') { // allow printing to the shell without new line
+            rl_refresh_line(0, 0);
+        }
     }
 
     printf("disconnected\n");
@@ -290,7 +267,7 @@ void process_line(char *line) {
 
 int process_args(int argc, char **argv) {
 
-    char *line = malloc(1024);
+    char *line = (char *) malloc(1024);
 
     connect_psp2(argv[1], atoi(argv[2]));
 

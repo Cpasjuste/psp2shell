@@ -68,31 +68,41 @@ static int open_server() {
     return 0;
 }
 
-void psp2shell_print_advanced(SceSize size, int color, const char *fmt, ...) {
+static void p2s_msg_wait_reply() {
 
     if (client->msg_sock < 0) {
         return;
     }
 
-    client->msg.color = color;
-    memset(client->msg.buffer, 0, P2S_KMSG_SIZE);
+    char buf[1];
+
+    // wait for client to receive message
+    long timeout = 1000000000;
+    sceNetSetsockopt(client->msg_sock,
+                     SCE_NET_SOL_SOCKET, SCE_NET_SO_RCVTIMEO, &timeout, 4);
+    sceNetRecv(client->msg_sock, buf, 1, 0);
+    timeout = 0;
+    sceNetSetsockopt(client->msg_sock,
+                     SCE_NET_SOL_SOCKET, SCE_NET_SO_RCVTIMEO, &timeout, 4);
+}
+
+void psp2shell_print(const char *fmt, ...) {
+
+    if (client->msg_sock < 0) {
+        return;
+    }
+
+    memset(client->msg_buffer, 0, P2S_KMSG_SIZE);
     va_list args;
     va_start(args, fmt);
-    vsnprintf(client->msg.buffer, size, fmt, args);
+    vsnprintf(client->msg_buffer, P2S_KMSG_SIZE, fmt, args);
     va_end(args);
 
     if (client->msg_sock >= 0) {
 
-        if (p2s_msg_send_msg(client->msg_sock, &client->msg) == 0) {
-
+        if (sceNetSend(client->msg_sock, client->msg_buffer, strlen(client->msg_buffer), 0) >= 0) {
             // wait for client to receive message
-            long timeout = 1000000000;
-            sceNetSetsockopt(client->msg_sock,
-                             SCE_NET_SOL_SOCKET, SCE_NET_SO_RCVTIMEO, &timeout, 4);
-            sceNetRecv(client->msg_sock, client->msg.buffer, 1, 0);
-            timeout = 0;
-            sceNetSetsockopt(client->msg_sock,
-                             SCE_NET_SOL_SOCKET, SCE_NET_SO_RCVTIMEO, &timeout, 4);
+            p2s_msg_wait_reply();
         }
     }
 }
@@ -210,7 +220,7 @@ static int thread_wait(SceSize args, void *argp) {
         }
 
         printf("Connection accepted\n");
-        thid_client = sceKernelCreateThread("psp2shell_cmd", cmd_thread, 64, 0x4000, 0, 0x10000, 0);
+        thid_client = sceKernelCreateThread("psp2shell_cmd", cmd_thread, 64, 0x8000, 0, 0x10000, 0);
         if (thid_client >= 0)
             sceKernelStartThread(thid_client, sizeof(int), (void *) &client_sock);
     }
@@ -232,8 +242,10 @@ static int thread_kbuf(SceSize args, void *argp) {
         if (client->msg_sock >= 0) {
             SceSize len = kpsp2shell_wait_buffer(buffer);
             if (client->msg_sock >= 0 && len > 0) {
-                psp2shell_print_advanced(len, COL_NONE, "%s", buffer);
-                TODO: ERROR
+                if (sceNetSend(client->msg_sock, buffer, len, 0) >= 0) {
+                    // wait for client to receive message
+                    p2s_msg_wait_reply();
+                }
             } else {
                 sceKernelDelayThread(100);
             }

@@ -14,7 +14,6 @@ set(SRC_FILES
         source/module.c
         source/thread.c
         ../common/p2s_cmd.c
-        ../common/p2s_msg.c
         )
 set(INC_FILES
         ../common

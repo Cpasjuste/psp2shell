@@ -59,8 +59,6 @@ static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
         strcat(new_path, name);
     }
 
-    printf("cmd_put: open = %s\n", new_path);
-
     SceUID fd = s_open(new_path, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
     if (fd < 0) {
         p2s_cmd_send(client->cmd_sock, CMD_NOK);
@@ -68,15 +66,12 @@ static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
         return -1;
     }
 
-    printf("cmd_put: send CMD_OK\n");
     p2s_cmd_send(client->cmd_sock, CMD_OK);
 
-    printf("cmd_put: p2s_recv_file\n");
     ssize_t received = p2s_recv_file(client->cmd_sock, fd, size);
     s_close(fd);
 
-    printf("received `%s` to `%s` (%i)\n", name, new_path, received);
-    PRINT_OK("\nreceived `%s` to `%s` (%i)\n\n", name, new_path, received);
+    PRINT_OK("received `%s` to `%s` (%i)\n\n", name, new_path, received);
 
     return received;
 }
@@ -124,7 +119,8 @@ static void cmd_title() {
         PRINT_OK("\n\n\tname: %s\n\tid: %s\n\tpid: 0x%08X\n\n",
                  name, id, p2s_get_running_app_pid());
     } else {
-        PRINT_OK("\nSceShell\n\n");
+        PRINT_OK("\n\n\tname: SceShell\n\tpid: 0x%08X\n\n",
+                 sceKernelGetProcessId());
     }
 }
 
@@ -147,12 +143,13 @@ static void cmd_load(int sock, long size, const char *tid) {
     p2s_cmd_send(sock, CMD_OK);
 
     ssize_t received = p2s_recv_file(sock, fd, size);
+    s_close(fd);
+
     if (received > 0) {
         p2s_launch_app_by_uri(tid);
     } else {
         PRINT_ERR("reload failed, received size < 0\n");
     }
-    s_close(fd);
 }
 
 static void cmd_reload(int sock, long size) {
@@ -337,9 +334,9 @@ static void cmd_memr(const char *address_str, const char *size_str) {
     PRINT("\n ");
     while ((unsigned int) addr < max) {
 
-        psp2shell_print_advanced(64, COL_HEX, "0x%08X: %08X %08X %08X %08X\n",
-                                 addr,
-                                 addr[0], addr[1], addr[2], addr[3]
+        psp2shell_print("0x%08X: %08X %08X %08X %08X\n",
+                        addr,
+                        addr[0], addr[1], addr[2], addr[3]
         );
 
         addr += 4;

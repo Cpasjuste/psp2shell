@@ -20,7 +20,7 @@ extern void close_socks();
 ssize_t send_file(int sock, FILE *file, long size) {
 
     ssize_t len, progress = 0;
-    char *buf = malloc(P2S_SIZE_DATA);
+    char *buf = (char *) malloc(P2S_SIZE_DATA);
     memset(buf, 0, P2S_SIZE_DATA);
 
     while ((len = fread(buf, sizeof(char), P2S_SIZE_DATA, file)) > 0) {
@@ -160,7 +160,7 @@ int cmd_load(int argc, char **argv) {
 
     FILE *fp = fopen(argv[2], "r");
     if (fp == NULL) {
-        printf("ERROR: file does not exist: \"%s\"\n", argv[1]);
+        printf("ERROR: file does not exist: \"%s\"\n", argv[2]);
         return -1;
     }
     fseek(fp, 0L, SEEK_END);
@@ -190,7 +190,7 @@ int cmd_reload(int argc, char **argv) {
     long size = ftell(fp);
     fseek(fp, 0L, SEEK_SET);
 
-    p2s_cmd_send_long(cmd_sock, CMD_LAUNCH, size);
+    p2s_cmd_send_long(cmd_sock, CMD_RELOAD, size);
 
     if (p2s_cmd_wait_result(cmd_sock) == 0) {
         send_file(cmd_sock, fp, size);
@@ -430,8 +430,8 @@ COMMAND cmd[] = {
         {"kmodstart", "<path>",                     "Load/Start kernel module.",                     cmd_kmodloadstart},
         {"kmodstop",  "<uid>",                      "Stop/Unload kernel module.",                    cmd_kmodstopunload},
         {"thlist",    "",                           "List (own) running threads.",                   cmd_thls},
-        {"memr",      "<hex_address> <hex_size>",   "Read memory.",                                  cmd_memr},
-        {"memw",      "<hex_address> <hex_data>",   "Write memory.",                                 cmd_memw},
+//        {"memr",      "<hex_address> <hex_size>",   "Read memory.",                                  cmd_memr},
+//        {"memw",      "<hex_address> <hex_data>",   "Write memory.",                                 cmd_memw},
         {"?",         "",                           "Display the help.",                             cmd_help},
         {"help",      "",                           "Display the help.",                             cmd_help},
         {"exit",      "",                           "Exit the shell.",                               cmd_exit},

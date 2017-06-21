@@ -202,7 +202,6 @@ int p2s_cmd_to_cmd(P2S_CMD *cmd, const char *buffer) {
         return -1;
     }
 
-    //printf("p2s_cmd_to_cmd:\n%s\n", buffer);
     const char *start = NULL, *end = buffer;
 
     for (int i = 0; i < P2S_MAX_ARGS; i++) {
@@ -219,7 +218,6 @@ int p2s_cmd_to_cmd(P2S_CMD *cmd, const char *buffer) {
         }
 
         strncpy(cmd->args[i], start, end - start);
-        //printf("cmd->args[%i]: %s\n", i, cmd->args[i]);
     }
 
     return 0;
