@@ -38,12 +38,12 @@ int psp2shell_init(int port);
 
 void psp2shell_exit();
 
-void psp2shell_print_advanced(int color, const char *fmt, ...);
-#define psp2shell_print(...) psp2shell_print_advanced(COL_NONE, __VA_ARGS__)
+void psp2shell_print_advanced(SceSize size, int color, const char *fmt, ...);
+#define psp2shell_print(...) psp2shell_print_advanced(P2S_SIZE_MSG, COL_NONE, __VA_ARGS__)
 
-#define PRINT(...) psp2shell_print_advanced(COL_NONE, __VA_ARGS__)
-#define PRINT_ERR(...) psp2shell_print_advanced(COL_RED, __VA_ARGS__)
-#define PRINT_OK(...) psp2shell_print_advanced(COL_GREEN, __VA_ARGS__)
+#define PRINT(...) psp2shell_print_advanced(P2S_SIZE_MSG, COL_NONE, __VA_ARGS__)
+#define PRINT_ERR(...) psp2shell_print_advanced(P2S_SIZE_MSG, COL_RED, __VA_ARGS__)
+#define PRINT_OK(...) psp2shell_print_advanced(P2S_SIZE_MSG, COL_GREEN, __VA_ARGS__)
 
 #ifdef __cplusplus
 }

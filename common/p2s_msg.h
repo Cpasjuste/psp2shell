@@ -28,7 +28,7 @@ int p2s_msg_receive(int sock, P2S_MSG *msg);
 
 void p2s_msg_send(int sock, int color, const char *msg);
 
-void p2s_msg_send_msg(int sock, P2S_MSG *msg);
+int p2s_msg_send_msg(int sock, P2S_MSG *msg);
 
 int p2s_msg_to_string(char *buffer, P2S_MSG *cmd);
 

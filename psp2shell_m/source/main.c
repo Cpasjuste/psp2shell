@@ -19,7 +19,6 @@
 #include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/modulemgr.h>
 #include <psp2/net/net.h>
-#include <main.h>
 
 #include "main.h"
 #include "utility.h"
@@ -69,7 +68,7 @@ static int open_server() {
     return 0;
 }
 
-void psp2shell_print_advanced(int color, const char *fmt, ...) {
+void psp2shell_print_advanced(SceSize size, int color, const char *fmt, ...) {
 
     if (client->msg_sock < 0) {
         return;
@@ -79,25 +78,22 @@ void psp2shell_print_advanced(int color, const char *fmt, ...) {
     memset(client->msg.buffer, 0, P2S_KMSG_SIZE);
     va_list args;
     va_start(args, fmt);
-    vsnprintf(client->msg.buffer, P2S_KMSG_SIZE, fmt, args);
+    vsnprintf(client->msg.buffer, size, fmt, args);
     va_end(args);
 
-    if (client->msg_sock > 0) {
+    if (client->msg_sock >= 0) {
 
-        p2s_msg_send_msg(client->msg_sock, &client->msg);
+        if (p2s_msg_send_msg(client->msg_sock, &client->msg) == 0) {
 
-        // wait for client to receive message
-        long timeout = 1000000000;
-        sceNetSetsockopt(
-                client->msg_sock,
-                SCE_NET_SOL_SOCKET, SCE_NET_SO_RCVTIMEO,
-                &timeout, 4);
-        sceNetRecv(client->msg_sock, client->msg.buffer, 1, 0);
-        timeout = 0;
-        sceNetSetsockopt(
-                client->msg_sock,
-                SCE_NET_SOL_SOCKET, SCE_NET_SO_RCVTIMEO,
-                &timeout, 4);
+            // wait for client to receive message
+            long timeout = 1000000000;
+            sceNetSetsockopt(client->msg_sock,
+                             SCE_NET_SOL_SOCKET, SCE_NET_SO_RCVTIMEO, &timeout, 4);
+            sceNetRecv(client->msg_sock, client->msg.buffer, 1, 0);
+            timeout = 0;
+            sceNetSetsockopt(client->msg_sock,
+                             SCE_NET_SOL_SOCKET, SCE_NET_SO_RCVTIMEO, &timeout, 4);
+        }
     }
 }
 
@@ -233,10 +229,11 @@ static int thread_kbuf(SceSize args, void *argp) {
 
     while (!quit) {
 
-        if (client->msg_sock > 0) {
+        if (client->msg_sock >= 0) {
             SceSize len = kpsp2shell_wait_buffer(buffer);
-            if (client->msg_sock > 0 && len > 0) {
-                psp2shell_print_advanced(COL_NONE, "%s", buffer);
+            if (client->msg_sock >= 0 && len > 0) {
+                psp2shell_print_advanced(len, COL_NONE, "%s", buffer);
+                TODO: ERROR
             } else {
                 sceKernelDelayThread(100);
             }

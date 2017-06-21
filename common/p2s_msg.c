@@ -62,13 +62,16 @@ void p2s_msg_send(int sock, int color, const char *msg) {
     send(sock, buffer, len, 0);
 }
 
-void p2s_msg_send_msg(int sock, P2S_MSG *msg) {
+int p2s_msg_send_msg(int sock, P2S_MSG *msg) {
 
     char buffer[P2S_SIZE_MSG];
 
     if (p2s_msg_to_string(buffer, msg) == 0) {
         send(sock, buffer, strlen(buffer), 0);
+        return 0;
     }
+
+    return -1;
 }
 
 int p2s_msg_to_string(char *buffer, P2S_MSG *cmd) {
@@ -105,7 +108,7 @@ int p2s_msg_to_msg(P2S_MSG *msg, const char *buffer) {
         return -1;
     }
 
-    strncpy(msg->buffer, buffer + 2, P2S_SIZE_MSG);
+    strncpy(msg->buffer, buffer + 2, P2S_KMSG_SIZE);
 
     return 0;
 }

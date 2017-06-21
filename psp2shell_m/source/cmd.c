@@ -334,9 +334,10 @@ static void cmd_memr(const char *address_str, const char *size_str) {
 
     unsigned int *addr = (unsigned int *) address;
 
+    PRINT("\n ");
     while ((unsigned int) addr < max) {
 
-        psp2shell_print_advanced(COL_HEX, "0x%08X: %08X %08X %08X %08X\n",
+        psp2shell_print_advanced(64, COL_HEX, "0x%08X: %08X %08X %08X %08X\n",
                                  addr,
                                  addr[0], addr[1], addr[2], addr[3]
         );
@@ -432,7 +433,6 @@ void p2s_cmd_parse(s_client *client, P2S_CMD *cmd) {
             break;
 
         case CMD_PUT:
-            PRINT_OK("cmd_put: `%s` `%s` `%s`\n", cmd->args[0], cmd->args[1], cmd->args[2]);
             cmd_put(client, strtoul(cmd->args[2], NULL, 0), cmd->args[0], cmd->args[1]);
             break;
 
