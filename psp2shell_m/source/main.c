@@ -220,7 +220,7 @@ static int thread_wait(SceSize args, void *argp) {
         }
 
         printf("Connection accepted\n");
-        thid_client = sceKernelCreateThread("psp2shell_cmd", cmd_thread, 64, 0x8000, 0, 0x10000, 0);
+        thid_client = sceKernelCreateThread("psp2shell_cmd", cmd_thread, 64, 0x5000, 0, 0x10000, 0);
         if (thid_client >= 0)
             sceKernelStartThread(thid_client, sizeof(int), (void *) &client_sock);
     }

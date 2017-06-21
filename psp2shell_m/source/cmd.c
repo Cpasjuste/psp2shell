@@ -21,6 +21,7 @@
 #include <libk/string.h>
 #include <libk/stdio.h>
 #include <libk/stdlib.h>
+#include <file.h>
 
 #include "psp2shell.h"
 #include "module.h"
@@ -218,42 +219,48 @@ static void cmd_cd(s_client *client, char *path) {
 
 static void cmd_ls(s_client *client, char *path) {
 
+    s_FileList fileList;
     int res, i;
-    int noPath = strcmp(path, HOME_PATH) == 0;
 
-    s_FileList fl;
-    s_FileList *fileList = noPath ? &client->fileList : &fl;
-    if (!noPath) {
-        memset(fileList, 0, sizeof(s_FileList));
-        strcpy(fileList->path, path);
+    bool noPath = strcmp(path, HOME_PATH) == 0;
+    if (noPath) {
+        strncpy(fileList.path, client->fileList.path, MAX_PATH_LENGTH);
+    } else {
+        if (strcmp(client->fileList.path, HOME_PATH) == 0) {
+            strncpy(fileList.path, path, MAX_PATH_LENGTH);
+        } else {
+            TODO:
+            char new_path[MAX_PATH_LENGTH];
+            memset(new_path, 0, MAX_PATH_LENGTH);
+            strncpy(new_path, path, MAX_PATH_LENGTH);
+            toAbsolutePath(&client->fileList, new_path);
+            strncpy(fileList.path, new_path, MAX_PATH_LENGTH);
+        }
     }
 
-    s_fileListEmpty(fileList);
-    res = s_fileListGetEntries(fileList, fileList->path);
+    res = s_fileListGetEntries(&fileList, fileList.path);
 
     if (res < 0) {
-        PRINT_ERR("directory does not exist: %s\n", path);
-        if (!noPath) {
-            s_fileListEmpty(fileList);
-        }
+        PRINT_ERR("directory does not exist: %s\n", fileList.path);
+        s_fileListEmpty(&fileList);
         return;
     }
 
-    size_t msg_size = (size_t) (fileList->length * 256) + 512;
+    size_t msg_size = (size_t) (fileList.length * 256) + 512;
     char msg[msg_size];
     memset(msg, 0, msg_size);
     strcat(msg, "\n\n");
-    for (i = 0; i < strlen(fileList->path); i++) {
+    for (i = 0; i < strlen(fileList.path); i++) {
         strcat(msg, "-");
     }
-    sprintf(msg + strlen(msg), "\n%s\n", fileList->path);
-    for (i = 0; i < strlen(fileList->path); i++) {
+    sprintf(msg + strlen(msg), "\n%s\n", fileList.path);
+    for (i = 0; i < strlen(fileList.path); i++) {
         strcat(msg, "-");
     }
     strcat(msg, "\n");
 
-    s_FileListEntry *file_entry = fileList->head;
-    for (i = 0; i < fileList->length; i++) {
+    s_FileListEntry *file_entry = fileList.head;
+    for (i = 0; i < fileList.length; i++) {
         strncat(msg, "\t", 256);
         strncat(msg, file_entry->name, 256);
         strncat(msg, "\n", 256);
@@ -261,10 +268,7 @@ static void cmd_ls(s_client *client, char *path) {
     }
 
     PRINT_OK("%s\n\n", msg);
-
-    if (!noPath) {
-        s_fileListEmpty(fileList);
-    }
+    s_fileListEmpty(&fileList);
 }
 
 static void cmd_pwd(s_client *client) {
