@@ -337,9 +337,9 @@ static void cmd_memr(const char *address_str, const char *size_str) {
 
     while ((unsigned int) addr < max) {
 
-        PRINT_OK("0x%08X: %08X %08X %08X %08X\n",
-                        addr,
-                        addr[0], addr[1], addr[2], addr[3]
+        psp2shell_print_color(COL_HEX, "0x%08X: %08X %08X %08X %08X\n",
+                              addr,
+                              addr[0], addr[1], addr[2], addr[3]
         );
 
         addr += 4;
