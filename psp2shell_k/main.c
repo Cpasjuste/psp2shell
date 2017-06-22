@@ -298,7 +298,7 @@ void set_hooks() {
             &ref_hooks[2],
             "SceSysmem",
             0x88758561, // SceDebugForDriver
-            0x391B74B7, // printf
+            0x391B74B7, // ksceDebugPrintf
             _kDebugPrintf);
     //LOG("hook: _printf: 0x%08X\n", g_hooks[2]);
 
@@ -307,7 +307,7 @@ void set_hooks() {
             &ref_hooks[3],
             "SceSysmem",
             0x88758561, // SceDebugForDriver
-            0x02B04343, // printf2
+            0x02B04343, // ksceDebugPrintf2
             _kDebugPrintf2);
     //LOG("hook: _printf2: 0x%08X\n", g_hooks[3]);
 
