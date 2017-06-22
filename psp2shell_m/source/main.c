@@ -19,6 +19,7 @@
 #include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/modulemgr.h>
 #include <psp2/net/net.h>
+#include <main.h>
 
 #include "main.h"
 #include "utility.h"
@@ -185,21 +186,12 @@ static int thread_wait(SceSize args, void *argp) {
 
     // load/wait network modules
     while (p2s_netInit() != 0) {
-        if(quit) {
+        if (quit) {
             psp2shell_exit();
             sceKernelExitDeleteThread(0);
             return -1;
         }
         sceKernelDelayThread(1000);
-    }
-
-    // setup clients data
-    client = p2s_malloc(sizeof(s_client));
-    if (client == NULL) { // crap
-        printf("client alloc failed\n");
-        psp2shell_exit();
-        sceKernelExitDeleteThread(0);
-        return -1;
     }
 
     // setup sockets
@@ -283,6 +275,18 @@ static int thread_kbuf(SceSize args, void *argp) {
 void _start() __attribute__ ((weak, alias ("module_start")));
 
 int module_start(SceSize argc, const void *args) {
+
+    // setup clients data
+    client = p2s_malloc(sizeof(s_client));
+    if (client == NULL) { // crap
+        printf("client alloc failed\n");
+        psp2shell_exit();
+        sceKernelExitDeleteThread(0);
+        return -1;
+    }
+    memset(client, 0, sizeof(s_client));
+    client->msg_sock = -1;
+    client->cmd_sock = -1;
 
 #ifndef DEBUG
     thid_kbuf = sceKernelCreateThread("psp2shell_kbuf", thread_kbuf, 64, 0x2000, 0, 0x10000, 0);

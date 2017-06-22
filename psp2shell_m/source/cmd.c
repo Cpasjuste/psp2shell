@@ -231,7 +231,6 @@ static void cmd_ls(s_client *client, char *path) {
         if (strcmp(client->fileList.path, HOME_PATH) == 0) {
             strncpy(fileList.path, path, MAX_PATH_LENGTH);
         } else {
-            // TODO:
             char new_path[MAX_PATH_LENGTH];
             memset(new_path, 0, MAX_PATH_LENGTH);
             strncpy(new_path, path, MAX_PATH_LENGTH);

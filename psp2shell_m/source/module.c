@@ -24,7 +24,10 @@
 #include "../include/psp2shell.h"
 #include "../include/module.h"
 #include "../include/libmodule.h"
+
+#ifndef DEBUG
 #include "../../psp2shell_k/psp2shell_k.h"
+#endif
 
 static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
 
@@ -71,8 +74,13 @@ int p2s_moduleInfoForPid(SceUID pid, SceUID uid) {
 
     SceKernelModuleInfo moduleInfo;
     memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
+    moduleInfo.size = sizeof(SceKernelModuleInfo);
 
+#ifdef DEBUG
+    int res = sceKernelGetModuleInfo(uid, &moduleInfo);
+#else
     int res = kpsp2shell_get_module_info(pid, uid, &moduleInfo);
+#endif
     if (res == 0) {
         printModuleInfoFull(&moduleInfo);
     } else {
@@ -97,7 +105,11 @@ int p2s_moduleListForPid(SceUID pid) {
     SceUID ids[256];
     size_t count = 256;
 
+#ifdef DEBUG
+    int res = sceKernelGetModuleList(0xFF, ids, (int *) &count);
+#else
     int res = kpsp2shell_get_module_list(pid, 0xFF, 1, ids, &count);
+#endif
     if (res != 0) {
         PRINT_ERR("module list failed: 0x%08X\n", res);
         return res;
@@ -106,7 +118,12 @@ int p2s_moduleListForPid(SceUID pid) {
         for (int i = 0; i < count; i++) {
             if (ids[i] > 0) {
                 memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
+#ifdef DEBUG
+                moduleInfo.size = sizeof(SceKernelModuleInfo);
+                res = sceKernelGetModuleInfo(ids[i], &moduleInfo);
+#else
                 res = kpsp2shell_get_module_info(pid, ids[i], &moduleInfo);
+#endif
                 if (res == 0) {
                     PRINT_OK("%s (uid: 0x%08X)\n",
                              moduleInfo.module_name, moduleInfo.handle);
@@ -192,6 +209,10 @@ int p2s_kmoduleStopUnload(SceUID uid) {
 
 int p2s_moduleDumpForPid(SceUID pid, SceUID uid, const char *dst) {
 
+#ifdef DEBUG
+    PRINT_ERR("\nmodule dump not enabled\n\n");
+    return -1;
+#else
     int res = kpsp2shell_dump_module(pid, uid, dst);
     if (res != 0) {
         PRINT_ERR("\nmodule dump failed: 0x%08X\n\n", res);
@@ -200,4 +221,5 @@ int p2s_moduleDumpForPid(SceUID pid, SceUID uid, const char *dst) {
     }
 
     return res;
+#endif
 }

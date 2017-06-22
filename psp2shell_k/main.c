@@ -54,10 +54,6 @@ static int __stdout_fd = 1073807367;
 
 static bool ready = false;
 
-void set_hooks();
-
-void delete_hooks();
-
 static int _kDebugPrintf(const char *fmt, ...) {
 
     char temp_buf[P2S_MSG_LEN];
@@ -119,6 +115,10 @@ static int _sceKernelGetStdout() {
 }
 
 SceSize kpsp2shell_wait_buffer(char *buffer) {
+
+    if (k_buf_at <= 0) {
+        return 0;
+    }
 
     int state = 0;
     int count = 0;
@@ -336,16 +336,12 @@ void _start() __attribute__ ((weak, alias ("module_start")));
 
 int module_start(SceSize argc, const void *args) {
 
-    //u_mutex = ksceKernelCreateSema("u_mutex", 0, 0, 1, NULL);
-
     set_hooks();
 
     return SCE_KERNEL_START_SUCCESS;
 }
 
 int module_stop(SceSize argc, const void *args) {
-
-    //ksceKernelDeleteMutex(u_mutex);
 
     delete_hooks();
 
