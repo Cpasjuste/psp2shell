@@ -15,15 +15,17 @@ add_executable(${PROJECT_NAME}
         main.c
         usbhostfs/usbhostfs.c
         usbhostfs/host_driver.c
+        ../common/p2s_cmd.c
+        ../common/p2s_msg.c
         ../psp2shell_m/source/cmd.c
         ../psp2shell_m/source/file.c
-        ../psp2shell_m/source/main.c
         ../psp2shell_m/source/module.c
         ../psp2shell_m/source/thread.c
         ../psp2shell_m/source/utility.c
         )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
+        usbhostfs
         ../psp2shell_m/include
         ../common
         )

@@ -40,6 +40,10 @@ static void toAbsolutePath(s_FileList *fileList, char *path) {
 
 static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
 
+#ifdef __KERNEL__
+    PRINT_ERR("TODO: cmd_put\n");
+    return 0;
+#else
     char new_path[MAX_PATH_LENGTH];
     memset(new_path, 0, MAX_PATH_LENGTH);
 
@@ -72,6 +76,7 @@ static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
     PRINT_OK("received `%s` to `%s` (%i)\n\n", name, new_path, received);
 
     return received;
+#endif
 }
 
 static int cmd_mount(char *tid) {
@@ -87,6 +92,9 @@ static int cmd_mount(char *tid) {
 
 static int cmd_umount(char *device) {
 
+#ifdef __KERNEL__
+    PRINT_ERR("TODO: cmd_umount\n");
+#else
     // hack to close all open files descriptors before umount
     // from 0x40010000 to 0x43ff00ff
     int i, j;
@@ -103,12 +111,15 @@ static int cmd_umount(char *device) {
         PRINT_ERR("could not umount device: %s (err=%x)\n", device, res);
         return -1;
     }
-
+#endif
     return 0;
 }
 
 static void cmd_title() {
 
+#ifdef __KERNEL__
+    PRINT_ERR("TODO: cmd_title\n");
+#else
     char name[256];
     char id[16];
 
@@ -120,10 +131,14 @@ static void cmd_title() {
         PRINT_OK("\n\n\tname: SceShell\n\tpid: 0x%08X\n\n",
                  sceKernelGetProcessId());
     }
+#endif
 }
 
 static void cmd_load(int sock, long size, const char *tid) {
 
+#ifdef __KERNEL__
+    PRINT_ERR("TODO: cmd_load\n");
+#else
     char path[256];
 
     sceAppMgrDestroyOtherApp();
@@ -148,6 +163,7 @@ static void cmd_load(int sock, long size, const char *tid) {
     } else {
         PRINT_ERR("reload failed, received size < 0\n");
     }
+#endif
 }
 
 static void cmd_reload(int sock, long size) {
@@ -242,28 +258,16 @@ static void cmd_ls(s_client *client, char *path) {
         return;
     }
 
-    size_t msg_size = (size_t) (fileList.length * 256) + 512;
-    char msg[msg_size];
-    memset(msg, 0, msg_size);
-    strcat(msg, "\n\n");
-    for (i = 0; i < strlen(fileList.path); i++) {
-        strcat(msg, "-");
-    }
-    sprintf(msg + strlen(msg), "\n%s\n", fileList.path);
-    for (i = 0; i < strlen(fileList.path); i++) {
-        strcat(msg, "-");
-    }
-    strcat(msg, "\n");
-
+    PRINT("\n\n-------------------\n");
+    PRINT("%s:\n", fileList.path);
+    PRINT("-------------------\n");
     s_FileListEntry *file_entry = fileList.head;
     for (i = 0; i < fileList.length; i++) {
-        strncat(msg, "\t", 256);
-        strncat(msg, file_entry->name, 256);
-        strncat(msg, "\n", 256);
+        PRINT("\t%s\n", file_entry->name);
         file_entry = file_entry->next;
     }
+    PRINT("\r\n");
 
-    PRINT_OK("%s\n\n", msg);
     s_fileListEmpty(&fileList);
 }
 
@@ -344,6 +348,9 @@ static void cmd_memr(const char *address_str, const char *size_str) {
 
 static void cmd_memw(const char *address_str, const char *data_str) {
 
+#ifdef __KERNEL__
+    PRINT_ERR("TODO: cmd_memw\n");
+#else
     unsigned int address = strtoul(address_str, NULL, 16);
     unsigned int size = strlen(data_str) / 8;
 
@@ -393,11 +400,16 @@ static void cmd_memw(const char *address_str, const char *data_str) {
         taiInjectData(uid, segment, offset, &data, 4);
         offset += 4;
     }
+#endif
 }
 
 static void cmd_reboot() {
+#ifdef __KERNEL__
+    PRINT_ERR("TODO: cmd_reboot\n");
+#else
     psp2shell_exit();
     scePowerRequestColdReset();
+#endif
 }
 
 void p2s_cmd_parse(s_client *client, P2S_CMD *cmd) {

@@ -76,6 +76,7 @@ void sig_handler(int sig) {
     }
 }
 
+#ifndef __USB__
 void close_socks() {
     close(msg_sock);
     close(cmd_sock);
@@ -147,6 +148,7 @@ int connect_psp2(char *address, int port) {
 
     return 0;
 }
+#endif
 
 void print_hex(char *line) {
 
@@ -192,13 +194,43 @@ void print_hex(char *line) {
     }
 }
 
+int msg_parse(P2S_MSG *msg) {
+
+    switch (msg->color) {
+        case COL_RED:
+            printf(RED "%s" RES, msg->buffer);
+            break;
+        case COL_YELLOW:
+            printf(YEL "%s" RES, msg->buffer);
+            break;
+        case COL_GREEN:
+            printf(GRN "%s" RES, msg->buffer);
+            break;
+        case COL_HEX:
+            print_hex(msg->buffer);
+            break;
+        default:
+            printf("%s", msg->buffer);
+            break;
+    }
+
+    fflush(stdout);
+
+    ssize_t len = strlen(msg->buffer);
+    if (len > 1
+        && msg->buffer[len - 2] == '\r'
+        && msg->buffer[len - 1] == '\n') {
+        rl_refresh_line(0, 0);
+    }
+}
+
+#ifndef __USB__
 void *msg_thread(void *unused) {
 
     P2S_MSG msg;
 
     // receive message from psp2shell
     while (true) {
-
         int res = p2s_msg_receive(msg_sock, &msg);
         if (res != 0) {
             if (res == P2S_ERR_SOCKET) {
@@ -210,29 +242,7 @@ void *msg_thread(void *unused) {
             }
         }
 
-        switch (msg.color) {
-            case COL_RED:
-                printf(RED "%s" RES, msg.buffer);
-                break;
-            case COL_YELLOW:
-                printf(YEL "%s" RES, msg.buffer);
-                break;
-            case COL_GREEN:
-                printf(GRN "%s" RES, msg.buffer);
-                break;
-            case COL_HEX:
-                print_hex(msg.buffer);
-                break;
-            default:
-                printf("%s", msg.buffer);
-                break;
-        }
-
-        fflush(stdout);
-        ssize_t len = strlen(msg.buffer);
-        if (msg.buffer[len - 1] == '\n') { // allow printing to the shell without new line
-            rl_refresh_line(0, 0);
-        }
+        msg_parse(&msg);
 
         // send "ok/continue"
         send(msg_sock, "\n", 1, 0);
@@ -249,6 +259,7 @@ void *msg_thread(void *unused) {
     // restart
     execvp(_argv[0], _argv);
 }
+#endif
 
 void process_line(char *line) {
 
@@ -289,6 +300,38 @@ void process_line(char *line) {
     free(line);
 }
 
+#ifdef __USB__
+
+int psp2sell_cli_init() {
+
+    // load history from file
+    memset(history_path, 0, 512);
+    snprintf(history_path, 512, "%s/.psp2shell_history", getenv("HOME"));
+    if (read_history(history_path) != 0) { // append_history needs the file created
+        write_history(history_path);
+    }
+
+    setup_terminal();
+
+    // catch CTRL+C
+    signal(SIGINT, sig_handler);
+    signal(SIGTERM, sig_handler);
+
+    cmd_sock = 0; // ASYNC_SHELL (CMD OUT)
+    msg_sock = 0; // ASYNC_SHELL (MSG IN)
+
+    return 0;
+}
+
+int psp2sell_cli_exit() {
+
+    signal(SIGINT, SIG_DFL);
+    close_terminal();
+
+    return 0;
+}
+
+#else
 int process_args(int argc, char **argv) {
 
     char *line = (char *) malloc(1024);
@@ -364,3 +407,4 @@ int main(int argc, char **argv) {
     close_terminal();
     return -1;
 }
+#endif

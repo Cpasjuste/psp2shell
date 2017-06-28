@@ -20,8 +20,10 @@
 #include "psp2shell.h"
 #include "main.h"
 
+#ifndef __USB__
 #define NET_STACK_SIZE 0x4000
 static unsigned char net_stack[NET_STACK_SIZE];
+#endif
 
 void *p2s_malloc(size_t size);
 
@@ -29,6 +31,9 @@ void p2s_free(void *p);
 
 SceUID p2s_get_running_app_pid() {
 
+#ifdef __KERNEL__
+    return 0;
+#else
     SceUID pid = -1;
     SceUID ids[20];
 
@@ -38,22 +43,27 @@ SceUID p2s_get_running_app_pid() {
     }
 
     return pid;
+#endif
 }
 
 SceUID p2s_get_running_app_id() {
 
+#ifndef __KERNEL__
     SceUID ids[20];
 
     int count = sceAppMgrGetRunningAppIdListForShell(ids, 20);
     if (count > 0) {
         return ids[0];
     }
-
+#endif
     return 0;
 }
 
 int p2s_get_running_app_name(char *name) {
 
+#ifdef __KERNEL__
+    return 0;
+#else
     int ret = -1;
 
     SceUID pid = p2s_get_running_app_pid();
@@ -63,10 +73,14 @@ int p2s_get_running_app_name(char *name) {
     }
 
     return ret;
+#endif
 }
 
 int p2s_get_running_app_title_id(char *title_id) {
 
+#ifdef __KERNEL__
+    return 0;
+#else
     int ret = -1;
 
     SceUID pid = p2s_get_running_app_pid();
@@ -76,10 +90,12 @@ int p2s_get_running_app_title_id(char *title_id) {
     }
 
     return ret;
+#endif
 }
 
 int p2s_launch_app_by_uri(const char *tid) {
 
+#ifndef __KERNEL__
     char uri[32];
 
     sceAppMgrDestroyOtherApp();
@@ -93,12 +109,13 @@ int p2s_launch_app_by_uri(const char *tid) {
         }
         sceKernelDelayThread(10000);
     }
-
+#endif
     return 0;
 }
 
 int p2s_reset_running_app() {
 
+#ifndef __KERNEL__
     char name[256];
     char id[16];
     char uri[32];
@@ -120,10 +137,11 @@ int p2s_reset_running_app() {
         sceAppMgrLaunchAppByUri(0xFFFFF, uri);
         sceKernelDelayThread(10000);
     }
-
+#endif
     return 0;
 }
 
+#ifndef __KERNEL__
 int p2s_netInit() {
 
     int loaded = sceSysmoduleIsLoaded(SCE_SYSMODULE_NET);
@@ -236,6 +254,7 @@ size_t p2s_recv_file(int sock, SceUID fd, long size) {
 
     return received;
 }
+#endif
 
 int p2s_hasEndSlash(char *path) {
     return path[strlen(path) - 1] == '/';
@@ -281,9 +300,13 @@ void *p2s_malloc(size_t size) {
 
     void *p = NULL;
 
+#ifdef __KERNEL__
+    SceUID uid = sceKernelAllocMemBlock(
+            "m", SCE_KERNEL_MEMBLOCK_TYPE_KERNEL_RW, (size + 0xFFF) & (~0xFFF), 0);
+#else
     SceUID uid = sceKernelAllocMemBlock(
             "m", SCE_KERNEL_MEMBLOCK_TYPE_USER_RW, (size + 0xFFF) & (~0xFFF), 0);
-
+#endif
     if (uid >= 0) {
         sceKernelGetMemBlockBase(uid, &p);
     }

@@ -23,6 +23,7 @@
 #include <libk/stdlib.h>
 #include <libk/stdio.h>
 #include <libk/stdarg.h>
+#include <libk/stdbool.h>
 #include <sys/types.h>
 #include <taihen.h>
 

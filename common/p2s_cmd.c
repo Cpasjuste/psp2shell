@@ -18,7 +18,15 @@
 
 #ifdef __PSP2__
 
-#include <psp2/net/net.h>
+#ifdef DEBUG
+#ifdef __KERNEL__
+#define printf ksceDebugPrintf
+#else
+int sceClibPrintf(const char *, ...);
+#define printf sceClibPrintf
+#endif
+#endif
+
 #include <libk/stdio.h>
 #include <libk/string.h>
 #include <libk/stdlib.h>
@@ -26,14 +34,17 @@
 #include <libk/stdarg.h>
 #include <sys/types.h>
 
+#ifdef __USB__
+
+#include <psp2kern/kernel/threadmgr.h>
+#include "usbasync.h"
+#include "usbhostfs.h"
+
+#define send(a, b, c, d) usbShellWrite((unsigned int)a, b, c)
+#else
+#include <psp2/net/net.h>
 #define send sceNetSend
 #define recv sceNetRecv
-
-#ifdef DEBUG
-
-int sceClibPrintf(const char *, ...);
-
-#define printf sceClibPrintf
 #endif
 
 #else
@@ -45,20 +56,105 @@ int sceClibPrintf(const char *, ...);
 #include <stdarg.h>
 #include <sys/socket.h>
 
+#ifdef PC_SIDE
+#define send(a, b, c, d) usbShellWrite((unsigned int)a, b, c)
+#include <usb.h>
+
+#if defined BUILD_BIGENDIAN || defined _BIG_ENDIAN
+uint32_t swap32(uint32_t i)
+{
+    uint8_t *p = (uint8_t *) &i;
+    uint32_t ret;
+
+    ret = (p[3] << 24) | (p[2] << 16) | (p[1] << 8) | p[0];
+
+    return ret;
+}
+#define LE32(x) swap32(x)
+#else
+#define LE16(x) (x)
+#define LE32(x) (x)
+#define LE64(x) (x)
+#endif
+
+#include "usbasync.h"
+#include "usbhostfs.h"
+
+int euid_usb_bulk_write(
+        usb_dev_handle *dev, int ep, char *bytes, int size, int timeout);
+
+extern usb_dev_handle *g_hDev;
+#endif
+
 #endif
 
 #include "p2s_cmd.h"
+
+#ifdef __USB__
+
+static int usbShellWrite(unsigned int chan, const char *data, int size) {
+
+    int ret = 0;
+
+    //printf("usbWrite.usbAsyncWrite: %i\n", size);
+#ifdef PC_SIDE
+    char buffer[sizeof(struct AsyncCommand) + size];
+    struct AsyncCommand *cmd;
+    cmd = (struct AsyncCommand *) buffer;
+    cmd->magic = LE32(ASYNC_MAGIC);
+    cmd->channel = ASYNC_SHELL;
+    memcpy(&buffer[sizeof(struct AsyncCommand)], data, (size_t) size);
+
+    ret = euid_usb_bulk_write(g_hDev, 0x4, buffer, sizeof(buffer), 10000);
+    if (ret < 0) {
+        printf("usbShellWrite.euid_usb_bulk_write: %s\n", usb_strerror());
+    }
+#else
+    ret = usbAsyncWrite(chan, data, size);
+#endif
+    //printf("usbWrite.usbAsyncWrite: %i\n", ret);
+
+    return ret;
+}
+
+static int usbShellRead(unsigned int chan, char *data, int size) {
+
+    int ret = 0;
+
+#ifndef PC_SIDE
+    //printf("usbRead.usbAsyncRead: %i\n", size);
+    while (1) {
+        ret = usbAsyncRead(chan, (unsigned char *) data, size);
+        if (ret < 0) {
+            //ksceKernelDelayThread(250000);
+            //continue;
+            break;
+        }
+        break;
+    }
+    //printf("usbRead.usbAsyncRead: %i\n", size);
+#endif
+    return ret;
+}
+
+#endif
 
 int p2s_cmd_receive(int sock, P2S_CMD *cmd) {
 
     char buffer[P2S_SIZE_CMD];
     memset(buffer, 0, P2S_SIZE_CMD);
 
+#ifdef __USB__
+    int read = usbShellRead((unsigned int) sock, buffer, P2S_SIZE_CMD);
+    if (read < 0) {
+        return read;
+    }
+#else
     ssize_t read = recv(sock, buffer, P2S_SIZE_CMD, 0);
     if (read < 2) {
         return read <= 0 ? P2S_ERR_SOCKET : P2S_ERR_INVALID_CMD;
     }
-
+#endif
     bool is_cmd = p2s_cmd_to_cmd(cmd, buffer) == 0;
     if (!is_cmd) {
         return P2S_ERR_INVALID_CMD;
@@ -72,11 +168,17 @@ int p2s_cmd_wait_result(int sock) {
     char buffer[P2S_SIZE_CMD];
     memset(buffer, 0, P2S_SIZE_CMD);
 
+#ifdef __USB__
+    int read = usbShellRead((unsigned int) sock, buffer, P2S_SIZE_CMD);
+    if (read < 0) {
+        return read;
+    }
+#else
     ssize_t read = recv(sock, buffer, P2S_SIZE_CMD, 0);
     if (read < 2) {
         return -1;
     }
-
+#endif
     P2S_CMD cmd;
     if (p2s_cmd_to_cmd(&cmd, buffer) != 0) {
         return -1;
@@ -91,6 +193,7 @@ int p2s_cmd_wait_result(int sock) {
 
 size_t p2s_cmd_receive_buffer(int sock, void *buffer, size_t size) {
 
+#ifndef __USB__
     ssize_t len;
     size_t left = size;
 
@@ -107,7 +210,7 @@ size_t p2s_cmd_receive_buffer(int sock, void *buffer, size_t size) {
             buffer += len;
         }
     }
-
+#endif
     return size;
 }
 

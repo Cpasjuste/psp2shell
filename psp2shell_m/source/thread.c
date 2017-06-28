@@ -50,14 +50,20 @@ static void printThreadInfoFull(SceKernelThreadInfo *threadInfo, int thid) {
 }
 */
 
+#ifndef __KERNEL__
 static void printThreadInfo(SceKernelThreadInfo *threadInfo, int thid) {
 
     PRINT_OK("%s id: 0x%08X, stack: 0x%08X (0x%08X)\n",
              threadInfo->name, thid, threadInfo->stack, threadInfo->stackSize);
 }
+#endif
 
 int ps_threadList() {
 
+#ifdef __KERNEL__
+    PRINT_ERR("TODO: p2s_moduleInfo\n");
+    return 0;
+#else
     int i = 1;
     while (i <= THREADS_RANGE) {
         SceKernelThreadInfo status;
@@ -70,4 +76,5 @@ int ps_threadList() {
     }
 
     return 0;
+#endif
 }

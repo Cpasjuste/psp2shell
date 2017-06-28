@@ -41,8 +41,11 @@
 #endif
 
 #ifdef READLINE_SHELL
+
 #include <readline/readline.h>
 #include <readline/history.h>
+#include "p2s_msg.h"
+
 #endif
 
 #include "psp_fileio.h"
@@ -59,6 +62,10 @@
 #ifndef SOL_TCP
 #define SOL_TCP getprotobyname("TCP")->p_proto
 #endif
+
+int psp2sell_cli_init();
+
+int msg_parse(P2S_MSG *msg);
 
 //static usb_dev_handle *g_hDev = NULL;
 usb_dev_handle *g_hDev = NULL;
@@ -326,14 +333,26 @@ void do_hostfs(struct HostFsCmd *cmd, int readlen) {
 void do_async(struct AsyncCommand *cmd, int readlen) {
     uint8_t *data;
 
+    unsigned long data_len = readlen - sizeof(struct AsyncCommand);
     V_PRINTF(2, "Async Magic: %08X\n", LE32(cmd->magic));
     V_PRINTF(2, "Async Channel: %08X\n", LE32(cmd->channel));
-    V_PRINTF(2, "Async Extra Len: %lu\n", readlen - sizeof(struct AsyncCommand));
+    V_PRINTF(2, "Async Extra Len: %lu\n", data_len);
 
     if (readlen > sizeof(struct AsyncCommand)) {
         data = (uint8_t *) cmd + sizeof(struct AsyncCommand);
         unsigned int chan = LE32(cmd->channel);
-        V_PRINTF(2, "Async Data: %s\n", data);
+
+        if (chan == ASYNC_SHELL) {
+
+            P2S_MSG msg;
+            int res = p2s_msg_to_msg_advanced(&msg, (const char *) data, data_len - 2);
+            if (res >= 0) {
+                msg_parse(&msg);
+            }
+        } else if (chan == ASYNC_STDOUT) {
+            printf("%s", data);
+        }
+
         if ((chan < MAX_ASYNC_CHANNELS) && (g_clientsocks[chan] >= 0)) {
             write(g_clientsocks[chan], data, readlen - sizeof(struct AsyncCommand));
             if ((chan == ASYNC_GDB) && (g_gdbdebug)) {
@@ -341,6 +360,7 @@ void do_async(struct AsyncCommand *cmd, int readlen) {
             }
         }
     }
+
 }
 
 void do_bulk(struct BulkCommand *cmd, int readlen) {
@@ -961,12 +981,13 @@ void parse_shell(char *buf) {
 }
 
 #ifdef READLINE_SHELL
-int init_readline(void)
-{
+
+int init_readline(void) {
     rl_callback_handler_install("sh> ", parse_shell);
 
     return 1;
 }
+
 #endif
 
 void *async_thread(void *arg) {
@@ -985,8 +1006,8 @@ void *async_thread(void *arg) {
 
     if (!g_daemon) {
 #ifdef READLINE_SHELL
-        init_readline();
-        //psp2sell_cli_init();
+        //init_readline();
+        psp2sell_cli_init();
 #endif
 
         FD_SET(STDIN_FILENO, &read_save);
@@ -1111,8 +1132,8 @@ int main(int argc, char **argv) {
         pthread_t thid;
         usb_init();
 
-        signal(SIGINT, signal_handler);
-        signal(SIGTERM, signal_handler);
+        //signal(SIGINT, signal_handler);
+        //signal(SIGTERM, signal_handler);
 
         if (g_daemon) {
             pid_t pid = fork();

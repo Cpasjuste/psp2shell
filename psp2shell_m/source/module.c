@@ -26,6 +26,7 @@
 #include "../../psp2shell_k/psp2shell_k.h"
 #endif
 
+#ifndef __KERNEL__
 static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
 
     PRINT_OK("module_name: %s\n", moduleInfo->module_name);
@@ -56,19 +57,29 @@ static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
     }
     PRINT_OK("\n\n");
 }
+#endif
 
 int p2s_moduleInfo(SceUID uid) {
 
+#ifdef __KERNEL__
+    PRINT_ERR("TODO: p2s_moduleInfo\n");
+    return 0;
+#else
     SceUID pid = p2s_get_running_app_pid();
     if (pid < 0) {
         pid = sceKernelGetProcessId();
     }
 
     return p2s_moduleInfoForPid(pid, uid);
+#endif
 }
 
 int p2s_moduleInfoForPid(SceUID pid, SceUID uid) {
 
+#ifdef __KERNEL__
+    PRINT_ERR("TODO: p2s_moduleInfoForPid\n");
+    return 0;
+#else
     SceKernelModuleInfo moduleInfo;
     memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
     moduleInfo.size = sizeof(SceKernelModuleInfo);
@@ -85,20 +96,30 @@ int p2s_moduleInfoForPid(SceUID pid, SceUID uid) {
     }
 
     return res;
+#endif
 }
 
 int p2s_moduleList() {
 
+#ifdef __KERNEL__
+    PRINT_ERR("TODO: p2s_moduleList");
+    return 0;
+#else
     SceUID pid = p2s_get_running_app_pid();
     if (pid < 0) {
         pid = sceKernelGetProcessId();
     }
 
     return p2s_moduleListForPid(pid);
+#endif
 }
 
 int p2s_moduleListForPid(SceUID pid) {
 
+#ifdef __KERNEL__
+    PRINT_ERR("TODO: p2s_moduleListForPid\n");
+    return 0;
+#else
     SceUID ids[256];
     size_t count = 256;
 
@@ -130,20 +151,30 @@ int p2s_moduleListForPid(SceUID pid) {
     }
 
     return 0;
+#endif
 }
 
 SceUID p2s_moduleLoadStart(char *modulePath) {
 
+#ifdef __KERNEL__
+    PRINT_ERR("TODO: p2s_moduleLoadStart\n");
+    return 0;
+#else
     SceUID pid = p2s_get_running_app_pid();
     if (pid < 0) {
         pid = sceKernelGetProcessId();
     }
 
     return p2s_moduleLoadStartForPid(pid, modulePath);
+#endif
 }
 
 SceUID p2s_moduleLoadStartForPid(SceUID pid, char *modulePath) {
 
+#ifdef __KERNEL__
+    PRINT_ERR("TODO: p2s_moduleLoadStartForPid\n");
+    return 0;
+#else
     SceUID uid = taiLoadStartModuleForPid(pid, modulePath, 0, NULL, 0);
     if (uid < 0) {
         PRINT_ERR("\nmodule load/start failed: 0x%08X\n\n", uid);
@@ -152,20 +183,30 @@ SceUID p2s_moduleLoadStartForPid(SceUID pid, char *modulePath) {
     }
 
     return uid;
+#endif
 }
 
 int p2s_moduleStopUnload(SceUID uid) {
 
+#ifdef __KERNEL__
+    PRINT_ERR("TODO: p2s_moduleStopUnload\n");
+    return 0;
+#else
     SceUID pid = p2s_get_running_app_pid();
     if (pid < 0) {
         pid = sceKernelGetProcessId();
     }
 
     return p2s_moduleStopUnloadForPid(pid, uid);
+#endif
 }
 
 int p2s_moduleStopUnloadForPid(SceUID pid, SceUID uid) {
 
+#ifdef __KERNEL__
+    PRINT_ERR("TODO: p2s_moduleStopUnloadForPid\n");
+    return 0;
+#else
     int status;
 
     int res = taiStopUnloadModuleForPid(pid, uid, 0, NULL, 0, NULL, &status);
@@ -176,10 +217,15 @@ int p2s_moduleStopUnloadForPid(SceUID pid, SceUID uid) {
     }
 
     return res;
+#endif
 }
 
 SceUID p2s_kmoduleLoadStart(char *modulePath) {
 
+#ifdef __KERNEL__
+    PRINT_ERR("TODO: p2s_kmoduleLoadStart\n");
+    return 0;
+#else
     SceUID uid = taiLoadStartKernelModule(modulePath, 0, NULL, 0);
     if (uid < 0) {
         PRINT_ERR("\nmodule load/start failed: 0x%08X\n\n", uid);
@@ -188,10 +234,15 @@ SceUID p2s_kmoduleLoadStart(char *modulePath) {
     }
 
     return uid;
+#endif
 }
 
 int p2s_kmoduleStopUnload(SceUID uid) {
 
+#ifdef __KERNEL__
+    PRINT_ERR("TODO: p2s_kmoduleStopUnload\n");
+    return 0;
+#else
     int status;
 
     int res = taiStopUnloadKernelModule(uid, 0, NULL, 0, NULL, &status);
@@ -202,12 +253,13 @@ int p2s_kmoduleStopUnload(SceUID uid) {
     }
 
     return res;
+#endif
 }
 
 int p2s_moduleDumpForPid(SceUID pid, SceUID uid, const char *dst) {
 
 #ifdef DEBUG
-    PRINT_ERR("\nmodule dump not enabled\n\n");
+    PRINT_ERR("TODO: p2s_moduleDumpForPid\n");
     return -1;
 #else
     int res = kpsp2shell_dump_module(pid, uid, dst);

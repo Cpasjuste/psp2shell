@@ -15,10 +15,17 @@
 
 extern void close_terminal();
 
+#ifdef __USB__
+extern int exit_app();
+#else
 extern void close_socks();
+#endif
 
 ssize_t send_file(int sock, FILE *file, long size) {
 
+#ifdef __USB__
+    return 0;
+#else
     ssize_t len, progress = 0;
     char *buf = (char *) malloc(P2S_SIZE_DATA);
     memset(buf, 0, P2S_SIZE_DATA);
@@ -35,6 +42,7 @@ ssize_t send_file(int sock, FILE *file, long size) {
 
     free(buf);
     return progress;
+#endif
 }
 
 int cmd_cd(int argc, char **argv) {
@@ -410,8 +418,12 @@ int cmd_help(int argc, char **argv) {
 }
 
 int cmd_exit(int argc, char **argv) {
-    close_terminal();
+#ifdef __USB__
+    exit_app();
+#else
     close_socks();
+#endif
+    close_terminal();
     exit(0);
 }
 
