@@ -16,18 +16,9 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <psp2/kernel/threadmgr.h>
-#include <psp2/sysmodule.h>
-#include <psp2/net/net.h>
-#include <psp2/net/netctl.h>
-#include <psp2/io/fcntl.h>
-#include <psp2/io/dirent.h>
-#include <psp2/appmgr.h>
-#include <errno.h>
-
-#include "../include/psp2shell.h"
-#include "../include/main.h"
-#include "../include/libmodule.h"
+#include "libmodule.h"
+#include "psp2shell.h"
+#include "main.h"
 
 #define NET_STACK_SIZE 0x4000
 static unsigned char net_stack[NET_STACK_SIZE];

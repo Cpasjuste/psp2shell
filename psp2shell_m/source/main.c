@@ -16,15 +16,11 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <psp2/kernel/processmgr.h>
-#include <psp2/kernel/modulemgr.h>
-#include <psp2/net/net.h>
-#include <main.h>
+#include "libmodule.h"
 
 #include "main.h"
 #include "utility.h"
 #include "psp2shell.h"
-#include "libmodule.h"
 
 static SceUID thid_wait = -1;
 static SceUID thid_kbuf = -1;

@@ -19,8 +19,6 @@
 #ifndef UTILITY_H
 #define UTILITY_H
 
-#include <psp2/rtc.h>
-
 void p2s_log_write(const char *msg);
 
 #define LOG(...) \

@@ -16,14 +16,9 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <vitasdk.h>
-#include <taihen.h>
-#include <libk/string.h>
-#include <libk/stdio.h>
-#include <libk/stdlib.h>
-#include <file.h>
-
+#include "libmodule.h"
 #include "psp2shell.h"
+#include "file.h"
 #include "module.h"
 #include "thread.h"
 #include "main.h"
@@ -80,13 +75,13 @@ static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
 }
 
 static int cmd_mount(char *tid) {
-#ifndef MODULE
+/*
     int res = sceAppMgrAppMount(tid);
     if (res != 0) {
         PRINT_ERR("could not mount title: %s (err=%i)\n", tid, res);
         return -1;
     }
-#endif
+*/
     return 0;
 }
 

@@ -16,9 +16,9 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <psp2/kernel/threadmgr.h>
-#include "../include/psp2shell.h"
-#include "../include/thread.h"
+#include "libmodule.h"
+#include "psp2shell.h"
+#include "thread.h"
 
 #define THREADS_START 0x40010000
 #define THREADS_RANGE 0x100000

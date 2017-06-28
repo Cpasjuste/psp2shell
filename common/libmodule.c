@@ -16,29 +16,3 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _psp2_shell_h_
-#define _psp2_shell_h_
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include "p2s_cmd.h"
-#include "p2s_msg.h"
-
-// init psp2shell on specified port
-int psp2shell_init(int port);
-
-void psp2shell_exit();
-
-void psp2shell_print_color(int color, const char *fmt, ...);
-
-#define psp2shell_print(...) psp2shell_print_color(COL_NONE, __VA_ARGS__)
-#define PRINT(...) psp2shell_print_color(COL_NONE, __VA_ARGS__)
-#define PRINT_ERR(...) psp2shell_print_color(COL_RED, __VA_ARGS__)
-#define PRINT_OK(...) psp2shell_print_color(COL_GREEN, __VA_ARGS__)
-
-#ifdef __cplusplus
-}
-#endif // __cplusplus
-#endif // _psp2_shell_h_

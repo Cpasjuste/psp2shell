@@ -16,30 +16,9 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __VITA_KERNEL__ // TODO
-
-#ifndef __VITA_KERNEL__
-
-#include <psp2/io/dirent.h>
-#include <psp2/io/fcntl.h>
-#include <psp2/io/devctl.h>
-
-#endif
-#ifndef MODULE
-
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-
-#else
-
-#include "../include/libmodule.h"
-
-#endif
-
-#include "../include/file.h"
-#include "../include/utility.h"
-//#include "../include/taipool.h"
+#include "libmodule.h"
+#include "file.h"
+#include "utility.h"
 #include "p2s_cmd.h"
 
 #define SCE_ERROR_ERRNO_EEXIST 0x80010011
@@ -722,5 +701,3 @@ int s_fileListGetEntries(s_FileList *list, char *path) {
     }
     return s_fileListGetDirectoryEntries(list, path);
 }
-
-#endif

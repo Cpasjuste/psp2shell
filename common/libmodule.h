@@ -18,47 +18,58 @@
 
 #ifndef LIBMODULE_H
 #define LIBMODULE_H
-#ifdef MODULE
 
 #include <libk/string.h>
 #include <libk/stdlib.h>
 #include <libk/stdio.h>
 #include <libk/stdarg.h>
+#include <sys/types.h>
+#include <taihen.h>
 
-#ifdef __VITA_KERNEL__
+#ifdef __KERNEL__
 
 #include <psp2kern/types.h>
 #include <psp2kern/net/net.h>
 #include <psp2kern/kernel/sysmem.h>
-
+#include <psp2kern/kernel/threadmgr.h>
+#include <psp2kern/kernel/processmgr.h>
+#include <psp2kern/kernel/modulemgr.h>
+#include <psp2kern/io/dirent.h>
+#include <psp2kern/io/fcntl.h>
+#include <psp2kern/io/stat.h>
+#include <psp2kern/io/devctl.h>
+#include <psp2kern/types.h>
+#ifdef DEBUG
+#define printf ksceDebugPrintf
+#endif
 #else
 
+#include <psp2/kernel/processmgr.h>
+#include <psp2/kernel/threadmgr.h>
+#include <psp2/kernel/modulemgr.h>
 #include <psp2/kernel/sysmem.h>
+#include <psp2/net/net.h>
+#include <psp2/net/netctl.h>
+#include <psp2/io/dirent.h>
 #include <psp2/io/fcntl.h>
+#include <psp2/io/stat.h>
+#include <psp2/io/devctl.h>
+#include <psp2/sysmodule.h>
 #include <psp2/types.h>
 #include <psp2/power.h>
 #include <psp2/appmgr.h>
-
-int sceKernelStartModule(SceUID modid, SceSize args, void *argp, int flags, void *option, int *status);
-
-#endif
+#include <psp2/rtc.h>
+#include <errno.h>
 
 #ifdef DEBUG
 int sceClibPrintf(const char *, ...);
 #define printf sceClibPrintf
-#endif
+#endif // DEBUG
+#endif // __KERNEL__
 
-#ifdef __VITA_KERNEL__
-
-#include <psp2kern/kernel/threadmgr.h>
-#include <psp2kern/kernel/processmgr.h>
-#include <psp2kern/kernel/modulemgr.h>
-#include <psp2kern/io/fcntl.h>
-#include <psp2kern/io/stat.h>
+#ifdef __KERNEL__
 
 #define sceKernelStartModule ksceKernelStartModule
-
-SceUID ksceKernelFindMemBlockByAddr(const void *addr, SceSize size);
 
 #define sceKernelAllocMemBlock ksceKernelAllocMemBlock
 #define sceKernelGetMemBlockBase ksceKernelGetMemBlockBase
@@ -71,6 +82,7 @@ SceUID ksceKernelFindMemBlockByAddr(const void *addr, SceSize size);
 #define sceKernelStartThread ksceKernelStartThread
 #define sceKernelDelayThread ksceKernelDelayThread
 #define sceKernelExitDeleteThread ksceKernelExitDeleteThread
+
 #define sceIoOpen ksceIoOpen
 #define sceIoRead ksceIoRead
 #define sceIoWrite ksceIoWrite
@@ -79,6 +91,13 @@ SceUID ksceKernelFindMemBlockByAddr(const void *addr, SceSize size);
 #define sceIoRename ksceIoRename
 #define sceIoRemove ksceIoRemove
 #define sceIoMkdir ksceIoMkdir
+#define sceIoRmdir ksceIoRmdir
+#define sceIoDopen ksceIoDopen
+#define sceIoDread ksceIoDread
+#define sceIoDclose ksceIoDclose
+#define sceIoGetstat ksceIoGetstat
+#define sceIoDevctl ksceIoDevctl
+
 
 #define sceNetSocketClose ksceNetSocketClose
 #define sceNetSocket ksceNetSocket
@@ -90,30 +109,9 @@ SceUID ksceKernelFindMemBlockByAddr(const void *addr, SceSize size);
 #define sceNetHtons ksceNetHtons
 #define sceNetHtonl ksceNetHtonl
 
-#else
-
-int sceKernelStopModule(SceUID modid, SceSize args, void *argp, int flags, void *option, int *status);
-
-SceUID sceAppMgrGetProcessIdByAppIdForShell(SceUID appId);
-
-int sceAppMgrGetRunningAppIdListForShell(SceUID *ids, int count);
-
-// return AppId ?
-SceUID sceAppMgrLaunchAppByName2ForShell(const char *name, const char *param, SceAppMgrLaunchAppOptParam *optParam);
-
-int sceAppMgrDestroyOtherAppByAppIdForShell(SceUID appId, void *a, void *b);
-
-int sceAppMgrDestroyAppByAppId(SceUID aid);
-
 #endif
-
-
-void *malloc(size_t size);
-
-void free(void *p);
 
 #define strcasecmp strcmp
 #define strncasecmp strncmp
 
-#endif // MODULE
 #endif //LIBMODULE_H

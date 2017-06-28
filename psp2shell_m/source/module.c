@@ -16,14 +16,11 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <psp2/kernel/processmgr.h>
-#include <psp2/kernel/modulemgr.h>
-#include <taihen.h>
 
-#include "../include/utility.h"
-#include "../include/psp2shell.h"
-#include "../include/module.h"
-#include "../include/libmodule.h"
+#include "libmodule.h"
+#include "utility.h"
+#include "psp2shell.h"
+#include "module.h"
 
 #ifndef DEBUG
 #include "../../psp2shell_k/psp2shell_k.h"

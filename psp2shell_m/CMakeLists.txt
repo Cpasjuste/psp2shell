@@ -21,7 +21,7 @@ set(INC_FILES
         include
         )
 
-set(CFLAGS -Wall -O2 -std=c99 -D__PSP2__ -DMODULE
+set(CFLAGS -Wall -O2 -std=c99 -D__PSP2__
         -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format
         -Wno-strict-aliasing -Wno-attributes -ffreestanding
         -DVERSION=\"${BUILD_DATE}\"
@@ -30,7 +30,7 @@ set(CFLAGS -Wall -O2 -std=c99 -D__PSP2__ -DMODULE
 # user module
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${INC_FILES})
-target_compile_options(${PROJECT_NAME} PRIVATE ${CFLAGS} -DMODULE)
+target_compile_options(${PROJECT_NAME} PRIVATE ${CFLAGS})
 
 set(LDFLAGS
         taihen_stub
