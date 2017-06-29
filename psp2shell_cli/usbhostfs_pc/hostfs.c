@@ -7,13 +7,13 @@
 #include <unistd.h>
 #include <usb.h>
 #include <fcntl.h>
-#include <usbhostfs.h>
 #include <errno.h>
 #include <sys/stat.h>
 #include <utime.h>
 #include <pthread.h>
 #include <sys/statvfs.h>
 
+#include "usbhostfs.h"
 #include "hostfs.h"
 #include "psp_fileio.h"
 

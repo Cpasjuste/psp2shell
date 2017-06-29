@@ -58,6 +58,8 @@ int sceClibPrintf(const char *, ...);
 #ifdef PC_SIDE
 #define send(a, b, c, d) usbShellWrite((unsigned int)a, b, c)
 #include <usb.h>
+#include "usbasync.h"
+#include "usbhostfs.h"
 
 #if defined BUILD_BIGENDIAN || defined _BIG_ENDIAN
 uint32_t swap32(uint32_t i)
@@ -76,9 +78,6 @@ uint32_t swap32(uint32_t i)
 #define LE64(x) (x)
 #endif
 
-#include "usbasync.h"
-#include "usbhostfs.h"
-
 int euid_usb_bulk_write(
         usb_dev_handle *dev, int ep, char *bytes, int size, int timeout);
 
@@ -89,7 +88,7 @@ extern usb_dev_handle *g_hDev;
 
 #include "p2s_cmd.h"
 
-#ifdef __KERNEL__
+#if defined(__KERNEL__) || defined(PC_SIDE)
 
 static int usbShellWrite(unsigned int chan, const char *data, int size) {
 
@@ -143,7 +142,7 @@ int p2s_cmd_receive(int sock, P2S_CMD *cmd) {
     char buffer[P2S_SIZE_CMD];
     memset(buffer, 0, P2S_SIZE_CMD);
 
-#ifdef __KERNEL__
+#if defined(__KERNEL__) || defined(PC_SIDE)
     int read = usbShellRead((unsigned int) sock, buffer, P2S_SIZE_CMD);
     if (read < 0) {
         return read;
@@ -167,7 +166,7 @@ int p2s_cmd_wait_result(int sock) {
     char buffer[P2S_SIZE_CMD];
     memset(buffer, 0, P2S_SIZE_CMD);
 
-#ifdef __KERNEL__
+#if defined(__KERNEL__) || defined(PC_SIDE)
     int read = usbShellRead((unsigned int) sock, buffer, P2S_SIZE_CMD);
     if (read < 0) {
         return read;

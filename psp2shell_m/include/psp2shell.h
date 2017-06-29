@@ -44,6 +44,15 @@ void p2s_print_color(int color, const char *fmt, ...);
 #define PRINT_OK(fmt, ...) p2s_print_color(COL_GREEN, "\n\n" fmt "\n\r\n", ## __VA_ARGS__)
 #define PRINT(...) p2s_print_color(COL_YELLOW, __VA_ARGS__)
 
+#ifdef DEBUG
+#ifdef __KERNEL__
+#define printf ksceDebugPrintf
+#else
+int sceClibPrintf(const char *, ...);
+#define printf sceClibPrintf
+#endif
+#endif
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus

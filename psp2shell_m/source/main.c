@@ -308,7 +308,7 @@ int module_start(SceSize argc, const void *args) {
 #endif
 
 #ifndef DEBUG
-    thid_k2u = sceKernelCreateThread("p2s_k2u", thread_k2u, 64, 0x2000, 0, 0x10000, 0);
+    thid_k2u = sceKernelCreateThread("p2s_k2u", thread_k2u, 64, 0x4000, 0, 0x10000, 0);
     if (thid_k2u >= 0) {
         sceKernelStartThread(thid_k2u, 0, NULL);
     }

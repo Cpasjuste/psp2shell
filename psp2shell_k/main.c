@@ -70,17 +70,33 @@ static void welcome() {
 }
 
 int kp2s_print_stdout(const char *data, int size) {
-    usbAsyncWrite(ASYNC_STDOUT, data, size);
-    return size;
+
+    if (!usbhostfs_connected()) {
+        return -1;
+    }
+
+    int ret = usbAsyncWrite(ASYNC_STDOUT, data, size);
+    return ret;
 }
 
 int kp2s_print_stdout_user(const char *data, int size) {
 
+    int state = 0;
+    ENTER_SYSCALL(state);
+
+    if (!usbhostfs_connected()) {
+        EXIT_SYSCALL(state);
+        return -1;
+    }
+
     char kbuf[P2S_KMSG_SIZE];
     memset(kbuf, 0, P2S_KMSG_SIZE);
     ksceKernelMemcpyUserToKernel(kbuf, (uintptr_t) data, sizeof(size));
-    usbAsyncWrite(ASYNC_STDOUT, kbuf, size);
-    return size;
+
+    int ret = usbAsyncWrite(ASYNC_STDOUT, kbuf, size);
+
+    EXIT_SYSCALL(state);
+    return ret;
 }
 
 void kp2s_print_color(int color, const char *fmt, ...) {
@@ -131,20 +147,26 @@ int kp2s_wait_cmd(P2S_CMD *cmd) {
     int state = 0;
     int ret = -1;
 
-    ENTER_SYSCALL(state);
-
-    while (k_buf_lock);
+    if (k_buf_lock) {
+        return ret;
+    }
     k_buf_lock = 1;
 
+    //ENTER_SYSCALL(state);
+    //while (k_buf_lock);
+    //k_buf_lock = 1;
+
     if (kp2s_cmd.type > CMD_START) {
+        ENTER_SYSCALL(state);
         ksceKernelMemcpyKernelToUser((uintptr_t) cmd, &kp2s_cmd, sizeof(P2S_CMD));
+        EXIT_SYSCALL(state);
         kp2s_cmd.type = 0;
         ret = 0;
     }
 
     k_buf_lock = 0;
 
-    EXIT_SYSCALL(state);
+    //EXIT_SYSCALL(state);
 
     return ret;
 }
@@ -155,6 +177,8 @@ static int thread_wait_cmd(SceSize args, void *argp) {
 
     usbShellInit();
     welcome();
+
+    set_hooks();
 
     while (!quit) {
 
@@ -197,7 +221,6 @@ int module_start(SceSize argc, const void *args) {
         ksceKernelStartThread(thid_wait, 0, NULL);
     }
 #endif
-    set_hooks();
 
     return SCE_KERNEL_START_SUCCESS;
 }
