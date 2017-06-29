@@ -21,6 +21,8 @@
 #include "utility.h"
 #include "p2s_cmd.h"
 
+static s_FileListEntry fileList[MAX_FILES];
+
 #define SCE_ERROR_ERRNO_EEXIST 0x80010011
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
@@ -38,6 +40,7 @@ static char *mount_points[] = {
         "ux0:",
         "vd0:",
         "vs0:",
+        "host0:"
 };
 
 #define N_MOUNT_POINTS (sizeof(mount_points) / sizeof(char **))
@@ -565,6 +568,7 @@ void s_fileListAddEntry(s_FileList *list, s_FileListEntry *entry, int sort) {
 }
 
 void s_fileListEmpty(s_FileList *list) {
+    /*
     s_FileListEntry *entry = list->head;
 
     while (entry) {
@@ -572,7 +576,7 @@ void s_fileListEmpty(s_FileList *list) {
         p2s_free(entry);
         entry = next;
     }
-
+    */
     list->head = NULL;
     list->tail = NULL;
     list->length = 0;
@@ -589,7 +593,7 @@ int s_fileListGetMountPointEntries(s_FileList *list) {
             SceIoStat stat;
             memset(&stat, 0, sizeof(SceIoStat));
             if (sceIoGetstat(mount_points[i], &stat) >= 0) {
-                s_FileListEntry *entry = p2s_malloc(sizeof(s_FileListEntry));
+                s_FileListEntry *entry = &fileList[list->length];//p2s_malloc(sizeof(s_FileListEntry));
                 strcpy(entry->name, mount_points[i]);
                 entry->name_length = strlen(entry->name);
                 entry->is_folder = 1;
@@ -624,7 +628,7 @@ int s_fileListGetDirectoryEntries(s_FileList *list, char *path) {
     if (dfd < 0)
         return dfd;
 
-    s_FileListEntry *entry = p2s_malloc(sizeof(s_FileListEntry));
+    s_FileListEntry *entry = &fileList[list->length];//p2s_malloc(sizeof(s_FileListEntry));
     strcpy(entry->name, DIR_UP);
     entry->name_length = strlen(entry->name);
     entry->is_folder = 1;
@@ -642,7 +646,7 @@ int s_fileListGetDirectoryEntries(s_FileList *list, char *path) {
             if (strcmp(dir.d_name, ".") == 0 || strcmp(dir.d_name, "..") == 0)
                 continue;
 
-            entry = p2s_malloc(sizeof(s_FileListEntry));
+            entry = &fileList[list->length];//p2s_malloc(sizeof(s_FileListEntry));
             strcpy(entry->name, dir.d_name);
 
             entry->is_folder = SCE_S_ISDIR(dir.d_stat.st_mode);

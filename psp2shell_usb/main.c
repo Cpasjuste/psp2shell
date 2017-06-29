@@ -71,7 +71,7 @@ static int usbShellInit(void) {
     return 0;
 }
 
-void psp2shell_print_color(int color, const char *fmt, ...) {
+void p2s_print_color(int color, const char *fmt, ...) {
 
     client->msg.color = color;
     memset(client->msg.buffer, 0, P2S_KMSG_SIZE);
@@ -80,14 +80,12 @@ void psp2shell_print_color(int color, const char *fmt, ...) {
     vsnprintf(client->msg.buffer, P2S_KMSG_SIZE, fmt, args);
     va_end(args);
 
-    printf("psp2shell_print_color: %s\n", client->msg.buffer);
     p2s_msg_send(ASYNC_SHELL, color, client->msg.buffer);
-    //p2s_msg_send_msg(ASYNC_SHELL, &client->msg);
 }
 
 static void welcome() {
 
-    PRINT("                     ________         .__           .__  .__   \n");
+    PRINT("\n\n                     ________         .__           .__  .__   \n");
     PRINT("______  ____________ \\_____  \\   _____|  |__   ____ |  | |  |  \n");
     PRINT("\\____ \\/  ___/\\____ \\ /  ____/  /  ___/  |  \\_/ __ \\|  | |  |  \n");
     PRINT("|  |_> >___ \\ |  |_> >       \\  \\___ \\|   Y  \\  ___/|  |_|  |__\n");
@@ -99,9 +97,6 @@ static void welcome() {
 static int thread_wait(SceSize args, void *argp) {
 
     printf("thread_wait start\n");
-
-    usbShellInit();
-    //welcome();
 
     // setup clients data
     client = p2s_malloc(sizeof(s_client));
@@ -119,12 +114,17 @@ static int thread_wait(SceSize args, void *argp) {
     strcpy(client->fileList.path, HOME_PATH);
     s_fileListGetEntries(&client->fileList, HOME_PATH);
 
+    usbShellInit();
+    welcome();
+
     while (!quit) {
 
         int res = p2s_cmd_receive(ASYNC_SHELL, &client->cmd);
         if (res != 0) {
-            printf("p2s_cmd_receive failed\n");
-            break;
+            if (!usbhostfs_connected()) {
+                printf("p2s_cmd_receive failed, waiting for usb...\n");
+                usbWaitForConnect();
+            }
         } else {
             p2s_cmd_parse(client, &client->cmd);
         }

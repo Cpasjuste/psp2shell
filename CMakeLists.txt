@@ -16,13 +16,13 @@ endif ()
 execute_process(COMMAND "date" "+%Y.%m.%d" OUTPUT_VARIABLE BUILD_DATE OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 # kernel module (wifi)
-#add_subdirectory(psp2shell_k)
+add_subdirectory(psp2shell_k)
 # main module (wifi)
 #add_subdirectory(psp2shell_m)
 #add_dependencies(psp2shell_m psp2shell_k-stubs)
 
 # kernel module (usb)
-add_subdirectory(psp2shell_usb)
+#add_subdirectory(psp2shell_usb)
 
 #add_subdirectory(psp2shell_loader)
 #add_subdirectory(psp2shell_cli) # external project for now, else cross-compile problem

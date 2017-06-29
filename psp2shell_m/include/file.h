@@ -27,6 +27,7 @@
 #define TRUE 1
 #define FALSE 0
 
+#define MAX_FILES 128
 #define MAX_PATH_LENGTH 256
 #define MAX_NAME_LENGTH 256
 #define MAX_SHORT_NAME_LENGTH 64

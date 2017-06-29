@@ -218,6 +218,7 @@ usb_dev_handle *wait_for_device(void) {
         hDev = open_device(usb_get_busses());
         if (hDev) {
             fprintf(stderr, "Connected to device\n");
+            rl_refresh_line(0, 0);
             break;
         }
 
@@ -417,39 +418,46 @@ int start_hostfs(void) {
                     readlen = euid_usb_bulk_read(g_hDev, 0x81, (char *) data, 512, g_timeout);
                     if (readlen == 0) {
                         fprintf(stderr, "Read cancelled (remote disconnected)\n");
+                        rl_refresh_line(0, 0);
                         break;
                     } else if (readlen == -ETIMEDOUT) {
                         continue;
                     } else if (readlen < 0) {
                         fprintf(stderr, "Read cancelled (readlen < 0)\n");
+                        rl_refresh_line(0, 0);
                         break;
                     }
 
                     if (readlen < sizeof(uint32_t)) {
                         fprintf(stderr, "Error could not read magic\n");
+                        rl_refresh_line(0, 0);
                         break;
                     }
 
                     if (LE32(data[0]) == HOSTFS_MAGIC) {
                         if (readlen < sizeof(struct HostFsCmd)) {
                             fprintf(stderr, "Error reading command header %d\n", readlen);
+                            rl_refresh_line(0, 0);
                             break;
                         }
                         do_hostfs((struct HostFsCmd *) data, readlen);
                     } else if (LE32(data[0]) == ASYNC_MAGIC) {
                         if (readlen < sizeof(struct AsyncCommand)) {
                             fprintf(stderr, "Error reading async header %d\n", readlen);
+                            rl_refresh_line(0, 0);
                             break;
                         }
                         do_async((struct AsyncCommand *) data, readlen);
                     } else if (LE32(data[0]) == BULK_MAGIC) {
                         if (readlen < sizeof(struct BulkCommand)) {
                             fprintf(stderr, "Error reading bulk header %d\n", readlen);
+                            rl_refresh_line(0, 0);
                             break;
                         }
                         do_bulk((struct BulkCommand *) data, readlen);
                     } else {
                         fprintf(stderr, "Error, invalid magic %08X\n", LE32(data[0]));
+                        rl_refresh_line(0, 0);
                     }
                 }
             }

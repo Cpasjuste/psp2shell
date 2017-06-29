@@ -309,9 +309,16 @@ struct BulkCommand {
 #ifndef PC_SIDE
 
 // use psp2shell to print
-#include <psp2kern/kernel/sysmem.h>
-#define DEBUG_PRINTF ksceDebugPrintf
-#define MODPRINTF ksceDebugPrintf
+#ifdef DEBUG
+//#include <psp2kern/kernel/sysmem.h>
+//#define DEBUG_PRINTF ksceDebugPrintf
+//#define MODPRINTF ksceDebugPrintf
+#define DEBUG_PRINTF(fmt, ...)
+#define MODPRINTF DEBUG_PRINTF
+#else
+#define DEBUG_PRINTF(fmt, ...)
+#define MODPRINTF DEBUG_PRINTF
+#endif
 
 int usbhostfs_connected(void);
 

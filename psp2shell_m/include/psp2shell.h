@@ -31,12 +31,12 @@ int psp2shell_init(int port);
 
 void psp2shell_exit();
 
-void psp2shell_print_color(int color, const char *fmt, ...);
+void p2s_print_color(int color, const char *fmt, ...);
 
-#define psp2shell_print(...) psp2shell_print_color(COL_NONE, __VA_ARGS__)
-#define PRINT_ERR(fmt, ...) psp2shell_print_color(COL_RED, "\n\n" fmt "\n\r\n", ## __VA_ARGS__)
-#define PRINT_OK(fmt, ...) psp2shell_print_color(COL_GREEN, "\n\n" fmt "\n\r\n", ## __VA_ARGS__)
-#define PRINT(...) psp2shell_print_color(COL_YELLOW, __VA_ARGS__)
+#define psp2shell_print(...) p2s_print_color(COL_NONE, __VA_ARGS__)
+#define PRINT_ERR(fmt, ...) p2s_print_color(COL_RED, "\n\n" fmt "\n\r\n", ## __VA_ARGS__)
+#define PRINT_OK(fmt, ...) p2s_print_color(COL_GREEN, "\n\n" fmt "\n\r\n", ## __VA_ARGS__)
+#define PRINT(...) p2s_print_color(COL_YELLOW, __VA_ARGS__)
 
 #ifdef __cplusplus
 }

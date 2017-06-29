@@ -70,7 +70,14 @@ int sceClibPrintf(const char *, ...);
 
 #ifdef __KERNEL__
 
+#define taiLoadStartKernelModule(a, b, c, d) ksceKernelLoadStartModule(a, b, c, d, NULL, 0)
+#define taiStopUnloadKernelModule ksceKernelStopUnloadModule
+#define taiLoadStartModuleForPid(a, b, c, d, e) ksceKernelLoadStartModuleForPid(a, b, c, d, e, NULL, 0)
+#define taiStopUnloadModuleForPid ksceKernelStopUnloadModuleForPid
 #define sceKernelStartModule ksceKernelStartModule
+#define sceKernelGetModuleInfo ksceKernelGetModuleInfo
+#define kpsp2shell_get_module_info ksceKernelGetModuleInfo
+#define kpsp2shell_get_module_list ksceKernelGetModuleList
 
 #define sceKernelAllocMemBlock ksceKernelAllocMemBlock
 #define sceKernelGetMemBlockBase ksceKernelGetMemBlockBase

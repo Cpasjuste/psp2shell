@@ -26,7 +26,7 @@
 /*
 static void printThreadInfoFull(SceKernelThreadInfo *threadInfo, int thid) {
 
-    psp2shell_print_color(COL_GREEN, "thread_name: %s\n", threadInfo->name);
+    p2s_print_color(COL_GREEN, "thread_name: %s\n", threadInfo->name);
     psp2shell_print("\tthid: 0x%08X\n", thid);
     psp2shell_print("\tprocessId: %08X\n", threadInfo->processId);
     psp2shell_print("\tattr: %04X\n", threadInfo->attr);

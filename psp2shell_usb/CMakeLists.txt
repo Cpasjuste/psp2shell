@@ -35,6 +35,7 @@ target_link_libraries(${PROJECT_NAME}
         SceSysmemForDriver_stub
         SceThreadmgrForDriver_stub
         SceIofilemgrForDriver_stub
+        SceModulemgrForDriver_stub
         SceModulemgrForKernel_stub
         SceUdcdForDriver_stub
         SceCpuForDriver_stub

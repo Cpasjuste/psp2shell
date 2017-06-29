@@ -83,7 +83,7 @@ static int usbShellWrite(unsigned int chan, const char *data, int size) {
 
     int ret = 0;
 
-    printf("usbWrite.usbAsyncWrite: sending = %i\n", size);
+    //printf("usbWrite.usbAsyncWrite: sending = %i\n", size);
 #ifdef PC_SIDE
     char buffer[sizeof(struct AsyncCommand) + size];
     struct AsyncCommand *cmd;
@@ -99,7 +99,7 @@ static int usbShellWrite(unsigned int chan, const char *data, int size) {
 #else
     ret = usbAsyncWrite(chan, data, size);
 #endif
-    printf("usbWrite.usbAsyncWrite: sent = %i\n", ret);
+    //printf("usbWrite.usbAsyncWrite: sent = %i\n", ret);
 
     return ret;
 }
