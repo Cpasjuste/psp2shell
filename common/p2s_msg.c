@@ -20,13 +20,14 @@ int sceClibPrintf(const char *, ...);
 #include <libk/stdarg.h>
 #include <sys/types.h>
 
-#ifdef __USB__
-
+#ifdef __KERNEL__
 #include <psp2kern/kernel/threadmgr.h>
 #include "usbasync.h"
 #include "usbhostfs.h"
-
 #define send(a, b, c, d) usbShellWrite((unsigned int)a, b, c)
+#elif __USB__
+#define send(a, b, c, d) printf("send: not implemented\n")
+#define recv(a, b, c, d) printf("recv: not implemented\n")
 #else
 #include <psp2/net/net.h>
 #define send sceNetSend
@@ -77,7 +78,7 @@ extern usb_dev_handle *g_hDev;
 
 #include "p2s_cmd.h"
 
-#ifdef __USB__
+#ifdef __KERNEL__
 
 static int usbShellWrite(unsigned int chan, const char *data, int size) {
 
@@ -133,7 +134,7 @@ int p2s_msg_receive(int sock, P2S_MSG *msg) {
     char buffer[P2S_SIZE_MSG];
     memset(buffer, 0, P2S_SIZE_MSG);
 
-#ifdef __USB__
+#ifdef __KERNEL__
     int read = usbShellRead((unsigned int) sock, buffer, P2S_SIZE_MSG);
     if (read < 0) {
         memset(msg->buffer, 0, P2S_KMSG_SIZE);

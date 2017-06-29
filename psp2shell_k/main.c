@@ -16,189 +16,187 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <libk/string.h>
+#include <psp2kern/kernel/threadmgr.h>
+#include <psp2kern/kernel/modulemgr.h>
 #include <libk/stdio.h>
 #include <libk/stdarg.h>
-#include <vitasdkkern.h>
-#include <taihen.h>
+#include <libk/string.h>
+#include <libk/stdbool.h>
 
-#include "psp2shell_k.h"
 #include "hooks.h"
 
-#define CHUNK_SIZE 2048
-static uint8_t chunk[CHUNK_SIZE];
+#ifdef __USB__
 
-volatile static int k_buf_at = 0;
+#include "../psp2shell_m/include/psp2shell.h"
+#include <psp2kern/kernel/sysmem.h>
+#include <psp2kern/kernel/cpu.h>
+#include "usbhostfs/usbasync.h"
+#include "usbhostfs/usbhostfs.h"
+#include "../common/p2s_msg.h"
+#include "../common/p2s_cmd.h"
+
+static bool quit = false;
+static SceUID thid_wait = -1;
+static P2S_CMD kp2s_cmd;
 volatile static int k_buf_lock = 0;
-volatile static int k_buf_len = 0;
-volatile static char k_buf[P2S_KMSG_SIZE] = {0};
+extern bool kp2s_ready;
 
-#define p2s_print_len(len, fmt, args...) do { \
-  while (k_buf_lock); \
-  k_buf_lock = 1; \
-  k_buf_len = snprintf((char *)k_buf+k_buf_at, P2S_KMSG_SIZE - k_buf_at, fmt, args); \
-  if (len > 0) \
-    k_buf_len = len; \
-  if (k_buf_at + k_buf_len <= P2S_KMSG_SIZE) \
-    k_buf_at += k_buf_len; \
-  k_buf_lock = 0; \
-} while (0)
+static struct AsyncEndpoint g_endp;
+static struct AsyncEndpoint g_stdout;
 
-#define p2s_print(fmt, args...) p2s_print_len(0, fmt, args)
+static int usbShellInit(void) {
 
-SceSize kpsp2shell_wait_buffer(char *buffer) {
+    int ret = usbAsyncRegister(ASYNC_SHELL, &g_endp);
+    printf("usbAsyncRegister: ASYNC_SHELL = %i\n", ret);
+    ret = usbAsyncRegister(ASYNC_STDOUT, &g_stdout);
+    printf("usbAsyncRegister: ASYNC_STDOUT = %i\n", ret);
 
-    if (k_buf_at <= 0) {
-        return 0;
+    printf("usbWaitForConnect\n");
+    ret = usbWaitForConnect();
+    printf("usbWaitForConnect: %i\n", ret);
+
+    return 0;
+}
+
+static void welcome() {
+
+    PRINT("\n\n                     ________         .__           .__  .__   \n");
+    PRINT("______  ____________ \\_____  \\   _____|  |__   ____ |  | |  |  \n");
+    PRINT("\\____ \\/  ___/\\____ \\ /  ____/  /  ___/  |  \\_/ __ \\|  | |  |  \n");
+    PRINT("|  |_> >___ \\ |  |_> >       \\  \\___ \\|   Y  \\  ___/|  |_|  |__\n");
+    PRINT("|   __/____  >|   __/\\_______ \\/____  >___|  /\\___  >____/____/\n");
+    PRINT("|__|       \\/ |__|           \\/     \\/     \\/     \\/ %s\n\n", "0.0");
+    PRINT("\r\n");
+}
+
+int kp2s_print_stdout(const char *data, int size) {
+    usbAsyncWrite(ASYNC_STDOUT, data, size);
+    return size;
+}
+
+int kp2s_print_stdout_user(const char *data, int size) {
+
+    char kbuf[P2S_KMSG_SIZE];
+    memset(kbuf, 0, P2S_KMSG_SIZE);
+    ksceKernelMemcpyUserToKernel(kbuf, (uintptr_t) data, sizeof(size));
+    usbAsyncWrite(ASYNC_STDOUT, kbuf, size);
+    return size;
+}
+
+void kp2s_print_color(int color, const char *fmt, ...) {
+
+    if (!usbhostfs_connected()) {
+        return;
     }
 
+    char buffer[P2S_KMSG_SIZE];
+    memset(buffer, 0, P2S_KMSG_SIZE);
+
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buffer, P2S_KMSG_SIZE, fmt, args);
+    va_end(args);
+
+    p2s_msg_send(ASYNC_SHELL, color, buffer);
+}
+
+void kp2s_print_color_user(int color, const char *fmt, ...) {
+
     int state = 0;
-    int count = 0;
+    ENTER_SYSCALL(state);
+
+    if (!usbhostfs_connected()) {
+        return;
+    }
+
+    char buffer[P2S_KMSG_SIZE];
+    memset(buffer, 0, P2S_KMSG_SIZE);
+
+    char kfmt[P2S_KMSG_SIZE];
+    memset(kfmt, 0, P2S_KMSG_SIZE);
+    ksceKernelMemcpyUserToKernel(kfmt, (uintptr_t) fmt, sizeof(fmt));
+
+    va_list args;
+    va_start(args, kfmt);
+    vsnprintf(buffer, P2S_KMSG_SIZE, kfmt, args);
+    va_end(args);
+
+    p2s_msg_send(ASYNC_SHELL, color, buffer);
+
+    EXIT_SYSCALL(state);
+}
+
+int kp2s_wait_cmd(P2S_CMD *cmd) {
+
+    int state = 0;
+    int ret = -1;
 
     ENTER_SYSCALL(state);
 
     while (k_buf_lock);
     k_buf_lock = 1;
 
-    count = k_buf_at;
-    ksceKernelStrncpyKernelToUser((uintptr_t) buffer, (char *) k_buf, k_buf_at + 1);
-    k_buf_at = 0;
+    if (kp2s_cmd.type > CMD_START) {
+        ksceKernelMemcpyKernelToUser((uintptr_t) cmd, &kp2s_cmd, sizeof(P2S_CMD));
+        kp2s_cmd.type = 0;
+        ret = 0;
+    }
+
     k_buf_lock = 0;
 
     EXIT_SYSCALL(state);
 
-    return (SceSize) count;
+    return ret;
 }
 
-void kpsp2shell_set_ready(bool rdy) {
+static int thread_wait_cmd(SceSize args, void *argp) {
 
-    ready = rdy;
-}
+    printf("thread_wait_cmd start\n");
 
-int kpsp2shell_dump(SceUID pid, const char *filename, void *addr, unsigned int size) {
+    usbShellInit();
+    welcome();
 
-    SceUID fd;
-    fd = ksceIoOpen(filename, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 6);
-    if (fd <= 0) {
-        return fd;
-    }
+    while (!quit) {
 
-    int i = 0;
-    size_t bufsize = 0;
+        while (k_buf_lock);
+        k_buf_lock = 1;
+        int res = p2s_cmd_receive(ASYNC_SHELL, &kp2s_cmd);
+        k_buf_lock = 0;
 
-    while (i < size) {
-        if (size - i > CHUNK_SIZE) {
-            bufsize = CHUNK_SIZE;
+        if (res != 0) {
+            if (!usbhostfs_connected()) {
+                printf("p2s_cmd_receive failed, waiting for usb...\n");
+                usbWaitForConnect();
+            }
         } else {
-            bufsize = size - i;
+            if (!kp2s_ready) {
+                PRINT_ERR("psp2shell main user module not loaded \n");
+            }
         }
-        ksceKernelMemcpyUserToKernelForPid(pid, chunk, (uintptr_t) (addr + i), bufsize);
-        i += bufsize;
-
-        ksceIoWrite(fd, chunk, bufsize);
     }
 
-    ksceIoClose(fd);
-
+    printf("thread_wait_cmd end\n");
     return 0;
 }
 
-int kpsp2shell_dump_module(SceUID pid, SceUID uid, const char *dst) {
-
-    int ret;
-    SceKernelModuleInfo kinfo;
-    memset(&kinfo, 0, sizeof(SceKernelModuleInfo));
-    kinfo.size = sizeof(SceKernelModuleInfo);
-
-    uint32_t state;
-    ENTER_SYSCALL(state);
-
-    SceUID kid = ksceKernelKernelUidForUserUid(pid, uid);
-    if (kid < 0) {
-        kid = uid;
-    }
-
-    ret = ksceKernelGetModuleInfo(pid, kid, &kinfo);
-
-    if (ret >= 0) {
-
-        char path[128];
-
-        for (int i = 0; i < 4; i++) {
-
-            SceKernelSegmentInfo *seginfo = &kinfo.segments[i];
-
-            if (seginfo->memsz <= 0 || seginfo->vaddr == NULL || seginfo->size != sizeof(*seginfo)) {
-                continue;
-            }
-
-            memset(path, 0, 128);
-            ksceKernelStrncpyUserToKernel(path, (uintptr_t) dst, 128);
-            snprintf(path + strlen(path), 128, "/%s_0x%08X_seg%d.bin",
-                     kinfo.module_name, (uintptr_t) seginfo->vaddr, i);
-
-            p2s_print("dumping: %s\n", path);
-
-            ret = kpsp2shell_dump(pid, path, seginfo->vaddr, seginfo->memsz);
-        }
-    }
-
-    EXIT_SYSCALL(state);
-
-    return ret;
-}
-
-int kpsp2shell_get_module_info(SceUID pid, SceUID uid, SceKernelModuleInfo *info) {
-
-    int ret;
-    SceKernelModuleInfo kinfo;
-    memset(&kinfo, 0, sizeof(SceKernelModuleInfo));
-    kinfo.size = sizeof(SceKernelModuleInfo);
-
-    uint32_t state;
-    ENTER_SYSCALL(state);
-
-    SceUID kid = ksceKernelKernelUidForUserUid(pid, uid);
-    if (kid < 0) {
-        kid = uid;
-    }
-
-    ret = ksceKernelGetModuleInfo(pid, kid, &kinfo);
-    if (ret >= 0) {
-        ksceKernelMemcpyKernelToUser((uintptr_t) info, &kinfo, sizeof(SceKernelModuleInfo));
-    }
-
-    EXIT_SYSCALL(state);
-
-    return ret;
-}
-
-int kpsp2shell_get_module_list(SceUID pid, int flags1, int flags2, SceUID *modids, size_t *num) {
-
-    size_t count = 256;
-    SceUID kmodids[256];
-
-    uint32_t state;
-    ENTER_SYSCALL(state);
-
-    memset(kmodids, 0, sizeof(SceUID) * 256);
-    int res = ksceKernelGetModuleList(pid, flags1, flags2, kmodids, &count);
-    if (res >= 0) {
-        ksceKernelMemcpyKernelToUser((uintptr_t) modids, &kmodids, sizeof(SceUID) * 256);
-        ksceKernelMemcpyKernelToUser((uintptr_t) num, &count, sizeof(size_t));
-    } else {
-        ksceKernelMemcpyKernelToUser((uintptr_t) num, &count, sizeof(size_t));
-    }
-
-    EXIT_SYSCALL(state);
-
-    return res;
-}
+#endif
 
 void _start() __attribute__ ((weak, alias ("module_start")));
 
 int module_start(SceSize argc, const void *args) {
 
+#ifdef __USB__
+    int res = usbhostfs_start();
+    if (res != 0) {
+        printf("module_start: usbhostfs_start failed\n");
+        return SCE_KERNEL_START_FAILED;
+    }
+
+    thid_wait = ksceKernelCreateThread("kp2s_wait_cmd", thread_wait_cmd, 0x64, 0x5000, 0, 0x10000, 0);
+    if (thid_wait >= 0) {
+        ksceKernelStartThread(thid_wait, 0, NULL);
+    }
+#endif
     set_hooks();
 
     return SCE_KERNEL_START_SUCCESS;
@@ -207,6 +205,18 @@ int module_start(SceSize argc, const void *args) {
 int module_stop(SceSize argc, const void *args) {
 
     delete_hooks();
+
+#ifdef __USB__
+    quit = true;
+    //ksceKernelDeleteThread(thid_wait);
+    //ksceKernelWaitThreadEnd(thid_wait, 0, 0);
+
+    printf("module_stop: usbhostfs_stop\n");
+    int res = usbhostfs_stop();
+    if (res != 0) {
+        printf("module_stop: usbhostfs_stop failed\n");
+    }
+#endif
 
     return SCE_KERNEL_STOP_SUCCESS;
 }

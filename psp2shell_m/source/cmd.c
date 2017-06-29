@@ -40,7 +40,7 @@ static void toAbsolutePath(s_FileList *fileList, char *path) {
 
 static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
 
-#ifdef __KERNEL__
+#if defined(__KERNEL__) || defined(__USB__)
     PRINT_ERR("TODO: cmd_put\n");
     return 0;
 #else
@@ -136,7 +136,7 @@ static void cmd_title() {
 
 static void cmd_load(int sock, long size, const char *tid) {
 
-#ifdef __KERNEL__
+#if defined(__KERNEL__) || defined(__USB__)
     PRINT_ERR("TODO: cmd_load\n");
 #else
     char path[256];

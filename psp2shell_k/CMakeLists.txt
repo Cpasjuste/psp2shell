@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(psp2shell_k)
+project(psp2shell_k_)
 include("${VITASDK}/share/vita.cmake" REQUIRED)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,-q -Wall -O3 -std=gnu99 -D__PSP2__ -D__VITA_KERNEL__")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti -fno-exceptions -D__PSP2__ -D__VITA_KERNEL__")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,-q -Wall -O3 -std=gnu99 -D__PSP2__ -D__KERNEL__ -D__USB__")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti -fno-exceptions -D__PSP2__ -D__KERNEL__ -D__USB__")
 
 link_directories(${CMAKE_CURRENT_BINARY_DIR})
 
@@ -51,6 +51,7 @@ endmacro(_vita_create_stubs)
 add_executable(${PROJECT_NAME}
         main.c
         hooks.c
+        utility.c
         )
 target_link_libraries(${PROJECT_NAME}
         taihenForKernel_stub
@@ -75,12 +76,16 @@ _vita_create_stubs(${PROJECT_NAME}-stubs ${PROJECT_NAME}
 add_executable(${PROJECT_NAME}_usb
         main.c
         hooks.c
+        utility.c
+        ../common/p2s_cmd.c
+        ../common/p2s_msg.c
         usbhostfs/usbhostfs.c
         usbhostfs/host_driver.c
         )
 target_include_directories(${PROJECT_NAME}_usb PRIVATE
         usbhostfs
         ../common
+        ../psp2shell_m/include
         )
 target_link_libraries(${PROJECT_NAME}_usb
         taihenForKernel_stub
@@ -96,8 +101,8 @@ target_link_libraries(${PROJECT_NAME}_usb
         gcc
         -nostdlib
         )
-set_target_properties(${PROJECT_NAME}_usb
-        PROPERTIES COMPILE_FLAGS "-D__USB__"
+target_compile_options(${PROJECT_NAME}_usb PRIVATE
+        -D__USB__
         )
 vita_create_self(${PROJECT_NAME}_usb.skprx ${PROJECT_NAME}_usb
         CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/psp2shell_k_usb.yml)

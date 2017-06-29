@@ -5,10 +5,6 @@
 extern "C" {
 #endif
 
-#ifndef __USB__
-#include "../psp2shell_k/psp2shell_k.h"
-#endif
-
 #define P2S_ERR_SOCKET      0x80000001
 #define P2S_ERR_INVALID_CMD 0x80000002
 
@@ -21,11 +17,8 @@ typedef struct P2S_CMD {
     int type;
     char args[P2S_MAX_ARGS][P2S_SIZE_STRING];
 } P2S_CMD;
-#ifdef __USB__
-#define P2S_SIZE_CMD    (400)
-#else
-#define P2S_SIZE_CMD    (sizeof(P2S_CMD) + (P2S_MAX_ARGS * 10))
-#endif
+
+#define P2S_SIZE_CMD        (400)
 
 enum p2s_cmd_t {
     CMD_START = 10,

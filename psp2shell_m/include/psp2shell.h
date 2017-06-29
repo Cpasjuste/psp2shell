@@ -23,15 +23,21 @@
 extern "C" {
 #endif
 
-#include "p2s_cmd.h"
-#include "p2s_msg.h"
-
 // init psp2shell on specified port
 int psp2shell_init(int port);
 
 void psp2shell_exit();
 
+#ifdef __USB__
+#ifdef __KERNEL__
+#define p2s_print_color kp2s_print_color
+#else
+#include "../psp2shell_k/psp2shell_k.h"
+#define p2s_print_color kp2s_print_color_user
+#endif
+#else
 void p2s_print_color(int color, const char *fmt, ...);
+#endif
 
 #define psp2shell_print(...) p2s_print_color(COL_NONE, __VA_ARGS__)
 #define PRINT_ERR(fmt, ...) p2s_print_color(COL_RED, "\n\n" fmt "\n\r\n", ## __VA_ARGS__)

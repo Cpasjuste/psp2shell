@@ -22,20 +22,22 @@
 #include "utility.h"
 #include "psp2shell.h"
 
+static SceUID thid_k2u = -1;
+static s_client *client;
+static int quit = 0;
+
+void p2s_cmd_parse(s_client *client, P2S_CMD *cmd);
+
+#ifndef __USB__
 static SceUID thid_wait = -1;
-static SceUID thid_kbuf = -1;
 static SceUID thid_client = -1;
 #ifdef DEBUG
 static int listen_port = 5555;
 #else
 static int listen_port = 3333;
 #endif
-static s_client *client;
 static int server_sock_msg;
 static int server_sock_cmd;
-static int quit = 0;
-
-void p2s_cmd_parse(s_client *client, P2S_CMD *cmd);
 
 static void close_server() {
 
@@ -107,16 +109,13 @@ void psp2shell_print_color(int color, const char *fmt, ...) {
 
 static void welcome() {
 
-    char msg[1024];
-    memset(msg, 0, 1024);
-    strcpy(msg, "\n");
-    strcat(msg, "                     ________         .__           .__  .__   \n");
-    strcat(msg, "______  ____________ \\_____  \\   _____|  |__   ____ |  | |  |  \n");
-    strcat(msg, "\\____ \\/  ___/\\____ \\ /  ____/  /  ___/  |  \\_/ __ \\|  | |  |  \n");
-    strcat(msg, "|  |_> >___ \\ |  |_> >       \\  \\___ \\|   Y  \\  ___/|  |_|  |__\n");
-    strcat(msg, "|   __/____  >|   __/\\_______ \\/____  >___|  /\\___  >____/____/\n");
-    sprintf(msg + strlen(msg), "|__|       \\/ |__|           \\/     \\/     \\/     \\/ %s\n\n", VERSION);
-    PRINT_OK(msg);
+    PRINT("\n\n                     ________         .__           .__  .__   \n");
+    PRINT("______  ____________ \\_____  \\   _____|  |__   ____ |  | |  |  \n");
+    PRINT("\\____ \\/  ___/\\____ \\ /  ____/  /  ___/  |  \\_/ __ \\|  | |  |  \n");
+    PRINT("|  |_> >___ \\ |  |_> >       \\  \\___ \\|   Y  \\  ___/|  |_|  |__\n");
+    PRINT("|   __/____  >|   __/\\_______ \\/____  >___|  /\\___  >____/____/\n");
+    PRINT("|__|       \\/ |__|           \\/     \\/     \\/     \\/ %s\n\n", VERSION);
+    PRINT("\r\n");
 }
 
 int cmd_thread(SceSize args, void *argp) {
@@ -142,7 +141,7 @@ int cmd_thread(SceSize args, void *argp) {
     printf("got data sock: %i\n", client->cmd_sock);
 
 #ifndef DEBUG
-    kpsp2shell_set_ready(1);
+    kp2s_set_ready(1);
 #endif
 
     while (!quit) {
@@ -162,7 +161,7 @@ int cmd_thread(SceSize args, void *argp) {
 
     printf("closing connection\n");
 #ifndef DEBUG
-    kpsp2shell_set_ready(0);
+    kp2s_set_ready(0);
 #endif
     if (client->msg_sock >= 0) {
         sceNetSocketClose(client->msg_sock);
@@ -178,7 +177,7 @@ int cmd_thread(SceSize args, void *argp) {
     return 0;
 }
 
-static int thread_wait(SceSize args, void *argp) {
+static int thread_wait_client(SceSize args, void *argp) {
 
     // load/wait network modules
     while (p2s_netInit() != 0) {
@@ -238,17 +237,35 @@ static int thread_wait(SceSize args, void *argp) {
     sceKernelExitDeleteThread(0);
     return 0;
 }
+#endif
 
 #ifndef DEBUG
 
-static int thread_kbuf(SceSize args, void *argp) {
+static int thread_k2u(SceSize args, void *argp) {
 
+#ifdef __USB__
+    kp2s_set_ready(1);
+
+    P2S_CMD cmd;
+
+    while (!quit) {
+
+        int res = kp2s_wait_cmd(&cmd);
+        if (res == 0) {
+            p2s_cmd_parse(client, &cmd);
+        } else {
+            sceKernelDelayThread(100);
+        }
+    }
+
+    kp2s_set_ready(0);
+#else
     char buffer[P2S_KMSG_SIZE];
 
     while (!quit) {
 
         if (client->msg_sock >= 0) {
-            SceSize len = kpsp2shell_wait_buffer(buffer);
+            SceSize len = kp2s_wait_buffer(buffer);
             if (client->msg_sock >= 0 && len > 0) {
                 if (sceNetSend(client->msg_sock, buffer, len, 0) >= 0) {
                     // wait for client to receive message
@@ -262,6 +279,7 @@ static int thread_kbuf(SceSize args, void *argp) {
         }
     }
 
+#endif
     sceKernelExitDeleteThread(0);
     return 0;
 }
@@ -283,17 +301,25 @@ int module_start(SceSize argc, const void *args) {
     memset(client, 0, sizeof(s_client));
     client->msg_sock = -1;
     client->cmd_sock = -1;
+#ifdef __USB__
+    memset(&client->fileList, 0, sizeof(s_FileList));
+    strcpy(client->fileList.path, HOME_PATH);
+    s_fileListGetEntries(&client->fileList, HOME_PATH);
+#endif
 
 #ifndef DEBUG
-    thid_kbuf = sceKernelCreateThread("psp2shell_kbuf", thread_kbuf, 64, 0x2000, 0, 0x10000, 0);
-    if (thid_kbuf >= 0) {
-        sceKernelStartThread(thid_kbuf, 0, NULL);
+    thid_k2u = sceKernelCreateThread("p2s_k2u", thread_k2u, 64, 0x2000, 0, 0x10000, 0);
+    if (thid_k2u >= 0) {
+        sceKernelStartThread(thid_k2u, 0, NULL);
     }
 #endif
-    thid_wait = sceKernelCreateThread("psp2shell_wait", thread_wait, 64, 0x2000, 0, 0x10000, 0);
+
+#ifndef __USB__
+    thid_wait = sceKernelCreateThread("p2_wait_client", thread_wait_client, 64, 0x2000, 0, 0x10000, 0);
     if (thid_wait >= 0) {
         sceKernelStartThread(thid_wait, 0, NULL);
     }
+#endif
 
     return SCE_KERNEL_START_SUCCESS;
 }
@@ -317,11 +343,12 @@ void psp2shell_exit() {
     quit = 1;
 
 #ifndef DEBUG
-    kpsp2shell_set_ready(0);
+    kp2s_set_ready(0);
 #endif
 
     printf("close_client\n");
     if (client != NULL) {
+#ifndef __USB__
         if (client->msg_sock >= 0) {
             sceNetSocketClose(client->msg_sock);
             client->msg_sock = -1;
@@ -333,18 +360,21 @@ void psp2shell_exit() {
         if (thid_client >= 0) {
             sceKernelWaitThreadEnd(thid_client, NULL, NULL);
         }
+#endif
         p2s_free(client);
         client = NULL;
     }
 
+#ifndef __USB__
     printf("close_server\n");
     close_server();
     if (thid_wait >= 0) {
         sceKernelWaitThreadEnd(thid_wait, NULL, NULL);
     }
+#endif
 
-    if (thid_kbuf >= 0) {
-        printf("sceKernelDeleteThread: thid_kbuf\n");
-        sceKernelDeleteThread(thid_kbuf);
+    if (thid_k2u >= 0) {
+        printf("sceKernelDeleteThread: thid_k2u\n");
+        sceKernelDeleteThread(thid_k2u);
     }
 }

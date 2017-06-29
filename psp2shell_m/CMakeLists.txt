@@ -16,21 +16,17 @@ set(SRC_FILES
         ../common/p2s_cmd.c
         ../common/p2s_msg.c
         )
+
 set(INC_FILES
         ../common
         include
         )
 
-set(CFLAGS -Wall -O2 -std=c99 -D__PSP2__
+set(CFLAGS -Wall -O2 -std=c99 -D__PSP2__ -D__USB__
         -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format
         -Wno-strict-aliasing -Wno-attributes -ffreestanding
         -DVERSION=\"${BUILD_DATE}\"
         )
-
-# user module
-add_executable(${PROJECT_NAME} ${SRC_FILES})
-target_include_directories(${PROJECT_NAME} PRIVATE ${INC_FILES})
-target_compile_options(${PROJECT_NAME} PRIVATE ${CFLAGS})
 
 set(LDFLAGS
         taihen_stub
@@ -49,12 +45,27 @@ set(LDFLAGS
         -nostdlib
         )
 
+# wifi module
+add_executable(${PROJECT_NAME} ${SRC_FILES})
+target_include_directories(${PROJECT_NAME} PRIVATE ${INC_FILES})
+target_compile_options(${PROJECT_NAME} PRIVATE ${CFLAGS})
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    list(APPEND LDFLAGS ${CMAKE_BINARY_DIR}/psp2shell_k/psp2shell_k-stubs/libpsp2shell_k_stub.a)
+    target_link_libraries(${PROJECT_NAME} ${LDFLAGS}
+            ${CMAKE_BINARY_DIR}/psp2shell_k/psp2shell_k-stubs/libpsp2shell_k_stub.a)
+else ()
+    target_link_libraries(${PROJECT_NAME} ${LDFLAGS})
 endif ()
 
-target_link_libraries(${PROJECT_NAME} ${LDFLAGS})
-
 vita_create_self(${PROJECT_NAME}.suprx ${PROJECT_NAME}
+        CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/psp2shell_m.yml
+        UNSAFE)
+
+# usb module
+add_executable(${PROJECT_NAME}_usb ${SRC_FILES})
+target_include_directories(${PROJECT_NAME}_usb PRIVATE ${INC_FILES} ../psp2shell_k/usbhostfs)
+target_compile_options(${PROJECT_NAME}_usb PRIVATE ${CFLAGS} -D__USB__)
+target_link_libraries(${PROJECT_NAME}_usb ${LDFLAGS}
+        ${CMAKE_BINARY_DIR}/psp2shell_k/psp2shell_k_usb-stubs/libpsp2shell_k_usb_stub.a)
+vita_create_self(${PROJECT_NAME}_usb.suprx ${PROJECT_NAME}_usb
         CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/psp2shell_m.yml
         UNSAFE)

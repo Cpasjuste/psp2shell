@@ -4,16 +4,17 @@
 
 #include <psp2kern/kernel/sysmem.h>
 #include <psp2kern/kernel/cpu.h>
-#include <taihen.h>
 #include <libk/string.h>
 #include <libk/stdarg.h>
 #include <libk/stdio.h>
-#include <libk/stdbool.h>
+#include <taihen.h>
+
 #include "hooks.h"
+#include "utility.h"
+#include "psp2shell_k.h"
 
 #define P2S_MSG_LEN 256
 
-static bool ready = false;
 static SceUID g_hooks[MAX_HOOKS];
 static tai_hook_ref_t ref_hooks[MAX_HOOKS];
 static int __stdout_fd = 1073807367;
@@ -24,12 +25,14 @@ static int _kDebugPrintf(const char *fmt, ...) {
     memset(temp_buf, 0, P2S_MSG_LEN);
     va_list args;
     va_start(args, fmt);
-    vsnprintf(temp_buf, P2S_MSG_LEN, fmt, args);
+    int len = vsnprintf(temp_buf, P2S_MSG_LEN, fmt, args);
     va_end(args);
 
-    if (ready) {
-        p2s_print("%s", temp_buf);
-    }
+#ifdef __USB__
+    kp2s_print_stdout(temp_buf, len);
+#else
+    kp2s_print("%s", temp_buf);
+#endif
 
     return TAI_CONTINUE(int, ref_hooks[2], fmt, args);
 }
@@ -40,12 +43,14 @@ static int _kDebugPrintf2(int num0, int num1, const char *fmt, ...) {
     memset(temp_buf, 0, P2S_MSG_LEN);
     va_list args;
     va_start(args, fmt);
-    vsnprintf(temp_buf, P2S_MSG_LEN, fmt, args);
+    int len = vsnprintf(temp_buf, P2S_MSG_LEN, fmt, args);
     va_end(args);
 
-    if (ready) {
-        p2s_print("%s", temp_buf);
-    }
+#ifdef __USB__
+    kp2s_print_stdout(temp_buf, len);
+#else
+    kp2s_print("%s", temp_buf);
+#endif
 
     return TAI_CONTINUE(int, ref_hooks[3], num0, num1, fmt, args);
 }
@@ -56,12 +61,18 @@ static int _sceIoWrite(SceUID fd, const void *data, SceSize size) {
         return 0;
     }
 
-    if (fd == __stdout_fd && ready && size < P2S_MSG_LEN) {
+#ifdef __USB__
+    if (fd == __stdout_fd) {
+        kp2s_print_stdout(data, size);
+    }
+#else
+    if (fd == __stdout_fd && size < P2S_MSG_LEN) {
         char temp_buf[size];
         memset(temp_buf, 0, size);
         ksceKernelStrncpyUserToKernel(temp_buf, (uintptr_t) data, size);
-        p2s_print_len(size, "%s", temp_buf);
+        kp2s_print_len(size, "%s", temp_buf);
     }
+#endif
 
     return TAI_CONTINUE(int, ref_hooks[0], fd, data, size);
 }

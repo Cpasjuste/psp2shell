@@ -18,6 +18,7 @@
 
 
 #include "libmodule.h"
+#include "main.h"
 #include "utility.h"
 #include "psp2shell.h"
 #include "module.h"
@@ -80,10 +81,10 @@ int p2s_moduleInfoForPid(SceUID pid, SceUID uid) {
     memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
     moduleInfo.size = sizeof(SceKernelModuleInfo);
 
-#if defined(DEBUG) && !defined(__USB__)
+#if defined(DEBUG)
     int res = sceKernelGetModuleInfo(uid, &moduleInfo);
 #else
-    int res = kpsp2shell_get_module_info(pid, uid, &moduleInfo);
+    int res = kp2s_get_module_info(pid, uid, &moduleInfo);
 #endif
     if (res == 0) {
         printModuleInfoFull(&moduleInfo);
@@ -114,10 +115,10 @@ int p2s_moduleListForPid(SceUID pid) {
     SceUID ids[256];
     size_t count = 256;
 
-#if defined(DEBUG) && !defined(__USB__)
+#if defined(DEBUG)
     int res = sceKernelGetModuleList(0xFF, ids, (int *) &count);
 #else
-    int res = kpsp2shell_get_module_list(pid, 0xFF, 1, ids, &count);
+    int res = kp2s_get_module_list(pid, 0xFF, 1, ids, &count);
 #endif
 
     if (res != 0) {
@@ -130,11 +131,11 @@ int p2s_moduleListForPid(SceUID pid) {
             if (ids[i] > 0) {
                 memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
 
-#if defined(DEBUG) && !defined(__USB__)
+#if defined(DEBUG)
                 moduleInfo.size = sizeof(SceKernelModuleInfo);
                 res = sceKernelGetModuleInfo(ids[i], &moduleInfo);
 #else
-                res = kpsp2shell_get_module_info(pid, ids[i], &moduleInfo);
+                res = kp2s_get_module_info(pid, ids[i], &moduleInfo);
 #endif
                 if (res == 0) {
                     PRINT("\t%s (uid: 0x%08X)\n",
@@ -236,7 +237,7 @@ int p2s_moduleDumpForPid(SceUID pid, SceUID uid, const char *dst) {
     PRINT_ERR("TODO: p2s_moduleDumpForPid");
     return -1;
 #else
-    int res = kpsp2shell_dump_module(pid, uid, dst);
+    int res = kp2s_dump_module(pid, uid, dst);
     if (res != 0) {
         PRINT_ERR("\nmodule dump failed: 0x%08X\n\n", res);
     } else {

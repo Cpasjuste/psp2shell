@@ -10,8 +10,8 @@ psp2shell_k:
         psp2shell_k:
             syscall: true
             functions:
-              - kpsp2shell_wait_buffer
-              - kpsp2shell_set_ready
-              - kpsp2shell_get_module_info
-              - kpsp2shell_get_module_list
-              - kpsp2shell_dump_module
+              - kp2s_wait_buffer
+              - kp2s_set_ready
+              - kp2s_get_module_info
+              - kp2s_get_module_list
+              - kp2s_dump_module

@@ -23,10 +23,6 @@
 #include "p2s_msg.h"
 #include "file.h"
 
-#define BOOL int
-#define TRUE 1
-#define FALSE 0
-
 typedef struct {
     int msg_sock;
     int cmd_sock;

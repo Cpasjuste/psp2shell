@@ -34,21 +34,20 @@ int sceClibPrintf(const char *, ...);
 #include <libk/stdarg.h>
 #include <sys/types.h>
 
-#ifdef __USB__
-
+#ifdef __KERNEL__
 #include <psp2kern/kernel/threadmgr.h>
 #include "usbasync.h"
 #include "usbhostfs.h"
-
 #define send(a, b, c, d) usbShellWrite((unsigned int)a, b, c)
-#else
+#elif __USB__
+#define send(a, b, c, d) printf("send: not implemented\n")
+#define recv(a, b, c, d) printf("recv: not implemented\n")
+#else // WIFI
 #include <psp2/net/net.h>
 #define send sceNetSend
 #define recv sceNetRecv
 #endif
-
 #else
-
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -90,7 +89,7 @@ extern usb_dev_handle *g_hDev;
 
 #include "p2s_cmd.h"
 
-#ifdef __USB__
+#ifdef __KERNEL__
 
 static int usbShellWrite(unsigned int chan, const char *data, int size) {
 
@@ -144,7 +143,7 @@ int p2s_cmd_receive(int sock, P2S_CMD *cmd) {
     char buffer[P2S_SIZE_CMD];
     memset(buffer, 0, P2S_SIZE_CMD);
 
-#ifdef __USB__
+#ifdef __KERNEL__
     int read = usbShellRead((unsigned int) sock, buffer, P2S_SIZE_CMD);
     if (read < 0) {
         return read;
@@ -168,7 +167,7 @@ int p2s_cmd_wait_result(int sock) {
     char buffer[P2S_SIZE_CMD];
     memset(buffer, 0, P2S_SIZE_CMD);
 
-#ifdef __USB__
+#ifdef __KERNEL__
     int read = usbShellRead((unsigned int) sock, buffer, P2S_SIZE_CMD);
     if (read < 0) {
         return read;

@@ -5,11 +5,8 @@
 #ifndef PROJECT_P2S_MSG_H
 #define PROJECT_P2S_MSG_H
 
-#ifdef __USB__
-#define P2S_KMSG_SIZE 400
-#else
 #include "../psp2shell_k/psp2shell_k.h"
-#endif
+
 #define P2S_ERR_SOCKET      0x80000001
 #define P2S_ERR_INVALID_MSG 0x80000002
 
@@ -17,11 +14,8 @@ typedef struct P2S_MSG {
     int color;
     char buffer[P2S_KMSG_SIZE];
 } P2S_MSG;
-#ifdef __USB__
-#define P2S_SIZE_MSG    (450)
-#else
-#define P2S_SIZE_MSG    (sizeof(P2S_MSG) + 2)
-#endif
+
+#define P2S_SIZE_MSG        (450)
 
 enum p2s_colors_t {
     COL_NONE = 10,

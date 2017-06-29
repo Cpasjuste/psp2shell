@@ -17,6 +17,7 @@
 */
 
 #include "libmodule.h"
+#include "main.h"
 #include "psp2shell.h"
 #include "thread.h"
 

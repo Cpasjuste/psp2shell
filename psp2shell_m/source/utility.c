@@ -141,7 +141,7 @@ int p2s_reset_running_app() {
     return 0;
 }
 
-#ifndef __KERNEL__
+#ifndef __USB__
 int p2s_netInit() {
 
     int loaded = sceSysmoduleIsLoaded(SCE_SYSMODULE_NET);
