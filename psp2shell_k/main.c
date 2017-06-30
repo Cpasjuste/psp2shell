@@ -35,11 +35,15 @@
 #include "../common/p2s_msg.h"
 #include "../common/p2s_cmd.h"
 
+extern bool kp2s_ready;
+
 static bool quit = false;
+static SceUID u_sema = -1;
+static SceUID k_sema = -1;
+
 static SceUID thid_wait = -1;
 static P2S_CMD kp2s_cmd;
 volatile static int k_buf_lock = 0;
-extern bool kp2s_ready;
 
 static struct AsyncEndpoint g_endp;
 static struct AsyncEndpoint g_stdout;
@@ -69,7 +73,7 @@ static void welcome() {
     PRINT("\r\n");
 }
 
-int kp2s_print_stdout(const char *data, int size) {
+int kp2s_print_stdout(const char *data, size_t size) {
 
     if (!usbhostfs_connected()) {
         return -1;
@@ -79,7 +83,7 @@ int kp2s_print_stdout(const char *data, int size) {
     return ret;
 }
 
-int kp2s_print_stdout_user(const char *data, int size) {
+int kp2s_print_stdout_user(const char *data, size_t size) {
 
     int state = 0;
     ENTER_SYSCALL(state);
@@ -89,9 +93,9 @@ int kp2s_print_stdout_user(const char *data, int size) {
         return -1;
     }
 
-    char kbuf[P2S_KMSG_SIZE];
-    memset(kbuf, 0, P2S_KMSG_SIZE);
-    ksceKernelMemcpyUserToKernel(kbuf, (uintptr_t) data, sizeof(size));
+    char kbuf[size];
+    memset(kbuf, 0, size);
+    ksceKernelMemcpyUserToKernel(kbuf, (uintptr_t) data, size);
 
     int ret = usbAsyncWrite(ASYNC_STDOUT, kbuf, size);
 
@@ -99,47 +103,44 @@ int kp2s_print_stdout_user(const char *data, int size) {
     return ret;
 }
 
-void kp2s_print_color(int color, const char *fmt, ...) {
+int kp2s_print_color(int color, const char *fmt, ...) {
 
     if (!usbhostfs_connected()) {
-        return;
+        return -1;
     }
 
     char buffer[P2S_KMSG_SIZE];
     memset(buffer, 0, P2S_KMSG_SIZE);
-
     va_list args;
     va_start(args, fmt);
-    vsnprintf(buffer, P2S_KMSG_SIZE, fmt, args);
+    int len = vsnprintf(buffer, P2S_KMSG_SIZE, fmt, args);
     va_end(args);
 
     p2s_msg_send(ASYNC_SHELL, color, buffer);
+
+    return len;
 }
 
-void kp2s_print_color_user(int color, const char *fmt, ...) {
+int kp2s_print_color_user(int color, const char *data, size_t size) {
 
     int state = 0;
     ENTER_SYSCALL(state);
 
     if (!usbhostfs_connected()) {
-        return;
+        PRINT_ERR("kp2s_print_color_user(k): !usbhostfs_connected\n");
+        EXIT_SYSCALL(state);
+        return -1;
     }
 
-    char buffer[P2S_KMSG_SIZE];
-    memset(buffer, 0, P2S_KMSG_SIZE);
-
-    char kfmt[P2S_KMSG_SIZE];
-    memset(kfmt, 0, P2S_KMSG_SIZE);
-    ksceKernelMemcpyUserToKernel(kfmt, (uintptr_t) fmt, sizeof(fmt));
-
-    va_list args;
-    va_start(args, kfmt);
-    vsnprintf(buffer, P2S_KMSG_SIZE, kfmt, args);
-    va_end(args);
-
+    char buffer[size + 1];
+    memset(buffer, 0, size + 1);
+    ksceKernelMemcpyUserToKernel(buffer, (uintptr_t) data, size);
+    buffer[size + 1] = '\0';
     p2s_msg_send(ASYNC_SHELL, color, buffer);
 
     EXIT_SYSCALL(state);
+
+    return size;
 }
 
 int kp2s_wait_cmd(P2S_CMD *cmd) {
@@ -147,26 +148,21 @@ int kp2s_wait_cmd(P2S_CMD *cmd) {
     int state = 0;
     int ret = -1;
 
-    if (k_buf_lock) {
-        return ret;
-    }
-    k_buf_lock = 1;
+    ENTER_SYSCALL(state);
 
-    //ENTER_SYSCALL(state);
-    //while (k_buf_lock);
-    //k_buf_lock = 1;
+    //PRINT_ERR("ksceKernelWaitSema: u_sema\n");
+    ksceKernelWaitSema(u_sema, 1, NULL);
+    //PRINT_ERR("ksceKernelWaitSema: u_sema received\n");
 
     if (kp2s_cmd.type > CMD_START) {
-        ENTER_SYSCALL(state);
         ksceKernelMemcpyKernelToUser((uintptr_t) cmd, &kp2s_cmd, sizeof(P2S_CMD));
-        EXIT_SYSCALL(state);
         kp2s_cmd.type = 0;
         ret = 0;
     }
 
-    k_buf_lock = 0;
+    ksceKernelSignalSema(k_sema, 1);
 
-    //EXIT_SYSCALL(state);
+    EXIT_SYSCALL(state);
 
     return ret;
 }
@@ -174,27 +170,37 @@ int kp2s_wait_cmd(P2S_CMD *cmd) {
 static int thread_wait_cmd(SceSize args, void *argp) {
 
     printf("thread_wait_cmd start\n");
+    //ksceKernelDelayThread(1000*1000*5);
+
+    int res = usbhostfs_start();
+    if (res != 0) {
+        printf("module_start: usbhostfs_start failed\n");
+        return -1;
+    }
 
     usbShellInit();
     welcome();
 
-    set_hooks();
+    //set_hooks();
 
     while (!quit) {
 
-        while (k_buf_lock);
-        k_buf_lock = 1;
-        int res = p2s_cmd_receive(ASYNC_SHELL, &kp2s_cmd);
-        k_buf_lock = 0;
+        res = p2s_cmd_receive(ASYNC_SHELL, &kp2s_cmd);
+        //PRINT_ERR("p2s_cmd_receive: %i", kp2s_cmd.type);
 
         if (res != 0) {
             if (!usbhostfs_connected()) {
-                printf("p2s_cmd_receive failed, waiting for usb...\n");
+                PRINT_ERR("p2s_cmd_receive failed, waiting for usb...\n");
                 usbWaitForConnect();
+            } else {
+                PRINT_ERR("p2s_cmd_receive failed, unknow error...\n");
             }
         } else {
             if (!kp2s_ready) {
                 PRINT_ERR("psp2shell main user module not loaded \n");
+            } else {
+                ksceKernelSignalSema(u_sema, 1);
+                ksceKernelWaitSema(k_sema, 0, NULL);
             }
         }
     }
@@ -210,13 +216,10 @@ void _start() __attribute__ ((weak, alias ("module_start")));
 int module_start(SceSize argc, const void *args) {
 
 #ifdef __USB__
-    int res = usbhostfs_start();
-    if (res != 0) {
-        printf("module_start: usbhostfs_start failed\n");
-        return SCE_KERNEL_START_FAILED;
-    }
+    u_sema = ksceKernelCreateSema("p2s_sem_u", 0, 0, 1, NULL);
+    k_sema = ksceKernelCreateSema("p2s_sem_k", 0, 0, 1, NULL);
 
-    thid_wait = ksceKernelCreateThread("kp2s_wait_cmd", thread_wait_cmd, 0x64, 0x5000, 0, 0x10000, 0);
+    thid_wait = ksceKernelCreateThread("kp2s_wait_cmd", thread_wait_cmd, 64, 0x6000, 0, 0x10000, 0);
     if (thid_wait >= 0) {
         ksceKernelStartThread(thid_wait, 0, NULL);
     }
@@ -231,6 +234,13 @@ int module_stop(SceSize argc, const void *args) {
 
 #ifdef __USB__
     quit = true;
+
+    if (u_sema >= 0) {
+        ksceKernelDeleteSema(u_sema);
+    }
+    if (k_sema >= 0) {
+        ksceKernelDeleteSema(k_sema);
+    }
     //ksceKernelDeleteThread(thid_wait);
     //ksceKernelWaitThreadEnd(thid_wait, 0, 0);
 

@@ -18,13 +18,12 @@
 #ifdef __USB__
 #ifdef __KERNEL__
 
-int kp2s_print_stdout(const char *data, int size);
-
-void kp2s_print_color(int color, const char *fmt, ...);
+int kp2s_print_stdout(const char *data, size_t size);
+int kp2s_print_color(int color, const char *fmt, ...);
 
 #else
-int kp2s_print_stdout_user(const char *data, int size);
-void kp2s_print_color_user(int color, const char *fmt, ...);
+int kp2s_print_stdout_user(const char *data, size_t size);
+int kp2s_print_color_user(int color, const char *data, size_t size);
 #endif
 
 int kp2s_wait_cmd(P2S_CMD *cmd);

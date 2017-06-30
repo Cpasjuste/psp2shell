@@ -344,7 +344,6 @@ void do_async(struct AsyncCommand *cmd, int readlen) {
         unsigned int chan = LE32(cmd->channel);
 
         if (chan == ASYNC_SHELL) {
-
             P2S_MSG msg;
             int res = p2s_msg_to_msg_advanced(&msg, (const char *) data, data_len - 2);
             if (res >= 0) {

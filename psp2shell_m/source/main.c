@@ -241,7 +241,27 @@ static int thread_wait_client(SceSize args, void *argp) {
 
 #ifndef DEBUG
 
+#ifdef __USB__
+
+void p2s_print_color(int color, const char *fmt, ...) {
+
+    char buffer[P2S_KMSG_SIZE];
+    memset(buffer, 0, P2S_KMSG_SIZE);
+
+    va_list args;
+    va_start(args, fmt);
+    size_t len = (size_t) vsnprintf(buffer, P2S_KMSG_SIZE, fmt, args);
+    va_end(args);
+
+    //printf("p2s_print_color(u): len=%i, buffer=`%s`\n", len, buffer);
+    kp2s_print_color_user(color, buffer, len);
+}
+
+#endif
+
 static int thread_k2u(SceSize args, void *argp) {
+
+    printf("psp2shell_m: thread_k2u_start\n");
 
 #ifdef __USB__
     kp2s_set_ready(1);
@@ -250,11 +270,13 @@ static int thread_k2u(SceSize args, void *argp) {
 
     while (!quit) {
 
+        memset(&cmd, 0, sizeof(cmd));
         int res = kp2s_wait_cmd(&cmd);
         if (res == 0) {
+            //PRINT("\nkp2s_wait_cmd(u): type=%i, arg[0]=%s\r\n", cmd.type, cmd.args[0]);
             p2s_cmd_parse(client, &cmd);
         } else {
-            sceKernelDelayThread(100);
+            sceKernelDelayThread(1000);
         }
     }
 
@@ -290,6 +312,8 @@ void _start() __attribute__ ((weak, alias ("module_start")));
 
 int module_start(SceSize argc, const void *args) {
 
+    printf("psp2shell_m: module_start\n");
+
     // setup clients data
     client = p2s_malloc(sizeof(s_client));
     if (client == NULL) { // crap
@@ -299,16 +323,12 @@ int module_start(SceSize argc, const void *args) {
         return -1;
     }
     memset(client, 0, sizeof(s_client));
+    strcpy(client->path, HOME_PATH);
     client->msg_sock = -1;
     client->cmd_sock = -1;
-#ifdef __USB__
-    memset(&client->fileList, 0, sizeof(s_FileList));
-    strcpy(client->fileList.path, HOME_PATH);
-    s_fileListGetEntries(&client->fileList, HOME_PATH);
-#endif
 
 #ifndef DEBUG
-    thid_k2u = sceKernelCreateThread("p2s_k2u", thread_k2u, 64, 0x4000, 0, 0x10000, 0);
+    thid_k2u = sceKernelCreateThread("p2s_k2u", thread_k2u, 128, 0x5000, 0, 0x10000, 0);
     if (thid_k2u >= 0) {
         sceKernelStartThread(thid_k2u, 0, NULL);
     }

@@ -128,7 +128,6 @@ int kp2s_dump_module(SceUID pid, SceUID uid, const char *dst) {
             ksceKernelStrncpyUserToKernel(path, (uintptr_t) dst, 128);
             snprintf(path + strlen(path), 128, "/%s_0x%08X_seg%d.bin",
                      kinfo.module_name, (uintptr_t) seginfo->vaddr, i);
-
 #ifdef __USB__
 
 #else

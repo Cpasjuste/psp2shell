@@ -26,7 +26,7 @@
 
 static void cmd_reset();
 
-static void toAbsolutePath(s_FileList *fileList, char *path) {
+static void toAbsolutePath(const char *home, char *path) {
 
     p2s_removeEndSlash(path);
 
@@ -34,7 +34,7 @@ static void toAbsolutePath(s_FileList *fileList, char *path) {
     if (!p) { // relative path
         char np[MAX_PATH_LENGTH];
         strncpy(np, path, MAX_PATH_LENGTH);
-        snprintf(path, MAX_PATH_LENGTH, "%s/%s", fileList->path, np);
+        snprintf(path, MAX_PATH_LENGTH, "%s/%s", home, np);
     }
 }
 
@@ -125,11 +125,11 @@ static void cmd_title() {
 
     if (p2s_get_running_app_name(name) == 0) {
         p2s_get_running_app_title_id(id);
-        PRINT_OK("\n\n\tname: %s\n\tid: %s\n\tpid: 0x%08X\n\n",
-                 name, id, p2s_get_running_app_pid());
+        PRINT("\n\n\tname: %s\n\tid: %s\n\tpid: 0x%08X\n\r\n",
+              name, id, p2s_get_running_app_pid());
     } else {
-        PRINT_OK("\n\n\tname: SceShell\n\tpid: 0x%08X\n\n",
-                 sceKernelGetProcessId());
+        PRINT("\n\n\tname: SceShell\n\tpid: 0x%08X\n\r\n",
+              sceKernelGetProcessId());
     }
 #endif
 }
@@ -137,7 +137,7 @@ static void cmd_title() {
 static void cmd_load(int sock, long size, const char *tid) {
 
 #if defined(__KERNEL__) || defined(__USB__)
-    PRINT_ERR("TODO: cmd_load\n");
+    PRINT_ERR("TODO: cmd_load");
 #else
     char path[256];
 
@@ -172,7 +172,7 @@ static void cmd_reload(int sock, long size) {
 
     if (p2s_get_running_app_title_id(tid) != 0) {
         p2s_cmd_send(sock, CMD_NOK);
-        PRINT_ERR("can't reload SceShell...\n");
+        PRINT_ERR("can't reload SceShell...");
         return;
     }
 
@@ -181,7 +181,7 @@ static void cmd_reload(int sock, long size) {
 
 static void cmd_reset() {
     if (p2s_reset_running_app() != 0) {
-        PRINT_ERR("can't reset SceShell...\n");
+        PRINT_ERR("can't reset SceShell...");
     }
 }
 
@@ -192,99 +192,90 @@ static void cmd_cd(s_client *client, char *path) {
     strncpy(oldPath, path, 1024);
 
     p2s_removeEndSlash(path);
-    p2s_removeEndSlash(client->fileList.path);
+    p2s_removeEndSlash(client->path);
 
     if (strcmp(path, "..") == 0) {
-        char *p = strrchr(client->fileList.path, '/');
+        char *p = strrchr(client->path, '/');
         if (p) {
             p[1] = '\0';
         } else {
-            p = strrchr(client->fileList.path, ':');
+            p = strrchr(client->path, ':');
             if (p) {
-                if (strlen(client->fileList.path) - ((p + 1) - client->fileList.path) > 0) {
+                if (strlen(client->path) - ((p + 1) - client->path) > 0) {
                     p[1] = '\0';
                 } else {
-                    strcpy(client->fileList.path, HOME_PATH);
+                    strcpy(client->path, HOME_PATH);
                 }
             } else {
-                strcpy(client->fileList.path, HOME_PATH);
+                strcpy(client->path, HOME_PATH);
             }
         }
     } else if (s_exist(path)) {
-        strcpy(client->fileList.path, path);
+        strncpy(client->path, path, MAX_PATH_LENGTH);
     } else {
         char tmp[MAX_PATH_LENGTH];
-        snprintf(tmp, MAX_PATH_LENGTH, "%s/%s", client->fileList.path, path);
+        snprintf(tmp, MAX_PATH_LENGTH, "%s/%s", client->path, path);
         if (s_exist(tmp)) {
-            strncpy(client->fileList.path, tmp, MAX_PATH_LENGTH);
+            strncpy(client->path, tmp, MAX_PATH_LENGTH);
         }
     }
 
-    // update files
-    s_fileListEmpty(&client->fileList);
-    int res = s_fileListGetEntries(&client->fileList, client->fileList.path);
-    if (res < 0) {
-        PRINT_ERR("could not cd to directory: %s\n", client->fileList.path);
-        strncpy(client->fileList.path, oldPath, MAX_PATH_LENGTH);
-        s_fileListGetEntries(&client->fileList, oldPath);
+    if (!s_exist(client->path)) {
+        PRINT_ERR("could not cd to directory: %s", client->path);
+        strncpy(client->path, oldPath, MAX_PATH_LENGTH);
     }
 }
 
 static void cmd_ls(s_client *client, char *path) {
 
-    s_FileList fileList;
-    int res, i;
-
-    bool noPath = strcmp(path, HOME_PATH) == 0;
-    if (noPath) {
-        strncpy(fileList.path, client->fileList.path, MAX_PATH_LENGTH);
+    // TODO: fix cmd_ls "client->path"
+    char new_path[MAX_PATH_LENGTH];
+    if (strncmp(path, HOME_PATH, MAX_PATH_LENGTH) == 0) {
+        strncpy(new_path, client->path, MAX_PATH_LENGTH);
     } else {
-        if (strcmp(client->fileList.path, HOME_PATH) == 0) {
-            strncpy(fileList.path, path, MAX_PATH_LENGTH);
-        } else {
-            char new_path[MAX_PATH_LENGTH];
-            memset(new_path, 0, MAX_PATH_LENGTH);
-            strncpy(new_path, path, MAX_PATH_LENGTH);
-            toAbsolutePath(&client->fileList, new_path);
-            strncpy(fileList.path, new_path, MAX_PATH_LENGTH);
-        }
+        strncpy(new_path, path, MAX_PATH_LENGTH);
     }
 
-    res = s_fileListGetEntries(&fileList, fileList.path);
-
-    if (res < 0) {
-        PRINT_ERR("directory does not exist: %s\n", fileList.path);
-        s_fileListEmpty(&fileList);
+    SceUID dfd = sceIoDopen(new_path);
+    if (dfd < 0) {
+        PRINT_ERR("directory does not exist: %s\n", new_path);
         return;
     }
 
-    PRINT("\n\n-------------------\n");
-    PRINT("%s:\n", fileList.path);
+    PRINT("\n-------------------\n");
+    PRINT("%s:\n", new_path);
     PRINT("-------------------\n");
-    s_FileListEntry *file_entry = fileList.head;
-    for (i = 0; i < fileList.length; i++) {
-        PRINT("\t%s\n", file_entry->name);
-        file_entry = file_entry->next;
-    }
+
+    int res = 0;
+    do {
+        SceIoDirent dir;
+        memset(&dir, 0, sizeof(SceIoDirent));
+
+        res = sceIoDread(dfd, &dir);
+        if (res > 0) {
+            if (strcmp(dir.d_name, ".") == 0 || strcmp(dir.d_name, "..") == 0)
+                continue;
+            PRINT("\t%s\n", dir.d_name);
+        }
+    } while (res > 0);
+
     PRINT("\r\n");
 
-    s_fileListEmpty(&fileList);
+    sceIoDclose(dfd);
 }
 
 static void cmd_pwd(s_client *client) {
-    PRINT_OK("\n%s\n\n", client->fileList.path);
+    PRINT_OK("%s", client->path);
 }
 
 static void cmd_mv(s_client *client, char *src, char *dst) {
 
     char new_src[MAX_PATH_LENGTH];
     char new_dst[MAX_PATH_LENGTH];
-
     strncpy(new_src, src, MAX_PATH_LENGTH);
     strncpy(new_dst, dst, MAX_PATH_LENGTH);
-
-    toAbsolutePath(&client->fileList, new_src);
-    toAbsolutePath(&client->fileList, new_dst);
+    toAbsolutePath(client->path, new_src);
+    toAbsolutePath(client->path, new_dst);
 
     int res = s_movePath(new_src, new_dst, MOVE_INTEGRATE | MOVE_REPLACE, NULL);
     if (res != 1) {
@@ -298,8 +289,7 @@ static void cmd_rm(s_client *client, char *file) {
 
     char new_path[MAX_PATH_LENGTH];
     strncpy(new_path, file, MAX_PATH_LENGTH);
-
-    toAbsolutePath(&client->fileList, new_path);
+    toAbsolutePath(client->path, new_path);
 
     if (!s_isDir(new_path)) {
         int res = s_removePath(new_path, NULL);
@@ -317,7 +307,7 @@ static void cmd_rmdir(s_client *client, char *path) {
 
     char new_path[MAX_PATH_LENGTH];
     strncpy(new_path, path, MAX_PATH_LENGTH);
-    toAbsolutePath(&client->fileList, new_path);
+    toAbsolutePath(client->path, new_path);
 
     int res = s_removePath(new_path, NULL);
     if (res != 1) {

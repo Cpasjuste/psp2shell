@@ -28,7 +28,8 @@ typedef struct {
     int cmd_sock;
     P2S_CMD cmd;
     P2S_MSG msg;
-    s_FileList fileList;
+    char path[MAX_PATH_LENGTH];
+    //s_FileList fileList;
 } s_client;
 
 #endif // MAIN_H

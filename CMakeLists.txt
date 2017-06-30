@@ -21,6 +21,7 @@ add_subdirectory(psp2shell_k)
 # main module
 add_subdirectory(psp2shell_m)
 add_dependencies(psp2shell_m psp2shell_k_-stubs)
+add_dependencies(psp2shell_m_usb psp2shell_k__usb.skprx)
 add_dependencies(psp2shell_m_usb psp2shell_k__usb-stubs)
 
 #add_subdirectory(psp2shell_loader)
