@@ -7,12 +7,13 @@ include("${VITASDK}/share/vita.cmake" REQUIRED)
 execute_process(COMMAND "date" "+%Y.%m.%d" OUTPUT_VARIABLE BUILD_DATE OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 set(SRC_FILES
-        source/main.c
-        source/cmd.c
-        source/utility.c
+        source/p2s_main.c
+        source/p2s_cmd_parser.c
+        source/p2s_utility.c
         source/file.c
-        source/module.c
-        source/thread.c
+        source/p2s_io.c
+        source/p2s_module.c
+        source/p2s_thread.c
         ../common/p2s_cmd.c
         ../common/p2s_msg.c
         )

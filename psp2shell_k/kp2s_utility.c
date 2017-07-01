@@ -10,7 +10,7 @@
 #include <libk/string.h>
 #include <libk/stdio.h>
 
-#include "utility.h"
+#include "kp2s_utility.h"
 #include "psp2shell_k.h"
 
 bool kp2s_ready = false;

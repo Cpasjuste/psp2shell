@@ -19,10 +19,11 @@
 #include "libmodule.h"
 #include "psp2shell.h"
 #include "file.h"
-#include "module.h"
-#include "thread.h"
-#include "main.h"
-#include "utility.h"
+#include "p2s_main.h"
+#include "p2s_io.h"
+#include "p2s_module.h"
+#include "p2s_thread.h"
+#include "p2s_utility.h"
 
 static void cmd_reset();
 
@@ -228,44 +229,24 @@ static void cmd_cd(s_client *client, char *path) {
 
 static void cmd_ls(s_client *client, char *path) {
 
-    // TODO: fix cmd_ls "client->path"
-    char new_path[MAX_PATH_LENGTH];
-    if (strncmp(path, HOME_PATH, MAX_PATH_LENGTH) == 0) {
-        strncpy(new_path, client->path, MAX_PATH_LENGTH);
+    bool rootPath = strncmp(path, HOME_PATH, MAX_PATH_LENGTH) == 0;
+    if (rootPath) {
+        p2s_io_list_drives();
     } else {
-        strncpy(new_path, path, MAX_PATH_LENGTH);
-    }
-
-    SceUID dfd = sceIoDopen(new_path);
-    if (dfd < 0) {
-        PRINT_ERR("directory does not exist: %s\n", new_path);
-        return;
-    }
-
-    PRINT("\n-------------------\n");
-    PRINT("%s:\n", new_path);
-    PRINT("-------------------\n");
-
-    int res = 0;
-    do {
-        SceIoDirent dir;
-        memset(&dir, 0, sizeof(SceIoDirent));
-
-        res = sceIoDread(dfd, &dir);
-        if (res > 0) {
-            if (strcmp(dir.d_name, ".") == 0 || strcmp(dir.d_name, "..") == 0)
-                continue;
-            PRINT("\t%s\n", dir.d_name);
+        if (strcmp(client->path, HOME_PATH) == 0) {
+            p2s_io_list_dir(path);
+        } else {
+            char new_path[MAX_PATH_LENGTH];
+            memset(new_path, 0, MAX_PATH_LENGTH);
+            strncpy(new_path, path, MAX_PATH_LENGTH);
+            toAbsolutePath(client->path, new_path);
+            p2s_io_list_dir(new_path);
         }
-    } while (res > 0);
-
-    PRINT("\r\n");
-
-    sceIoDclose(dfd);
+    }
 }
 
 static void cmd_pwd(s_client *client) {
-    PRINT_OK("%s", client->path);
+    PRINT("\n%s\n\r\n", client->path);
 }
 
 static void cmd_mv(s_client *client, char *src, char *dst) {

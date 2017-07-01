@@ -18,8 +18,8 @@
 
 #include "libmodule.h"
 
-#include "main.h"
-#include "utility.h"
+#include "p2s_main.h"
+#include "p2s_utility.h"
 #include "psp2shell.h"
 
 static SceUID thid_k2u = -1;

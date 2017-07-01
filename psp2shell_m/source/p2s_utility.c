@@ -18,7 +18,7 @@
 
 #include "libmodule.h"
 #include "psp2shell.h"
-#include "main.h"
+#include "p2s_main.h"
 
 #ifndef __USB__
 #define NET_STACK_SIZE 0x4000
@@ -271,7 +271,7 @@ int p2s_removeEndSlash(char *path) {
     return 0;
 }
 
-int p2s_addEndSlash(char *path) {
+int p2s_add_slash(char *path) {
     int len = strlen(path);
     if (len < MAX_PATH_LENGTH - 2) {
         if (path[len - 1] != '/') {

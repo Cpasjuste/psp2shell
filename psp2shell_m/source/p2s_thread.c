@@ -17,9 +17,9 @@
 */
 
 #include "libmodule.h"
-#include "main.h"
+#include "p2s_main.h"
 #include "psp2shell.h"
-#include "thread.h"
+#include "p2s_thread.h"
 
 #define THREADS_START 0x40010000
 #define THREADS_RANGE 0x100000

@@ -18,7 +18,7 @@
 
 #include "libmodule.h"
 #include "file.h"
-#include "utility.h"
+#include "p2s_utility.h"
 #include "p2s_cmd.h"
 
 static s_FileListEntry fileList[MAX_FILES];
@@ -651,7 +651,7 @@ int s_fileListGetDirectoryEntries(s_FileList *list, char *path) {
 
             entry->is_folder = SCE_S_ISDIR(dir.d_stat.st_mode);
             if (entry->is_folder) {
-                p2s_addEndSlash(entry->name);
+                p2s_add_slash(entry->name);
                 entry->type = FILE_TYPE_UNKNOWN;
                 list->folders++;
             } else {

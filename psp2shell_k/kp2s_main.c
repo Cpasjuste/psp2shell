@@ -23,7 +23,7 @@
 #include <libk/string.h>
 #include <libk/stdbool.h>
 
-#include "hooks.h"
+#include "kp2s_hooks.h"
 
 #ifdef __USB__
 
@@ -196,11 +196,19 @@ static int thread_wait_cmd(SceSize args, void *argp) {
                 PRINT_ERR("p2s_cmd_receive failed, unknow error...\n");
             }
         } else {
-            if (!kp2s_ready) {
-                PRINT_ERR("psp2shell main user module not loaded \n");
-            } else {
-                ksceKernelSignalSema(u_sema, 1);
-                ksceKernelWaitSema(k_sema, 0, NULL);
+
+            switch (kp2s_cmd.type) {
+
+
+
+                default:
+                    if (!kp2s_ready) {
+                        PRINT_ERR("psp2shell main user module not loaded \n");
+                    } else {
+                        ksceKernelSignalSema(u_sema, 1);
+                        ksceKernelWaitSema(k_sema, 0, NULL);
+                    }
+                    break;
             }
         }
     }

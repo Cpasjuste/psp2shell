@@ -49,9 +49,10 @@ endmacro(_vita_create_stubs)
 # WIFI #
 ########
 add_executable(${PROJECT_NAME}
-        main.c
-        hooks.c
-        utility.c
+        kp2s_main.c
+        kp2s_hooks.c
+        kp2s_utility.c
+        kp2s_io.c
         )
 target_link_libraries(${PROJECT_NAME}
         taihenForKernel_stub
@@ -74,9 +75,10 @@ _vita_create_stubs(${PROJECT_NAME}-stubs ${PROJECT_NAME}
 # USB #
 #######
 add_executable(${PROJECT_NAME}_usb
-        main.c
-        hooks.c
-        utility.c
+        kp2s_main.c
+        kp2s_hooks.c
+        kp2s_utility.c
+        kp2s_io.c
         ../common/p2s_cmd.c
         ../common/p2s_msg.c
         usbhostfs/usbhostfs.c

@@ -9,8 +9,8 @@
 #include <libk/stdio.h>
 #include <taihen.h>
 
-#include "hooks.h"
-#include "utility.h"
+#include "kp2s_hooks.h"
+#include "kp2s_utility.h"
 #include "psp2shell_k.h"
 
 #define P2S_MSG_LEN 256

@@ -18,10 +18,10 @@
 
 
 #include "libmodule.h"
-#include "main.h"
-#include "utility.h"
+#include "p2s_main.h"
+#include "p2s_utility.h"
 #include "psp2shell.h"
-#include "module.h"
+#include "p2s_module.h"
 
 #ifndef __KERNEL__
 #ifndef DEBUG
