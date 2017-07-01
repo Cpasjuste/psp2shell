@@ -39,6 +39,7 @@ target_compile_options(${PROJECT_NAME}_usb PRIVATE
 target_include_directories(${PROJECT_NAME}_usb PRIVATE
         include
         ../common
+        ../psp2shell_k
         ../psp2shell_k/usbhostfs
         usbhostfs_pc
         )

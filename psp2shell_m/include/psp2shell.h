@@ -16,6 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/*
 #ifndef _psp2_shell_h_
 #define _psp2_shell_h_
 
@@ -34,6 +35,8 @@ void psp2shell_exit();
 void p2s_print_color(int color, const char *fmt, ...);
 #endif
 
+#define PRINT_COL(color, ...) p2s_print_color(color, __VA_ARGS__)
+#define PRINT_ERR_CODE(func_name, code) p2s_print_color(COL_RED, "NOK: %s = 0x%08X\n", func_name, code)
 #define PRINT_ERR(fmt, ...) p2s_print_color(COL_RED, "\n\n" fmt "\n\r\n", ## __VA_ARGS__)
 #define PRINT_OK(fmt, ...) p2s_print_color(COL_GREEN, "\n\n" fmt "\n\r\n", ## __VA_ARGS__)
 #define PRINT(...) p2s_print_color(COL_YELLOW, __VA_ARGS__)
@@ -53,3 +56,4 @@ int sceClibPrintf(const char *, ...);
 }
 #endif // __cplusplus
 #endif // _psp2_shell_h_
+*/

@@ -124,7 +124,7 @@ int cmd_thread(SceSize args, void *argp) {
 
     int sock = *((int *) argp);
 
-    memset(client, 0, sizeof(s_client));
+    memset(client, 0, sizeof(kp2s_client));
     client->msg_sock = sock;
 
     // init client file listing memory/**/

@@ -1,4 +1,4 @@
-psp2shell_k:
+psp2shellusb_k:
     attributes: 0
     version:
         major: 1
@@ -7,11 +7,13 @@ psp2shell_k:
         start: module_start
         stop: module_stop
     modules:
-        psp2shell_k:
+        psp2shellusb_k:
             syscall: true
             functions:
-              - kp2s_wait_buffer
+              - kp2s_wait_cmd
               - kp2s_set_ready
               - kp2s_get_module_info
               - kp2s_get_module_list
               - kp2s_dump_module
+              - kp2s_print_color_user
+              - kp2s_print_stdout_user

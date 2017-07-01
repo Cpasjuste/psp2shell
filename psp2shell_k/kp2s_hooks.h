@@ -8,6 +8,7 @@
 #define MAX_HOOKS 32
 
 void set_hooks();
+
 void delete_hooks();
 
 #endif //_HOOKS_H_

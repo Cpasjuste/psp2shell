@@ -28,13 +28,11 @@
 #include <taihen.h>
 
 #ifdef __KERNEL__
-
-#include <psp2kern/types.h>
-#include <psp2kern/net/net.h>
 #include <psp2kern/kernel/sysmem.h>
 #include <psp2kern/kernel/threadmgr.h>
 #include <psp2kern/kernel/processmgr.h>
 #include <psp2kern/kernel/modulemgr.h>
+#include <psp2kern/kernel/cpu.h>
 #include <psp2kern/io/dirent.h>
 #include <psp2kern/io/fcntl.h>
 #include <psp2kern/io/stat.h>
@@ -118,6 +116,10 @@ int sceClibPrintf(const char *, ...);
 #define sceNetHtonl ksceNetHtonl
 
 #endif
+
+void *p2s_malloc(size_t size);
+
+void p2s_free(void *p);
 
 #define strcasecmp strcmp
 #define strncasecmp strncmp

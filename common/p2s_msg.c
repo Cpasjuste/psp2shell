@@ -1,52 +1,42 @@
-//
-// Created by cpasjuste on 21/06/17.
-//
+/*
+	PSP2SHELL
+	Copyright (C) 2016, Cpasjuste
 
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifdef __PSP2__
 
-#ifdef DEBUG
-#ifdef __KERNEL__
-#define printf ksceDebugPrintf
-#else
-int sceClibPrintf(const char *, ...);
-#define printf sceClibPrintf
-#endif
-#endif
-
-#include <libk/stdio.h>
-#include <libk/string.h>
-#include <libk/stdlib.h>
-#include <libk/stdbool.h>
-#include <libk/stdarg.h>
-#include <sys/types.h>
+#include "psp2shell_k.h"
 
 #ifdef __KERNEL__
-#include <psp2kern/kernel/threadmgr.h>
-#include "usbhostfs.h"
 #include "usbasync.h"
 #define send(a, b, c, d) usbShellWrite((unsigned int)a, b, c)
-#elif __USB__
+#else
 #define send(a, b, c, d) printf("send: not implemented\n")
 #define recv(a, b, c, d) printf("recv: not implemented\n")
-#else
-#include <psp2/net/net.h>
-#define send sceNetSend
-#define recv sceNetRecv
+#endif
 #endif
 
-#else
+#ifdef PC_SIDE
 
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <stdarg.h>
-#include <sys/socket.h>
-
-#ifdef PC_SIDE
-
 #include <usb.h>
 #include "usbhostfs.h"
+#include "p2s_msg.h"
 
 #define send(a, b, c, d) usbShellWrite((unsigned int)a, b, c)
 
@@ -71,8 +61,6 @@ int euid_usb_bulk_write(
         usb_dev_handle *dev, int ep, char *bytes, int size, int timeout);
 
 extern usb_dev_handle *g_hDev;
-#endif
-
 #endif
 
 #if defined(__KERNEL__) || defined(PC_SIDE)
@@ -123,8 +111,6 @@ static int usbShellRead(unsigned int chan, char *data, int size) {
 }
 
 #endif
-
-#include "p2s_msg.h"
 
 int p2s_msg_receive(int sock, P2S_MSG *msg) {
 

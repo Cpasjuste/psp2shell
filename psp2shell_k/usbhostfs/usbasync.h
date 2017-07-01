@@ -19,12 +19,11 @@
 
 #define ASYNC_USER 4
 
-struct AsyncEndpoint
-{
-	unsigned char buffer[MAX_ASYNC_BUFFER];
-	int read_pos;
-	int write_pos;
-	int size;
+struct AsyncEndpoint {
+    unsigned char buffer[MAX_ASYNC_BUFFER];
+    int read_pos;
+    int write_pos;
+    int size;
 };
 
 #define MAX_ASYNC_CHANNELS 8
@@ -35,7 +34,7 @@ struct AsyncEndpoint
   *
   * @return 0 on connected, < 0 on error
   */
-int     usbWaitForConnect(void);
+int usbWaitForConnect(void);
 
 /**
   * Register an asyncronous provider
@@ -45,7 +44,7 @@ int     usbWaitForConnect(void);
   * 
   * @return channel number on success, < 0 on error
   */
-int     usbAsyncRegister(unsigned int chan, struct AsyncEndpoint *endp);
+int usbAsyncRegister(unsigned int chan, struct AsyncEndpoint *endp);
 
 /**
   * Unregister an asyncronous provider
@@ -54,7 +53,7 @@ int     usbAsyncRegister(unsigned int chan, struct AsyncEndpoint *endp);
   *
   * @return 0 on success, < 0 on error
   */
-int     usbAsyncUnregister(unsigned int chan);
+int usbAsyncUnregister(unsigned int chan);
 
 /**
   * Write data to the specified async channel
@@ -65,7 +64,7 @@ int     usbAsyncUnregister(unsigned int chan);
   * 
   * @return The number of bytes written, < 0 on error
   */
-int     usbAsyncWrite(unsigned int chan, const void *data, int len);
+int usbAsyncWrite(unsigned int chan, const void *data, int len);
 
 /**
   * Read data from the specified async channel
@@ -76,7 +75,7 @@ int     usbAsyncWrite(unsigned int chan, const void *data, int len);
   * 
   * @return The number of bytes read, < 0 on error
   */
-int     usbAsyncRead(unsigned int chan, unsigned char *data, int len);
+int usbAsyncRead(unsigned int chan, unsigned char *data, int len);
 
 /**
   * Read data from the specified async channel with a timeout
@@ -89,14 +88,14 @@ int     usbAsyncRead(unsigned int chan, unsigned char *data, int len);
   * 
   * @return The number of bytes read, < 0 on error
   */
-int     usbAsyncReadWithTimeout(unsigned int chan, unsigned char *data, int len, int timeout);
+int usbAsyncReadWithTimeout(unsigned int chan, unsigned char *data, int len, int timeout);
 
 /**
   * Flush the read buffer of an async channel
   * 
   * @param chan - The channel to flush
   */
-void    usbAsyncFlush(unsigned int chan);
+void usbAsyncFlush(unsigned int chan);
 
 /**
  * Write a large transfer to an async channel
@@ -114,13 +113,13 @@ int usbWriteBulkData(int chan, const void *data, int len);
  *
  * @return < 0 on error
  */
-int 	usbLockBus(void);
+int usbLockBus(void);
 
 /**
  * Unlock the USB bus 
  *
  * @return < 0 on error
  */
-int 	usbUnlockBus(void);
+int usbUnlockBus(void);
 
 #endif

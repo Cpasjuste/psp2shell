@@ -51,14 +51,4 @@ int p2s_recvall(int sock, void *buffer, int size, int flags);
 
 ssize_t p2s_recv_file(int sock, SceUID fd, long size);
 
-int p2s_hasEndSlash(char *path);
-
-int p2s_removeEndSlash(char *path);
-
-int p2s_add_slash(char *path);
-
-void *p2s_malloc(size_t size);
-
-void p2s_free(void *p);
-
 #endif // UTILITY_H

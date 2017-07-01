@@ -256,33 +256,6 @@ size_t p2s_recv_file(int sock, SceUID fd, long size) {
 }
 #endif
 
-int p2s_hasEndSlash(char *path) {
-    return path[strlen(path) - 1] == '/';
-}
-
-int p2s_removeEndSlash(char *path) {
-    int len = strlen(path);
-
-    if (path[len - 1] == '/') {
-        path[len - 1] = '\0';
-        return 1;
-    }
-
-    return 0;
-}
-
-int p2s_add_slash(char *path) {
-    int len = strlen(path);
-    if (len < MAX_PATH_LENGTH - 2) {
-        if (path[len - 1] != '/') {
-            strcat(path, "/");
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
 void p2s_log_write(const char *msg) {
 
     sceIoMkdir("ux0:/tai/", 6);
@@ -294,30 +267,4 @@ void p2s_log_write(const char *msg) {
 
     sceIoWrite(fd, msg, strlen(msg));
     sceIoClose(fd);
-}
-
-void *p2s_malloc(size_t size) {
-
-    void *p = NULL;
-
-#ifdef __KERNEL__
-    SceUID uid = sceKernelAllocMemBlock(
-            "m", SCE_KERNEL_MEMBLOCK_TYPE_KERNEL_RW, (size + 0xFFF) & (~0xFFF), 0);
-#else
-    SceUID uid = sceKernelAllocMemBlock(
-            "m", SCE_KERNEL_MEMBLOCK_TYPE_USER_RW, (size + 0xFFF) & (~0xFFF), 0);
-#endif
-    if (uid >= 0) {
-        sceKernelGetMemBlockBase(uid, &p);
-    }
-
-    return p;
-}
-
-void p2s_free(void *p) {
-
-    SceUID uid = sceKernelFindMemBlockByAddr(p, 1);
-    if (uid >= 0) {
-        sceKernelFreeMemBlock(uid);
-    }
 }

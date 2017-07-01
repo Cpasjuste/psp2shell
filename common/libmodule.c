@@ -16,13 +16,30 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PROJECT_UTILITY_H
-#define PROJECT_UTILITY_H
+#include "libmodule.h"
 
-int kp2s_has_slash(const char *path);
+void *p2s_malloc(size_t size) {
 
-int kp2s_add_slash(char *path);
+    void *p = NULL;
 
-int kp2s_remove_slash(char *path);
+#ifdef __KERNEL__
+    SceUID uid = sceKernelAllocMemBlock(
+            "m", SCE_KERNEL_MEMBLOCK_TYPE_KERNEL_RW, (size + 0xFFF) & (~0xFFF), 0);
+#else
+    SceUID uid = sceKernelAllocMemBlock(
+            "m", SCE_KERNEL_MEMBLOCK_TYPE_USER_RW, (size + 0xFFF) & (~0xFFF), 0);
+#endif
+    if (uid >= 0) {
+        sceKernelGetMemBlockBase(uid, &p);
+    }
 
-#endif //PROJECT_UTILITY_H
+    return p;
+}
+
+void p2s_free(void *p) {
+
+    SceUID uid = sceKernelFindMemBlockByAddr(p, 1);
+    if (uid >= 0) {
+        sceKernelFreeMemBlock(uid);
+    }
+}

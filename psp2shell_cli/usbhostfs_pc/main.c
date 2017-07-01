@@ -344,8 +344,11 @@ void do_async(struct AsyncCommand *cmd, int readlen) {
         unsigned int chan = LE32(cmd->channel);
 
         if (chan == ASYNC_SHELL) {
+
             P2S_MSG msg;
             int res = p2s_msg_to_msg_advanced(&msg, (const char *) data, data_len - 2);
+            //printf("\nlen=%i, data=`%s`\n", (int) (data_len - 2), msg.buffer);
+
             if (res >= 0) {
                 msg_parse(&msg);
             }
@@ -353,12 +356,15 @@ void do_async(struct AsyncCommand *cmd, int readlen) {
             printf("%s", data);
         }
 
+        // TODO: add file io
+        /*
         if ((chan < MAX_ASYNC_CHANNELS) && (g_clientsocks[chan] >= 0)) {
             write(g_clientsocks[chan], data, readlen - sizeof(struct AsyncCommand));
             if ((chan == ASYNC_GDB) && (g_gdbdebug)) {
                 print_gdbdebug(0, data, readlen - sizeof(struct AsyncCommand));
             }
         }
+        */
     }
 
 }
@@ -997,6 +1003,8 @@ int init_readline(void) {
 
 #endif
 
+extern int readline_callback;
+
 void *async_thread(void *arg) {
     char buf[512];
     char *data;
@@ -1016,7 +1024,6 @@ void *async_thread(void *arg) {
         //init_readline();
         psp2sell_cli_init();
 #endif
-
         FD_SET(STDIN_FILENO, &read_save);
         max_fd = STDIN_FILENO;
     }
@@ -1036,6 +1043,14 @@ void *async_thread(void *arg) {
 
     while (!quit) {
 
+        FD_ZERO(&read_save);
+        FD_SET(fileno(stdin), &read_save);
+        if (select(fileno(stdin) + 1, &read_save, NULL, NULL, NULL) < 0) {
+            //continue (CTRL+C)
+        } else if (FD_ISSET(fileno(stdin), &read_save) && readline_callback) {
+            rl_callback_read_char();
+        }
+        /*
         read_set = read_save;
         if (select(max_fd + 1, &read_set, NULL, NULL, NULL) > 0) {
             if (!g_daemon) {
@@ -1051,7 +1066,9 @@ void *async_thread(void *arg) {
 #endif
                 }
             }
+            */
 
+            /*
             for (i = 0; i < MAX_ASYNC_CHANNELS; i++) {
                 if (g_servsocks[i] >= 0) {
                     if (FD_ISSET(g_servsocks[i], &read_set)) {
@@ -1065,7 +1082,7 @@ void *async_thread(void *arg) {
                             printf("Accepting async connection (%d) from %s\n", i, inet_ntoa(client.sin_addr));
                             FD_SET(g_clientsocks[i], &read_save);
                             if ((g_daemon) && (i == ASYNC_SHELL)) {
-                                /* Duplicate to stdout for the local shell */
+                                // Duplicate to stdout for the local shell
                                 dup2(g_clientsocks[i], 1);
                             }
                             setsockopt(g_clientsocks[i], SOL_TCP, TCP_NODELAY, &flag, sizeof(int));
@@ -1092,7 +1109,7 @@ void *async_thread(void *arg) {
 
                             if (g_daemon) {
                                 if ((i == ASYNC_SHELL) && (data[0] == '@')) {
-                                    /* We assume locally it should be able to load everything in one go */
+                                    // We assume locally it should be able to load everything in one go
                                     if (readbytes < (sizeof(buf) - sizeof(struct AsyncCommand))) {
                                         data[readbytes] = 0;
                                     } else {
@@ -1122,7 +1139,9 @@ void *async_thread(void *arg) {
                     }
                 }
             }
-        }
+            */
+        //}
+
     }
 
     return NULL;
@@ -1166,13 +1185,16 @@ int main(int argc, char **argv) {
             load_mapfile(g_mapfile);
         }
 
+        /*
         for (i = 0; i < MAX_ASYNC_CHANNELS; i++) {
             g_servsocks[i] = make_socket(g_baseport + i);
             g_clientsocks[i] = -1;
         }
+        */
 
         pthread_create(&thid, NULL, async_thread, NULL);
         start_hostfs();
+
     } else {
         print_help();
     }

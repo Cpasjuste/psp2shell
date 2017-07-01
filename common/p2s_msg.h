@@ -1,11 +1,29 @@
-//
-// Created by cpasjuste on 21/06/17.
-//
+/*
+	PSP2SHELL
+	Copyright (C) 2016, Cpasjuste
 
-#ifndef PROJECT_P2S_MSG_H
-#define PROJECT_P2S_MSG_H
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-#include "../psp2shell_k/psp2shell_k.h"
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef _P2S_MSG_H_
+#define _P2S_MSG_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "psp2shell_k.h"
 
 #define P2S_ERR_SOCKET      0x80000001
 #define P2S_ERR_INVALID_MSG 0x80000002
@@ -37,4 +55,8 @@ int p2s_msg_to_msg(P2S_MSG *msg, const char *buffer);
 
 int p2s_msg_to_msg_advanced(P2S_MSG *msg, const char *buffer, size_t len);
 
-#endif //PROJECT_P2S_MSG_H
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+
+#endif //_P2S_MSG_H_

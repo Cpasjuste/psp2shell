@@ -1,66 +1,54 @@
-//
-// Created by cpasjuste on 29/06/17.
-//
+/*
+	PSP2SHELL
+	Copyright (C) 2016, Cpasjuste
 
-#include <psp2kern/types.h>
-#include <psp2kern/io/fcntl.h>
-#include <psp2kern/kernel/cpu.h>
-#include <psp2kern/kernel/sysmem.h>
-#include <psp2kern/kernel/modulemgr.h>
-#include <libk/string.h>
-#include <libk/stdio.h>
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-#include "kp2s_utility.h"
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "psp2shell_k.h"
 
 bool kp2s_ready = false;
 #define CHUNK_SIZE 2048
 static uint8_t chunk[CHUNK_SIZE];
 
-#ifndef __USB__
-volatile static int k_buf_at = 0;
-volatile static int k_buf_lock = 0;
-volatile static int k_buf_len = 0;
-volatile static char k_buf[P2S_KMSG_SIZE] = {0};
-
-#define kp2s_print_len(len, fmt, args...) do { \
-    if(!kp2s_ready) \
-        return; \
-    while (k_buf_lock); \
-    k_buf_lock = 1; \
-    k_buf_len = snprintf((char *)k_buf+k_buf_at, P2S_KMSG_SIZE - k_buf_at, fmt, args); \
-    if (len > 0) \
-        k_buf_len = len; \
-    if (k_buf_at + k_buf_len <= P2S_KMSG_SIZE) \
-        k_buf_at += k_buf_len; \
-    k_buf_lock = 0; \
-} while (0)
-
-SceSize kp2s_wait_buffer(char *buffer) {
-
-    if (k_buf_at <= 0) {
-        return 0;
-    }
-
-    int state = 0;
-    int count = 0;
-
-    ENTER_SYSCALL(state);
-
-    while (k_buf_lock);
-    k_buf_lock = 1;
-
-    count = k_buf_at;
-    ksceKernelStrncpyKernelToUser((uintptr_t) buffer, (char *) k_buf, k_buf_at + 1);
-    k_buf_at = 0;
-    k_buf_lock = 0;
-
-    EXIT_SYSCALL(state);
-
-    return (SceSize) count;
+int kp2s_has_slash(const char *path) {
+    return path[strlen(path) - 1] == '/';
 }
 
-#endif
+int kp2s_add_slash(char *path) {
+    int len = strlen(path);
+    if (len < MAX_PATH_LENGTH - 2) {
+        if (path[len - 1] != '/') {
+            strcat(path, "/");
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+int kp2s_remove_slash(char *path) {
+
+    int len = strlen(path);
+
+    if (path[len - 1] == '/') {
+        path[len - 1] = '\0';
+        return 1;
+    }
+
+    return 0;
+}
 
 void kp2s_set_ready(bool rdy) {
 
@@ -189,3 +177,4 @@ int kp2s_get_module_list(SceUID pid, int flags1, int flags2, SceUID *modids, siz
 
     return res;
 }
+

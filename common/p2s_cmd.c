@@ -18,48 +18,31 @@
 
 #ifdef __PSP2__
 
-#ifdef DEBUG
-#ifdef __KERNEL__
-#define printf ksceDebugPrintf
-#else
-int sceClibPrintf(const char *, ...);
-#define printf sceClibPrintf
-#endif
-#endif
-
-#include <libk/stdio.h>
-#include <libk/string.h>
-#include <libk/stdlib.h>
-#include <libk/stdbool.h>
-#include <libk/stdarg.h>
-#include <sys/types.h>
+#include "psp2shell_k.h"
 
 #ifdef __KERNEL__
-#include <psp2kern/kernel/threadmgr.h>
+
 #include "usbasync.h"
-#include "usbhostfs.h"
+
 #define send(a, b, c, d) usbShellWrite((unsigned int)a, b, c)
-#elif __USB__
+#else
 #define send(a, b, c, d) printf("send: not implemented\n")
 #define recv(a, b, c, d) printf("recv: not implemented\n")
-#else // WIFI
-#include <psp2/net/net.h>
-#define send sceNetSend
-#define recv sceNetRecv
-#endif
-#else
+#endif //__KERNEL__
+#endif //__PSP2__
+
+#ifdef PC_SIDE
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdarg.h>
 #include <sys/socket.h>
-
-#ifdef PC_SIDE
 #define send(a, b, c, d) usbShellWrite((unsigned int)a, b, c)
 #include <usb.h>
 #include "usbasync.h"
 #include "usbhostfs.h"
+#include "p2s_cmd.h"
 
 #if defined BUILD_BIGENDIAN || defined _BIG_ENDIAN
 uint32_t swap32(uint32_t i)
@@ -82,11 +65,7 @@ int euid_usb_bulk_write(
         usb_dev_handle *dev, int ep, char *bytes, int size, int timeout);
 
 extern usb_dev_handle *g_hDev;
-#endif
-
-#endif
-
-#include "p2s_cmd.h"
+#endif // PC_SIDE
 
 #if defined(__KERNEL__) || defined(PC_SIDE)
 
@@ -148,10 +127,10 @@ int p2s_cmd_receive(int sock, P2S_CMD *cmd) {
         return read;
     }
 #else
-    ssize_t read = recv(sock, buffer, P2S_SIZE_CMD, 0);
-    if (read < 2) {
-        return read <= 0 ? P2S_ERR_SOCKET : P2S_ERR_INVALID_CMD;
-    }
+        ssize_t read = recv(sock, buffer, P2S_SIZE_CMD, 0);
+        if (read < 2) {
+            return read <= 0 ? P2S_ERR_SOCKET : P2S_ERR_INVALID_CMD;
+        }
 #endif
     bool is_cmd = p2s_cmd_to_cmd(cmd, buffer) == 0;
     if (!is_cmd) {

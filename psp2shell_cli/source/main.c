@@ -196,7 +196,18 @@ void print_hex(char *line) {
 
 int msg_parse(P2S_MSG *msg) {
 
+    bool prompt = false;
+    ssize_t len = strlen(msg->buffer);
+    if (len > 1
+        && msg->buffer[len - 2] == '\r'
+        && msg->buffer[len - 1] == '\n') {
+        msg->buffer[len - 2] = '\n';
+        msg->buffer[len - 1] = '\0';
+        prompt = true;
+    }
+
     switch (msg->color) {
+
         case COL_RED:
             printf(RED "%s" RES, msg->buffer);
             break;
@@ -214,12 +225,10 @@ int msg_parse(P2S_MSG *msg) {
             break;
     }
 
-    fflush(stdout);
+    //fflush(stdout);
+    //sync();
 
-    ssize_t len = strlen(msg->buffer);
-    if (len > 1
-        && msg->buffer[len - 2] == '\r'
-        && msg->buffer[len - 1] == '\n') {
+    if (prompt) {
         rl_refresh_line(0, 0);
     }
 }

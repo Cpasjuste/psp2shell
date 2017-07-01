@@ -19,17 +19,4 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#include "p2s_cmd.h"
-#include "p2s_msg.h"
-#include "file.h"
-
-typedef struct {
-    int msg_sock;
-    int cmd_sock;
-    P2S_CMD cmd;
-    P2S_MSG msg;
-    char path[MAX_PATH_LENGTH];
-    //s_FileList fileList;
-} s_client;
-
 #endif // MAIN_H

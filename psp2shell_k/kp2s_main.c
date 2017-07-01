@@ -16,41 +16,26 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <psp2kern/kernel/threadmgr.h>
-#include <psp2kern/kernel/modulemgr.h>
-#include <libk/stdio.h>
-#include <libk/stdarg.h>
-#include <libk/string.h>
-#include <libk/stdbool.h>
+#include "psp2shell_k.h"
 
-#include "kp2s_hooks.h"
-
-#ifdef __USB__
-
-#include "../psp2shell_m/include/psp2shell.h"
-#include <psp2kern/kernel/sysmem.h>
-#include <psp2kern/kernel/cpu.h>
 #include "usbhostfs/usbasync.h"
 #include "usbhostfs/usbhostfs.h"
-#include "../common/p2s_msg.h"
-#include "../common/p2s_cmd.h"
 
 extern bool kp2s_ready;
-
 static bool quit = false;
 static SceUID u_sema = -1;
 static SceUID k_sema = -1;
-
 static SceUID thid_wait = -1;
 static P2S_CMD kp2s_cmd;
-volatile static int k_buf_lock = 0;
 
-static struct AsyncEndpoint g_endp;
+static struct AsyncEndpoint g_endpoint;
 static struct AsyncEndpoint g_stdout;
+
+int kp2s_cmd_parse(kp2s_client *client, P2S_CMD *cmd);
 
 static int usbShellInit(void) {
 
-    int ret = usbAsyncRegister(ASYNC_SHELL, &g_endp);
+    int ret = usbAsyncRegister(ASYNC_SHELL, &g_endpoint);
     printf("usbAsyncRegister: ASYNC_SHELL = %i\n", ret);
     ret = usbAsyncRegister(ASYNC_STDOUT, &g_stdout);
     printf("usbAsyncRegister: ASYNC_STDOUT = %i\n", ret);
@@ -174,7 +159,7 @@ static int thread_wait_cmd(SceSize args, void *argp) {
 
     int res = usbhostfs_start();
     if (res != 0) {
-        printf("module_start: usbhostfs_start failed\n");
+        printf("thread_wait_cmd: usbhostfs_start failed\n");
         return -1;
     }
 
@@ -183,6 +168,10 @@ static int thread_wait_cmd(SceSize args, void *argp) {
 
     //set_hooks();
 
+    kp2s_client client;
+    memset(&client, 0, sizeof(kp2s_client));
+    strcpy(client.path, HOME_PATH);
+
     while (!quit) {
 
         res = p2s_cmd_receive(ASYNC_SHELL, &kp2s_cmd);
@@ -190,25 +179,21 @@ static int thread_wait_cmd(SceSize args, void *argp) {
 
         if (res != 0) {
             if (!usbhostfs_connected()) {
-                PRINT_ERR("p2s_cmd_receive failed, waiting for usb...\n");
+                PRINT_ERR("p2s_cmd_receive failed, waiting for usb...");
                 usbWaitForConnect();
             } else {
-                PRINT_ERR("p2s_cmd_receive failed, unknow error...\n");
+                PRINT_ERR("p2s_cmd_receive failed, unknow error...");
             }
         } else {
-
-            switch (kp2s_cmd.type) {
-
-
-
-                default:
-                    if (!kp2s_ready) {
-                        PRINT_ERR("psp2shell main user module not loaded \n");
-                    } else {
-                        ksceKernelSignalSema(u_sema, 1);
-                        ksceKernelWaitSema(k_sema, 0, NULL);
-                    }
-                    break;
+            res = kp2s_cmd_parse(&client, &kp2s_cmd);
+            if (res != 0) {
+                if (!kp2s_ready) {
+                    PRINT_ERR("psp2shell main user module not loaded");
+                } else {
+                    // send cmd to user module
+                    ksceKernelSignalSema(u_sema, 1);
+                    ksceKernelWaitSema(k_sema, 0, NULL);
+                }
             }
         }
     }
@@ -217,13 +202,10 @@ static int thread_wait_cmd(SceSize args, void *argp) {
     return 0;
 }
 
-#endif
-
 void _start() __attribute__ ((weak, alias ("module_start")));
 
 int module_start(SceSize argc, const void *args) {
 
-#ifdef __USB__
     u_sema = ksceKernelCreateSema("p2s_sem_u", 0, 0, 1, NULL);
     k_sema = ksceKernelCreateSema("p2s_sem_k", 0, 0, 1, NULL);
 
@@ -231,7 +213,6 @@ int module_start(SceSize argc, const void *args) {
     if (thid_wait >= 0) {
         ksceKernelStartThread(thid_wait, 0, NULL);
     }
-#endif
 
     return SCE_KERNEL_START_SUCCESS;
 }
@@ -240,7 +221,6 @@ int module_stop(SceSize argc, const void *args) {
 
     delete_hooks();
 
-#ifdef __USB__
     quit = true;
 
     if (u_sema >= 0) {
@@ -252,12 +232,11 @@ int module_stop(SceSize argc, const void *args) {
     //ksceKernelDeleteThread(thid_wait);
     //ksceKernelWaitThreadEnd(thid_wait, 0, 0);
 
-    printf("module_stop: usbhostfs_stop\n");
+    printf("module_stop: usbhostfs_stop...\n");
     int res = usbhostfs_stop();
     if (res != 0) {
         printf("module_stop: usbhostfs_stop failed\n");
     }
-#endif
 
     return SCE_KERNEL_STOP_SUCCESS;
 }

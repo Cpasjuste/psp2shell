@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(psp2shell_k_)
+project(psp2shellusb_k)
 include("${VITASDK}/share/vita.cmake" REQUIRED)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,-q -Wall -O3 -std=gnu99 -D__PSP2__ -D__KERNEL__ -D__USB__")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti -fno-exceptions -D__PSP2__ -D__KERNEL__ -D__USB__")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,-q -Wall -O3 -std=gnu99 -D__PSP2__ -D__KERNEL__")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti -fno-exceptions -D__PSP2__ -D__KERNEL__")
 
 link_directories(${CMAKE_CURRENT_BINARY_DIR})
 
@@ -45,51 +45,23 @@ macro(_vita_create_stubs target-dir source config)
     add_dependencies(${target-dir} ${source})
 endmacro(_vita_create_stubs)
 
-########
-# WIFI #
-########
 add_executable(${PROJECT_NAME}
+        kp2s_io.c
         kp2s_main.c
         kp2s_hooks.c
         kp2s_utility.c
-        kp2s_io.c
-        )
-target_link_libraries(${PROJECT_NAME}
-        taihenForKernel_stub
-        SceLibKernel_stub
-        SceSysmemForDriver_stub
-        SceThreadmgrForDriver_stub
-        SceIofilemgrForDriver_stub
-        SceNetPsForDriver_stub
-        SceModulemgrForKernel_stub
-        k
-        gcc
-        -nostdlib
-        )
-vita_create_self(${PROJECT_NAME}.skprx ${PROJECT_NAME}
-        CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/psp2shell_k.yml)
-_vita_create_stubs(${PROJECT_NAME}-stubs ${PROJECT_NAME}
-        ${CMAKE_CURRENT_SOURCE_DIR}/psp2shell_k.yml KERNEL)
-
-#######
-# USB #
-#######
-add_executable(${PROJECT_NAME}_usb
-        kp2s_main.c
-        kp2s_hooks.c
-        kp2s_utility.c
-        kp2s_io.c
-        ../common/p2s_cmd.c
-        ../common/p2s_msg.c
+        kp2s_cmd_parser.c
         usbhostfs/usbhostfs.c
         usbhostfs/host_driver.c
-        )
-target_include_directories(${PROJECT_NAME}_usb PRIVATE
+        ${CMAKE_SOURCE_DIR}/common/p2s_cmd.c
+        ${CMAKE_SOURCE_DIR}/common/p2s_msg.c
+        ../common/libmodule.c)
+target_include_directories(${PROJECT_NAME} PRIVATE
         usbhostfs
-        ../common
-        ../psp2shell_m/include
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/common
         )
-target_link_libraries(${PROJECT_NAME}_usb
+target_link_libraries(${PROJECT_NAME}
         taihenForKernel_stub
         SceSysmemForDriver_stub
         SceThreadmgrForDriver_stub
@@ -103,10 +75,11 @@ target_link_libraries(${PROJECT_NAME}_usb
         gcc
         -nostdlib
         )
-target_compile_options(${PROJECT_NAME}_usb PRIVATE
+target_compile_options(${PROJECT_NAME} PRIVATE
         -D__USB__
         )
-vita_create_self(${PROJECT_NAME}_usb.skprx ${PROJECT_NAME}_usb
-        CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/psp2shell_k_usb.yml)
-_vita_create_stubs(${PROJECT_NAME}_usb-stubs ${PROJECT_NAME}_usb
-        ${CMAKE_CURRENT_SOURCE_DIR}/psp2shell_k_usb.yml KERNEL)
+vita_create_self(${PROJECT_NAME}.skprx ${PROJECT_NAME}
+        CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/psp2shellusb_k.yml)
+_vita_create_stubs(${PROJECT_NAME}-stubs ${PROJECT_NAME}
+        ${CMAKE_CURRENT_SOURCE_DIR}/psp2shellusb_k.yml KERNEL)
+add_dependencies(${PROJECT_NAME}.skprx ${PROJECT_NAME}-stubs)
