@@ -179,16 +179,16 @@ static int thread_wait_cmd(SceSize args, void *argp) {
 
         if (res != 0) {
             if (!usbhostfs_connected()) {
-                PRINT_ERR("p2s_cmd_receive failed, waiting for usb...");
+                PRINT_ERR_PROMPT("p2s_cmd_receive failed, waiting for usb...");
                 usbWaitForConnect();
             } else {
-                PRINT_ERR("p2s_cmd_receive failed, unknow error...");
+                PRINT_ERR_PROMPT("p2s_cmd_receive failed, unknow error...");
             }
         } else {
             res = kp2s_cmd_parse(&client, &kp2s_cmd);
             if (res != 0) {
                 if (!kp2s_ready) {
-                    PRINT_ERR("psp2shell main user module not loaded");
+                    PRINT_ERR_PROMPT("psp2shell main user module not loaded");
                 } else {
                     // send cmd to user module
                     ksceKernelSignalSema(u_sema, 1);

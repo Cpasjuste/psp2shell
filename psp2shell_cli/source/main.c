@@ -1,42 +1,39 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <termios.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <semaphore.h>
+#include <unistd.h>
 
-#include "p2s_cmd.h"
 #include "p2s_msg.h"
 #include "cmd.h"
 #include "utility.h"
 #include "main.h"
-#include "errno.h"
 
-int msg_sock = -1;
-int cmd_sock = -1;
 int done = 0;
 char **_argv;
-
-void *msg_thread(void *unused);
+int msg_sock = -1;
+int cmd_sock = -1;
+extern int exit_app(void);
 
 // readline
 char history_path[512];
-
 void process_line(char *line);
-
+/*
 tcflag_t old_lflag;
 cc_t old_vtime;
 struct termios term;
-int readline_callback = 0;
+*/
+ int readline_callback = 0;
 // readline
 
 void setup_terminal() {
+    /*
     if (tcgetattr(STDIN_FILENO, &term) < 0) {
         perror("tcgetattr");
         exit(1);
@@ -49,17 +46,21 @@ void setup_terminal() {
         perror("tcsetattr");
         exit(1);
     }
+    */
+
     rl_callback_handler_install("psp2shell> ", process_line);
     readline_callback = 1;
 }
 
 void close_terminal() {
+    /*
     term.c_lflag = old_lflag;
     term.c_cc[VTIME] = old_vtime;
     if (tcsetattr(STDIN_FILENO, TCSANOW, &term) < 0) {
         perror("tcsetattr");
         exit(1);
     }
+    */
     readline_callback = 0;
     rl_callback_handler_remove();
     fflush(stdin);
@@ -75,80 +76,6 @@ void sig_handler(int sig) {
         reset_terminal();
     }
 }
-
-#ifndef __USB__
-void close_socks() {
-    close(msg_sock);
-    close(cmd_sock);
-    msg_sock = -1;
-    cmd_sock = -1;
-}
-
-int get_sock(int sock, char *ip, int port, bool verbose) {
-
-    struct sockaddr_in addr;
-    bzero((char *) &addr, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr(ip);
-    addr.sin_port = htons((uint16_t) port);
-
-    sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock < 0) {
-        printf("%s\n", strerror(errno));
-        return -1;
-    }
-
-    if (verbose) {
-        printf("connecting to %s:%d ... ", ip, port);
-        fflush(stdout);
-    }
-
-    while (connect(sock, (struct sockaddr *) &addr, sizeof(struct sockaddr)) < 0) {
-        if (errno != EINPROGRESS && errno != EALREADY) {
-            if (verbose) {
-                printf("%s\n", strerror(errno));
-            }
-        } else {
-            if (verbose) {
-                printf("\n");
-            }
-        }
-        if (verbose) {
-            printf("connecting to %s:%d ... ", ip, port);
-            fflush(stdout);
-        }
-        sleep(2);
-    }
-
-    return sock;
-}
-
-int connect_psp2(char *address, int port) {
-
-    if ((msg_sock = get_sock(msg_sock, address, port, true)) < 0) {
-        printf("get_sock failed (port=%i)\n", port);
-        return msg_sock;
-    }
-
-    pthread_t resp_thread;
-    if (pthread_create(&resp_thread, NULL, msg_thread, NULL) < 0) {
-        printf("could not create thread\n");
-        exit(EXIT_FAILURE);
-    }
-
-    if ((cmd_sock = get_sock(cmd_sock, address, port + 1, false)) < 0) {
-        printf("get_sock failed (port=%i)\n", port + 1);
-        close(msg_sock);
-        return cmd_sock;
-    }
-
-    setup_terminal();
-    // catch CTRL+C
-    signal(SIGINT, sig_handler);
-
-    return 0;
-}
-#endif
 
 void print_hex(char *line) {
 
@@ -194,17 +121,9 @@ void print_hex(char *line) {
     }
 }
 
-int msg_parse(P2S_MSG *msg) {
+bool wait_prompt = 0;
 
-    bool prompt = false;
-    ssize_t len = strlen(msg->buffer);
-    if (len > 1
-        && msg->buffer[len - 2] == '\r'
-        && msg->buffer[len - 1] == '\n') {
-        msg->buffer[len - 2] = '\n';
-        msg->buffer[len - 1] = '\0';
-        prompt = true;
-    }
+int msg_parse(P2S_MSG *msg) {
 
     switch (msg->color) {
 
@@ -225,54 +144,20 @@ int msg_parse(P2S_MSG *msg) {
             break;
     }
 
-    //fflush(stdout);
-    //sync();
+    fflush(stdout);
 
-    if (prompt) {
+    ssize_t len = strlen(msg->buffer);
+    if (len > 1
+        && msg->buffer[len - 2] == '\r'
+        && msg->buffer[len - 1] == '\n') {
         rl_refresh_line(0, 0);
     }
 }
 
-#ifndef __USB__
-void *msg_thread(void *unused) {
-
-    P2S_MSG msg;
-
-    // receive message from psp2shell
-    while (true) {
-        int res = p2s_msg_receive(msg_sock, &msg);
-        if (res != 0) {
-            if (res == P2S_ERR_SOCKET) {
-                printf("p2s_msg_receive sock failed: 0x%08X\n", res);
-                break;
-            } else {
-                // print raw data (like kernel print)
-                msg.color = COL_NONE;
-            }
-        }
-
-        msg_parse(&msg);
-
-        // send "ok/continue"
-        send(msg_sock, "\n", 1, 0);
-    }
-
-    printf("disconnected\n");
-    signal(SIGINT, SIG_DFL);
-    close_terminal();
-    close(msg_sock);
-    close(cmd_sock);
-    msg_sock = -1;
-    cmd_sock = -1;
-
-    // restart
-    execvp(_argv[0], _argv);
-}
-#endif
-
 void process_line(char *line) {
 
     if (line == NULL) {
+        exit_app();
         close_terminal();
         exit(0);
     }
@@ -291,9 +176,7 @@ void process_line(char *line) {
             if (cmd == NULL) {
                 printf("Command not found. Use ? for help.\n");
             } else {
-                printf("\n");
                 cmd->func((int) num_tokens, tokens);
-                printf("\n");
             }
         }
 

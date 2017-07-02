@@ -348,15 +348,15 @@ void do_async(struct AsyncCommand *cmd, int readlen) {
             P2S_MSG msg;
             int res = p2s_msg_to_msg_advanced(&msg, (const char *) data, data_len - 2);
             //printf("\nlen=%i, data=`%s`\n", (int) (data_len - 2), msg.buffer);
-
             if (res >= 0) {
                 msg_parse(&msg);
             }
+
         } else if (chan == ASYNC_STDOUT) {
             printf("%s", data);
         }
 
-        // TODO: add file io
+        // TODO: add file transfer
         /*
         if ((chan < MAX_ASYNC_CHANNELS) && (g_clientsocks[chan] >= 0)) {
             write(g_clientsocks[chan], data, readlen - sizeof(struct AsyncCommand));
@@ -1068,78 +1068,78 @@ void *async_thread(void *arg) {
             }
             */
 
-            /*
-            for (i = 0; i < MAX_ASYNC_CHANNELS; i++) {
-                if (g_servsocks[i] >= 0) {
-                    if (FD_ISSET(g_servsocks[i], &read_set)) {
-                        if (g_clientsocks[i] >= 0) {
-                            FD_CLR(g_clientsocks[i], &read_save);
-                            close(g_clientsocks[i]);
+        /*
+        for (i = 0; i < MAX_ASYNC_CHANNELS; i++) {
+            if (g_servsocks[i] >= 0) {
+                if (FD_ISSET(g_servsocks[i], &read_set)) {
+                    if (g_clientsocks[i] >= 0) {
+                        FD_CLR(g_clientsocks[i], &read_save);
+                        close(g_clientsocks[i]);
+                    }
+                    size = sizeof(client);
+                    g_clientsocks[i] = accept(g_servsocks[i], (struct sockaddr *) &client, &size);
+                    if (g_clientsocks[i] >= 0) {
+                        printf("Accepting async connection (%d) from %s\n", i, inet_ntoa(client.sin_addr));
+                        FD_SET(g_clientsocks[i], &read_save);
+                        if ((g_daemon) && (i == ASYNC_SHELL)) {
+                            // Duplicate to stdout for the local shell
+                            dup2(g_clientsocks[i], 1);
                         }
-                        size = sizeof(client);
-                        g_clientsocks[i] = accept(g_servsocks[i], (struct sockaddr *) &client, &size);
-                        if (g_clientsocks[i] >= 0) {
-                            printf("Accepting async connection (%d) from %s\n", i, inet_ntoa(client.sin_addr));
-                            FD_SET(g_clientsocks[i], &read_save);
-                            if ((g_daemon) && (i == ASYNC_SHELL)) {
-                                // Duplicate to stdout for the local shell
-                                dup2(g_clientsocks[i], 1);
-                            }
-                            setsockopt(g_clientsocks[i], SOL_TCP, TCP_NODELAY, &flag, sizeof(int));
-                            if (g_clientsocks[i] > max_fd) {
-                                max_fd = g_clientsocks[i];
-                            }
+                        setsockopt(g_clientsocks[i], SOL_TCP, TCP_NODELAY, &flag, sizeof(int));
+                        if (g_clientsocks[i] > max_fd) {
+                            max_fd = g_clientsocks[i];
                         }
                     }
                 }
             }
+        }
 
-            for (i = 0; i < MAX_ASYNC_CHANNELS; i++) {
-                if (g_clientsocks[i] >= 0) {
-                    if (FD_ISSET(g_clientsocks[i], &read_set)) {
-                        int readbytes;
+        for (i = 0; i < MAX_ASYNC_CHANNELS; i++) {
+            if (g_clientsocks[i] >= 0) {
+                if (FD_ISSET(g_clientsocks[i], &read_set)) {
+                    int readbytes;
 
-                        printf("async_thread: read...\n");
-                        readbytes = read(g_clientsocks[i], data, sizeof(buf) - sizeof(struct AsyncCommand));
-                        if (readbytes > 0) {
-                            printf("async_thread: read: chan=%i, len=%i, data=%s\n", i, readbytes, data);
-                            if ((i == ASYNC_GDB) && (g_gdbdebug)) {
-                                print_gdbdebug(1, (uint8_t *) data, readbytes);
-                            }
+                    printf("async_thread: read...\n");
+                    readbytes = read(g_clientsocks[i], data, sizeof(buf) - sizeof(struct AsyncCommand));
+                    if (readbytes > 0) {
+                        printf("async_thread: read: chan=%i, len=%i, data=%s\n", i, readbytes, data);
+                        if ((i == ASYNC_GDB) && (g_gdbdebug)) {
+                            print_gdbdebug(1, (uint8_t *) data, readbytes);
+                        }
 
-                            if (g_daemon) {
-                                if ((i == ASYNC_SHELL) && (data[0] == '@')) {
-                                    // We assume locally it should be able to load everything in one go
-                                    if (readbytes < (sizeof(buf) - sizeof(struct AsyncCommand))) {
-                                        data[readbytes] = 0;
-                                    } else {
-                                        data[sizeof(buf) - sizeof(struct AsyncCommand) - 1] = 0;
-                                    }
-
-                                    parse_shell(&data[1]);
-                                    continue;
+                        if (g_daemon) {
+                            if ((i == ASYNC_SHELL) && (data[0] == '@')) {
+                                // We assume locally it should be able to load everything in one go
+                                if (readbytes < (sizeof(buf) - sizeof(struct AsyncCommand))) {
+                                    data[readbytes] = 0;
+                                } else {
+                                    data[sizeof(buf) - sizeof(struct AsyncCommand) - 1] = 0;
                                 }
-                            }
 
-                            if (g_hDev) {
-                                cmd->channel = LE32(i);
-                                printf("async_thread: euid_usb_bulk_write: chan=%i, len=%i, buf=%s\n", cmd->channel,
-                                       (int) (readbytes + sizeof(struct AsyncCommand)), buf);
-                                euid_usb_bulk_write(g_hDev, 0x4, buf, readbytes + sizeof(struct AsyncCommand), 10000);
+                                parse_shell(&data[1]);
+                                continue;
                             }
-                        } else {
-                            FD_CLR(g_clientsocks[i], &read_save);
-                            if ((g_daemon) && (i == ASYNC_SHELL)) {
-                                dup2(2, 1);
-                            }
-                            close(g_clientsocks[i]);
-                            g_clientsocks[i] = -1;
-                            printf("Closing async connection (%d)\n", i);
                         }
+
+                        if (g_hDev) {
+                            cmd->channel = LE32(i);
+                            printf("async_thread: euid_usb_bulk_write: chan=%i, len=%i, buf=%s\n", cmd->channel,
+                                   (int) (readbytes + sizeof(struct AsyncCommand)), buf);
+                            euid_usb_bulk_write(g_hDev, 0x4, buf, readbytes + sizeof(struct AsyncCommand), 10000);
+                        }
+                    } else {
+                        FD_CLR(g_clientsocks[i], &read_save);
+                        if ((g_daemon) && (i == ASYNC_SHELL)) {
+                            dup2(2, 1);
+                        }
+                        close(g_clientsocks[i]);
+                        g_clientsocks[i] = -1;
+                        printf("Closing async connection (%d)\n", i);
                     }
                 }
             }
-            */
+        }
+        */
         //}
 
     }
