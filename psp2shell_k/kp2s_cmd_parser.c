@@ -75,7 +75,7 @@ static void cmd_cd(kp2s_client *client, char *path) {
 
     if (strncmp(client->path, HOME_PATH, MAX_PATH_LENGTH) != 0
         && !kp2s_io_exist(client->path)) {
-        PRINT_ERR_PROMPT("could not cd to directory: %s", client->path);
+        PRINT_ERR("could not cd to directory: %s", client->path);
         strncpy(client->path, old_path, MAX_PATH_LENGTH);
     }
 }
@@ -102,7 +102,7 @@ static void cmd_ls(kp2s_client *client, char *path) {
 }
 
 static void cmd_pwd(kp2s_client *client) {
-    PRINT_OK_PROMPT("%s", client->path);
+    PRINT_COL(COL_YELLOW, "\n\n%s\n\r\n", client->path);
 }
 
 static void cmd_mv(kp2s_client *client, char *src, char *dst) {
@@ -118,6 +118,19 @@ static void cmd_mv(kp2s_client *client, char *src, char *dst) {
     kp2s_io_move(new_src, new_dst, MOVE_INTEGRATE | MOVE_REPLACE);
 }
 
+static void cmd_cp(kp2s_client *client, char *src, char *dst) {
+
+    char new_src[MAX_PATH_LENGTH];
+    char new_dst[MAX_PATH_LENGTH];
+
+    strncpy(new_src, src, MAX_PATH_LENGTH);
+    strncpy(new_dst, dst, MAX_PATH_LENGTH);
+    to_abs_path(client->path, new_src);
+    to_abs_path(client->path, new_dst);
+
+    kp2s_io_copy_path(new_src, new_dst);
+}
+
 static void cmd_rm(kp2s_client *client, char *file) {
 
     char new_path[MAX_PATH_LENGTH];
@@ -128,7 +141,7 @@ static void cmd_rm(kp2s_client *client, char *file) {
     if (!kp2s_io_isdir(new_path)) {
         kp2s_io_remove(new_path);
     } else {
-        PRINT_ERR_PROMPT("not a file: `%s`", new_path);
+        PRINT_ERR("not a file: `%s`", new_path);
     }
 }
 
@@ -167,6 +180,10 @@ int kp2s_cmd_parse(kp2s_client *client, P2S_CMD *cmd) {
 
         case CMD_MV:
             cmd_mv(client, cmd->args[0], cmd->args[1]);
+            break;
+
+        case CMD_CP:
+            cmd_cp(client, cmd->args[0], cmd->args[1]);
             break;
 
         default: // not handled by kernel

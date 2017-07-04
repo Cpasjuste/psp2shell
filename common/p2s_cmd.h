@@ -47,6 +47,7 @@ enum p2s_cmd_t {
     CMD_RMDIR,
     CMD_MKDIR,
     CMD_MV,
+    CMD_CP,
     CMD_PWD,
     CMD_GET,
     CMD_PUT,

@@ -19,17 +19,22 @@ int done = 0;
 char **_argv;
 int msg_sock = -1;
 int cmd_sock = -1;
+
+int psp2sell_cli_exit();
+
 extern int exit_app(void);
 
 // readline
 char history_path[512];
+
 void process_line(char *line);
+
 /*
 tcflag_t old_lflag;
 cc_t old_vtime;
 struct termios term;
 */
- int readline_callback = 0;
+int readline_callback = 0;
 // readline
 
 void setup_terminal() {
@@ -61,9 +66,10 @@ void close_terminal() {
         exit(1);
     }
     */
+
     readline_callback = 0;
     rl_callback_handler_remove();
-    fflush(stdin);
+    //fflush(stdin);
 }
 
 void reset_terminal(void) {
@@ -121,8 +127,6 @@ void print_hex(char *line) {
     }
 }
 
-bool wait_prompt = 0;
-
 int msg_parse(P2S_MSG *msg) {
 
     switch (msg->color) {
@@ -150,15 +154,15 @@ int msg_parse(P2S_MSG *msg) {
     if (len > 1
         && msg->buffer[len - 2] == '\r'
         && msg->buffer[len - 1] == '\n') {
-        rl_refresh_line(0, 0);
+        setup_terminal();
+        //rl_refresh_line(0, 0);
     }
 }
 
 void process_line(char *line) {
 
     if (line == NULL) {
-        exit_app();
-        close_terminal();
+        psp2sell_cli_exit();
         exit(0);
     }
 
@@ -176,7 +180,10 @@ void process_line(char *line) {
             if (cmd == NULL) {
                 printf("Command not found. Use ? for help.\n");
             } else {
-                cmd->func((int) num_tokens, tokens);
+                close_terminal();
+                if (cmd->func((int) num_tokens, tokens) != 0) {
+                    setup_terminal();
+                }
             }
         }
 
@@ -191,8 +198,6 @@ void process_line(char *line) {
 
     free(line);
 }
-
-#ifdef __USB__
 
 int psp2sell_cli_init() {
 
@@ -217,86 +222,9 @@ int psp2sell_cli_init() {
 
 int psp2sell_cli_exit() {
 
+    exit_app();
     signal(SIGINT, SIG_DFL);
     close_terminal();
 
     return 0;
 }
-
-#else
-int process_args(int argc, char **argv) {
-
-    char *line = (char *) malloc(1024);
-
-    connect_psp2(argv[1], atoi(argv[2]));
-
-    memset(line, 0, 1024);
-    for (int i = 3; i < argc; i++) {
-        sprintf(line + strlen(line), "%s ", argv[i]);
-    }
-    process_line(line);
-    close_terminal();
-
-    return 0;
-}
-
-int main(int argc, char **argv) {
-
-    fd_set fds;
-
-    if (argc < 3) {
-        fprintf(stderr, "Usage %s <address> <port_num> (<cmd>)\n", argv[0]);
-        return EXIT_FAILURE;
-    } else if (argc > 3) {
-        process_args(argc, argv);
-        exit(0);
-    }
-
-    _argv = argv;
-
-    // load history from file
-    memset(history_path, 0, 512);
-    snprintf(history_path, 512, "%s/.psp2shell_history", getenv("HOME"));
-    if (read_history(history_path) != 0) { // append_history needs the file created
-        write_history(history_path);
-    }
-
-    while (!done) {
-
-        if (msg_sock < 0) {
-            if (connect_psp2(argv[1], atoi(argv[2])) < 0) {
-                break;
-            }
-        } else {
-
-            int error = 0;
-            socklen_t len = sizeof(error);
-
-            int ret = getsockopt(msg_sock, SOL_SOCKET, SO_ERROR, &error, &len);
-            if (ret != 0 || error != 0) {
-                printf("socket is dead...\n");
-                close_socks();
-                close_terminal();
-            }
-
-            ret = getsockopt(cmd_sock, SOL_SOCKET, SO_ERROR, &error, &len);
-            if (ret != 0 || error != 0) {
-                printf("socket is dead...\n");
-                close_socks();
-                close_terminal();
-            }
-
-            FD_ZERO(&fds);
-            FD_SET(fileno(stdin), &fds);
-            if (select(fileno(stdin) + 1, &fds, NULL, NULL, NULL) < 0) {
-                //continue (CTRL+C)
-            } else if (FD_ISSET(fileno(stdin), &fds) && readline_callback) {
-                rl_callback_read_char();
-            }
-        }
-    }
-
-    close_terminal();
-    return -1;
-}
-#endif

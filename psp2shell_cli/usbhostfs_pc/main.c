@@ -604,8 +604,7 @@ int exit_app(void) {
         setegid(0);
         close_device(g_hDev);
     }
-    exit(1);
-
+    //exit(1);
     return 0;
 }
 
@@ -1006,6 +1005,7 @@ int init_readline(void) {
 extern int readline_callback;
 
 void *async_thread(void *arg) {
+
     char buf[512];
     char *data;
     struct AsyncCommand *cmd;
@@ -1045,11 +1045,13 @@ void *async_thread(void *arg) {
 
         FD_ZERO(&read_save);
         FD_SET(fileno(stdin), &read_save);
+
         if (select(fileno(stdin) + 1, &read_save, NULL, NULL, NULL) < 0) {
             //continue (CTRL+C)
         } else if (FD_ISSET(fileno(stdin), &read_save) && readline_callback) {
             rl_callback_read_char();
         }
+
         /*
         read_set = read_save;
         if (select(max_fd + 1, &read_set, NULL, NULL, NULL) > 0) {
@@ -1192,6 +1194,7 @@ int main(int argc, char **argv) {
         }
         */
 
+        //g_verbose = 2;
         pthread_create(&thid, NULL, async_thread, NULL);
         start_hostfs();
 

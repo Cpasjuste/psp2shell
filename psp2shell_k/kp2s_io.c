@@ -39,9 +39,9 @@ static char *mount_points[] = {
 
 int kp2s_io_list_drives() {
 
-    PRINT("\n-----\n");
-    PRINT("root:\n");
-    PRINT("-----\n");
+    PRINT("\n----\n");
+    PRINT("root\n");
+    PRINT("----\n");
 
     for (int i = 0; i < N_MOUNT_POINTS; i++) {
         if (mount_points[i]) {
@@ -62,7 +62,7 @@ int kp2s_io_list_dir(const char *path) {
 
     SceUID dfd = sceIoDopen(path);
     if (dfd < 0) {
-        PRINT_ERR_PROMPT("directory does not exist: %s", path);
+        PRINT_ERR("directory does not exist: %s", path);
         return dfd;
     }
 
@@ -72,7 +72,7 @@ int kp2s_io_list_dir(const char *path) {
     for (int i = 0; i < len; i++) {
         PRINT("-");
     }
-    PRINT("\n%s:\n", path);
+    PRINT("\n%s\n", path);
     for (int i = 0; i < len; i++) {
         PRINT("-");
     }
@@ -95,7 +95,7 @@ int kp2s_io_list_dir(const char *path) {
         }
     } while (res > 0);
 
-    PRINT("\r\n");
+    PRINT_PROMPT();
 
     sceIoDclose(dfd);
 
@@ -192,7 +192,9 @@ int kp2s_io_remove(const char *path) {
         }
     }
 
-    PRINT_OK();
+    PRINT_COL(COL_GREEN, "OK");
+    PRINT_PROMPT();
+
     return 1;
 }
 
@@ -275,13 +277,13 @@ int kp2s_io_copy_file(const char *src_path, const char *dst_path) {
     sceIoClose(fddst);
     sceIoClose(fdsrc);
 
-    PRINT_OK();
+    PRINT_COL(COL_GREEN, " OK");
+    PRINT_PROMPT();
+
     return 1;
 }
 
 int kp2s_io_copy_path(const char *src_path, const char *dst_path) {
-
-    PRINT("cp | `%s` => `%s` ", src_path, dst_path);
 
     // The source and destination paths are identical
     if (strcasecmp(src_path, dst_path) == 0) {
@@ -319,6 +321,7 @@ int kp2s_io_copy_path(const char *src_path, const char *dst_path) {
             memset(&dir, 0, sizeof(SceIoDirent));
 
             res = sceIoDread(dfd, &dir);
+
             if (res > 0) {
                 char *new_src_path = p2s_malloc(strlen(src_path) + strlen(dir.d_name) + 2);
                 snprintf(new_src_path, MAX_PATH_LENGTH, "%s%s%s", src_path, kp2s_has_slash(src_path) ? "" : "/",
@@ -329,6 +332,7 @@ int kp2s_io_copy_path(const char *src_path, const char *dst_path) {
                          dir.d_name);
 
                 if (SCE_S_ISDIR(dir.d_stat.st_mode)) {
+                    PRINT("cp | `%s` => `%s` ", src_path, dst_path);
                     ret = kp2s_io_copy_path(new_src_path, new_dst_path);
                 } else {
                     ret = kp2s_io_copy_file(new_src_path, new_dst_path);
@@ -350,7 +354,9 @@ int kp2s_io_copy_path(const char *src_path, const char *dst_path) {
         return kp2s_io_copy_file(src_path, dst_path);
     }
 
-    PRINT_OK();
+    //PRINT_COL(COL_GREEN, "OK");
+    PRINT_PROMPT();
+
     return 1;
 }
 
@@ -409,7 +415,10 @@ int kp2s_io_move(const char *src_path, const char *dst_path, int flags) {
                 PRINT_ERR_CODE("sceIoRename", res);
                 return res;
             }
-            PRINT_OK();
+
+            PRINT_COL(COL_GREEN, "OK");
+            PRINT_PROMPT();
+
             return 1;
         }
 
@@ -460,6 +469,8 @@ int kp2s_io_move(const char *src_path, const char *dst_path, int flags) {
         return -1;
     }
 
-    PRINT_OK();
+    PRINT_COL(COL_GREEN, "OK");
+    PRINT_PROMPT();
+
     return 1;
 }

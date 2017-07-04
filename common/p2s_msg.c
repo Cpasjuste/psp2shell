@@ -149,7 +149,6 @@ void p2s_msg_send(int sock, int color, const char *msg) {
     char buffer[len];
     memset(buffer, 0, len);
     snprintf(buffer, len, "%i%s", color, msg);
-    printf("p2s_msg_send(%i)\n", (int) len);
     send(sock, buffer, len, 0);
 }
 
