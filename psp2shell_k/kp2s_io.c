@@ -18,6 +18,8 @@
 
 #include "psp2shell_k.h"
 
+void *p2s_data_buf = NULL;
+
 static char *mount_points[] = {
         "app0:",
         "gro0:",
@@ -52,8 +54,6 @@ int kp2s_io_list_drives() {
             }
         }
     }
-
-    PRINT("\r\n");
 
     return 0;
 };
@@ -94,8 +94,6 @@ int kp2s_io_list_dir(const char *path) {
             }
         }
     } while (res > 0);
-
-    PRINT_PROMPT();
 
     sceIoDclose(dfd);
 
@@ -192,8 +190,7 @@ int kp2s_io_remove(const char *path) {
         }
     }
 
-    PRINT_COL(COL_GREEN, "OK");
-    PRINT_PROMPT();
+    PRINT_COL(COL_GREEN, "OK\n");
 
     return 1;
 }
@@ -229,16 +226,18 @@ int kp2s_io_copy_file(const char *src_path, const char *dst_path) {
         return fddst;
     }
 
+    int progress_bar[10];
     SceOff size = kp2s_io_get_size(src_path);
     SceOff progress = 0;
 
-    void *buf = p2s_malloc(TRANSFER_SIZE);
+    if(p2s_data_buf == NULL) {
+        p2s_data_buf = p2s_malloc(TRANSFER_SIZE);
+    }
 
     while (1) {
 
-        int read = sceIoRead(fdsrc, buf, 16 * 1024);
+        int read = sceIoRead(fdsrc, p2s_data_buf, TRANSFER_SIZE);
         if (read < 0) {
-            p2s_free(buf);
             sceIoClose(fddst);
             sceIoClose(fdsrc);
             sceIoRemove(dst_path);
@@ -246,12 +245,12 @@ int kp2s_io_copy_file(const char *src_path, const char *dst_path) {
             return read;
         }
 
-        if (read == 0)
+        if (read == 0) {
             break;
+        }
 
-        int write = sceIoWrite(fddst, buf, (SceSize) read);
+        int write = sceIoWrite(fddst, p2s_data_buf, (SceSize) read);
         if (write < 0) {
-            p2s_free(buf);
             sceIoClose(fddst);
             sceIoClose(fdsrc);
             sceIoRemove(dst_path);
@@ -260,13 +259,13 @@ int kp2s_io_copy_file(const char *src_path, const char *dst_path) {
         }
 
         progress += write;
-        int percent = (int) (progress / size) * 100;
-        if (!(percent % 10)) {
+        int percent = (int) (((float) progress / (float) size) * 100);
+        int index = percent / 10;
+        if (!(percent % 10) && progress_bar[index] <= 0) {
             PRINT("#");
+            progress_bar[index] = 1;
         }
     }
-
-    p2s_free(buf);
 
     // Inherit file stat
     SceIoStat stat;
@@ -277,8 +276,7 @@ int kp2s_io_copy_file(const char *src_path, const char *dst_path) {
     sceIoClose(fddst);
     sceIoClose(fdsrc);
 
-    PRINT_COL(COL_GREEN, " OK");
-    PRINT_PROMPT();
+    PRINT_COL(COL_GREEN, " OK\n");
 
     return 1;
 }
@@ -332,8 +330,11 @@ int kp2s_io_copy_path(const char *src_path, const char *dst_path) {
                          dir.d_name);
 
                 if (SCE_S_ISDIR(dir.d_stat.st_mode)) {
-                    PRINT("cp | `%s` => `%s` ", src_path, dst_path);
+                    //PRINT("cp | `%s` => `%s`\n", new_src_path, new_dst_path);
                     ret = kp2s_io_copy_path(new_src_path, new_dst_path);
+                    if (ret <= 0) {
+                        PRINT_ERR_CODE("kp2s_io_copy_path", ret);
+                    }
                 } else {
                     ret = kp2s_io_copy_file(new_src_path, new_dst_path);
                 }
@@ -348,14 +349,10 @@ int kp2s_io_copy_path(const char *src_path, const char *dst_path) {
                 }
             }
         } while (res > 0);
-
         sceIoDclose(dfd);
     } else {
         return kp2s_io_copy_file(src_path, dst_path);
     }
-
-    //PRINT_COL(COL_GREEN, "OK");
-    PRINT_PROMPT();
 
     return 1;
 }
@@ -416,9 +413,7 @@ int kp2s_io_move(const char *src_path, const char *dst_path, int flags) {
                 return res;
             }
 
-            PRINT_COL(COL_GREEN, "OK");
-            PRINT_PROMPT();
-
+            PRINT_COL(COL_GREEN, "OK\n");
             return 1;
         }
 
@@ -469,8 +464,7 @@ int kp2s_io_move(const char *src_path, const char *dst_path, int flags) {
         return -1;
     }
 
-    PRINT_COL(COL_GREEN, "OK");
-    PRINT_PROMPT();
+    PRINT_COL(COL_GREEN, "OK\n");
 
     return 1;
 }

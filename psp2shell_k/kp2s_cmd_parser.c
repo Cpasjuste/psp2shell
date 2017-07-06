@@ -99,6 +99,8 @@ static void cmd_ls(kp2s_client *client, char *path) {
             kp2s_io_list_dir(new_path);
         }
     }
+
+    PRINT_PROMPT();
 }
 
 static void cmd_pwd(kp2s_client *client) {
@@ -116,6 +118,8 @@ static void cmd_mv(kp2s_client *client, char *src, char *dst) {
     to_abs_path(client->path, new_dst);
 
     kp2s_io_move(new_src, new_dst, MOVE_INTEGRATE | MOVE_REPLACE);
+
+    PRINT_PROMPT();
 }
 
 static void cmd_cp(kp2s_client *client, char *src, char *dst) {
@@ -129,6 +133,8 @@ static void cmd_cp(kp2s_client *client, char *src, char *dst) {
     to_abs_path(client->path, new_dst);
 
     kp2s_io_copy_path(new_src, new_dst);
+
+    PRINT_PROMPT();
 }
 
 static void cmd_rm(kp2s_client *client, char *file) {
@@ -140,6 +146,7 @@ static void cmd_rm(kp2s_client *client, char *file) {
 
     if (!kp2s_io_isdir(new_path)) {
         kp2s_io_remove(new_path);
+        PRINT_PROMPT();
     } else {
         PRINT_ERR("not a file: `%s`", new_path);
     }
@@ -152,6 +159,8 @@ static void cmd_rmdir(kp2s_client *client, char *path) {
     strncpy(new_path, path, MAX_PATH_LENGTH);
     to_abs_path(client->path, new_path);
     kp2s_io_remove(new_path);
+
+    PRINT_PROMPT();
 }
 
 int kp2s_cmd_parse(kp2s_client *client, P2S_CMD *cmd) {

@@ -21,12 +21,13 @@
 #include "usbhostfs/usbasync.h"
 #include "usbhostfs/usbhostfs.h"
 
-extern bool kp2s_ready;
 static bool quit = false;
 static SceUID u_sema = -1;
 static SceUID k_sema = -1;
 static SceUID thid_wait = -1;
 static P2S_CMD kp2s_cmd;
+extern bool kp2s_ready;
+extern void *p2s_data_buf;
 
 static struct AsyncEndpoint g_endpoint;
 static struct AsyncEndpoint g_stdout;
@@ -236,6 +237,10 @@ int module_stop(SceSize argc, const void *args) {
     int res = usbhostfs_stop();
     if (res != 0) {
         printf("module_stop: usbhostfs_stop failed\n");
+    }
+
+    if(p2s_data_buf != NULL) {
+        p2s_free(p2s_data_buf);
     }
 
     return SCE_KERNEL_STOP_SUCCESS;
