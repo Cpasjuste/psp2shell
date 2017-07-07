@@ -131,49 +131,53 @@ int kp2s_dump_module(SceUID pid, SceUID uid, const char *dst) {
     return ret;
 }
 
-int kp2s_get_module_info(SceUID pid, SceUID uid, SceKernelModuleInfo *info) {
+int kp2s_get_module_info(bool userMode, SceUID pid, SceUID uid, SceKernelModuleInfo *info) {
 
     int ret;
     SceKernelModuleInfo kinfo;
     memset(&kinfo, 0, sizeof(SceKernelModuleInfo));
     kinfo.size = sizeof(SceKernelModuleInfo);
 
-    uint32_t state;
-    ENTER_SYSCALL(state);
-
-    SceUID kid = ksceKernelKernelUidForUserUid(pid, uid);
-    if (kid < 0) {
-        kid = uid;
+    if (userMode) {
+        uint32_t state;
+        ENTER_SYSCALL(state);
+        SceUID kid = ksceKernelKernelUidForUserUid(pid, uid);
+        if (kid < 0) {
+            kid = uid;
+        }
+        ret = ksceKernelGetModuleInfo(pid, kid, &kinfo);
+        if (ret >= 0) {
+            ksceKernelMemcpyKernelToUser((uintptr_t) info, &kinfo, sizeof(SceKernelModuleInfo));
+        }
+        EXIT_SYSCALL(state);
+    } else {
+        ret = ksceKernelGetModuleInfo(pid, pid, info);
     }
-
-    ret = ksceKernelGetModuleInfo(pid, kid, &kinfo);
-    if (ret >= 0) {
-        ksceKernelMemcpyKernelToUser((uintptr_t) info, &kinfo, sizeof(SceKernelModuleInfo));
-    }
-
-    EXIT_SYSCALL(state);
 
     return ret;
 }
 
-int kp2s_get_module_list(SceUID pid, int flags1, int flags2, SceUID *modids, size_t *num) {
+int kp2s_get_module_list(bool userMode, SceUID pid, int flags1, int flags2, SceUID *modids, size_t *num) {
 
-    size_t count = 256;
-    SceUID kmodids[256];
+    int res;
 
-    uint32_t state;
-    ENTER_SYSCALL(state);
-
-    memset(kmodids, 0, sizeof(SceUID) * 256);
-    int res = ksceKernelGetModuleList(pid, flags1, flags2, kmodids, &count);
-    if (res >= 0) {
-        ksceKernelMemcpyKernelToUser((uintptr_t) modids, &kmodids, sizeof(SceUID) * 256);
-        ksceKernelMemcpyKernelToUser((uintptr_t) num, &count, sizeof(size_t));
+    if (userMode) {
+        size_t count = 256;
+        SceUID kmodids[256];
+        uint32_t state;
+        ENTER_SYSCALL(state);
+        memset(kmodids, 0, sizeof(SceUID) * 256);
+        res = ksceKernelGetModuleList(pid, flags1, flags2, kmodids, &count);
+        if (res >= 0) {
+            ksceKernelMemcpyKernelToUser((uintptr_t) modids, &kmodids, sizeof(SceUID) * 256);
+            ksceKernelMemcpyKernelToUser((uintptr_t) num, &count, sizeof(size_t));
+        } else {
+            ksceKernelMemcpyKernelToUser((uintptr_t) num, &count, sizeof(size_t));
+        }
+        EXIT_SYSCALL(state);
     } else {
-        ksceKernelMemcpyKernelToUser((uintptr_t) num, &count, sizeof(size_t));
+        res = ksceKernelGetModuleList(pid, flags1, flags2, modids, num);
     }
-
-    EXIT_SYSCALL(state);
 
     return res;
 }

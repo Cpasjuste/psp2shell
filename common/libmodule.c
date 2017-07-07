@@ -38,7 +38,7 @@ void *p2s_malloc(size_t size) {
 
 void p2s_free(void *p) {
 
-    SceUID uid = sceKernelFindMemBlockByAddr(p, 1);
+    SceUID uid = sceKernelFindMemBlockByAddr(p, 0);
     if (uid >= 0) {
         sceKernelFreeMemBlock(uid);
     }

@@ -11,10 +11,10 @@ set(SRC_FILES
         source/p2s_cmd_parser.c
         source/p2s_utility.c
         source/p2s_io.c
-        source/p2s_module.c
         source/p2s_thread.c
-        ../common/p2s_cmd.c
-        ../common/p2s_msg.c
+        ${CMAKE_SOURCE_DIR}/common/p2s_module.c
+        ${CMAKE_SOURCE_DIR}/common/p2s_cmd.c
+        ${CMAKE_SOURCE_DIR}/common/p2s_msg.c
         )
 
 set(INC_FILES

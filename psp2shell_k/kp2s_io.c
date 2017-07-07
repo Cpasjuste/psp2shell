@@ -138,8 +138,6 @@ int kp2s_io_remove(const char *path) {
 
     if (dfd >= 0) {
 
-        PRINT("rmdir | `%s` ", path);
-
         int res = 0;
 
         do {
@@ -148,49 +146,51 @@ int kp2s_io_remove(const char *path) {
 
             res = sceIoDread(dfd, &dir);
             if (res > 0) {
-                char *new_path = p2s_malloc(strlen(path) + strlen(dir.d_name) + 2);
+                char new_path[strlen(path) + strlen(dir.d_name) + 2];
                 snprintf(new_path, MAX_PATH_LENGTH, "%s%s%s", path, kp2s_has_slash(path) ? "" : "/", dir.d_name);
 
                 if (SCE_S_ISDIR(dir.d_stat.st_mode)) {
                     int ret = kp2s_io_remove(new_path);
                     if (ret <= 0) {
                         PRINT_ERR_CODE("rmdir", ret);
-                        p2s_free(new_path);
                         sceIoDclose(dfd);
                         return ret;
                     }
                 } else {
+                    PRINT("rm | `%s` ", new_path);
                     int ret = sceIoRemove(new_path);
                     if (ret < 0) {
                         PRINT_ERR_CODE("sceIoRemove", ret);
-                        p2s_free(new_path);
                         sceIoDclose(dfd);
                         return ret;
+                    } else {
+                        PRINT_COL(COL_GREEN, "OK\n");
                     }
                 }
-                p2s_free(new_path);
             }
         } while (res > 0);
 
         sceIoDclose(dfd);
 
+        PRINT("rm | `%s` ", path);
         int ret = sceIoRmdir(path);
         if (ret < 0) {
             PRINT_ERR_CODE("sceIoRmdir", ret);
             return ret;
+        } else {
+            PRINT_COL(COL_GREEN, "OK\n");
         }
     } else {
 
         PRINT("rm | `%s` ", path);
-
         int ret = sceIoRemove(path);
         if (ret < 0) {
             PRINT_ERR_CODE("sceIoRemove", ret);
             return ret;
+        } else {
+            PRINT_COL(COL_GREEN, "OK\n");
         }
     }
-
-    PRINT_COL(COL_GREEN, "OK\n");
 
     return 1;
 }
@@ -226,11 +226,11 @@ int kp2s_io_copy_file(const char *src_path, const char *dst_path) {
         return fddst;
     }
 
-    int progress_bar[10];
+    int progress_bar[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     SceOff size = kp2s_io_get_size(src_path);
     SceOff progress = 0;
 
-    if(p2s_data_buf == NULL) {
+    if (p2s_data_buf == NULL) {
         p2s_data_buf = p2s_malloc(TRANSFER_SIZE);
     }
 
@@ -261,7 +261,7 @@ int kp2s_io_copy_file(const char *src_path, const char *dst_path) {
         progress += write;
         int percent = (int) (((float) progress / (float) size) * 100);
         int index = percent / 10;
-        if (!(percent % 10) && progress_bar[index] <= 0) {
+        if (percent > index * 10 && progress_bar[index] <= 0) {
             PRINT("#");
             progress_bar[index] = 1;
         }

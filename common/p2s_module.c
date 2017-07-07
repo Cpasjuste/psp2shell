@@ -17,17 +17,7 @@
 */
 
 
-#include "libmodule.h"
-#include "p2s_main.h"
-#include "p2s_utility.h"
-#include "psp2shell.h"
-#include "p2s_module.h"
-
-#ifndef __KERNEL__
-#ifndef DEBUG
-#include "../../psp2shell_k/psp2shell_k.h"
-#endif
-#endif
+#include "psp2shell_k.h"
 
 static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
 
@@ -57,13 +47,12 @@ static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
         PRINT("\tsegment[%i].flags: 0x%08X\n", i, moduleInfo->segments[i].flags);
         PRINT("\tsegment[%i].res: %i\n", i, moduleInfo->segments[i].res);
     }
-    PRINT("\n\r\n");
 }
 
 int p2s_moduleInfo(SceUID uid) {
 
 #ifdef __KERNEL__
-    PRINT_ERR("TODO: p2s_moduleInfo");
+    PRINT_ERR("use modinfop (provide pid)");
     return 0;
 #else
     SceUID pid = p2s_get_running_app_pid();
@@ -81,10 +70,10 @@ int p2s_moduleInfoForPid(SceUID pid, SceUID uid) {
     memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
     moduleInfo.size = sizeof(SceKernelModuleInfo);
 
-#if defined(DEBUG)
-    int res = sceKernelGetModuleInfo(uid, &moduleInfo);
+#ifdef __KERNEL__
+    int res = kp2s_get_module_info(false, pid, uid, &moduleInfo);
 #else
-    int res = kp2s_get_module_info(pid, uid, &moduleInfo);
+    int res = kp2s_get_module_info(true, pid, uid, &moduleInfo);
 #endif
     if (res == 0) {
         printModuleInfoFull(&moduleInfo);
@@ -98,7 +87,7 @@ int p2s_moduleInfoForPid(SceUID pid, SceUID uid) {
 int p2s_moduleList() {
 
 #ifdef __KERNEL__
-    PRINT_ERR("TODO: p2s_moduleList");
+    PRINT_ERR("use modlistp (provide pid), or launch an application");
     return 0;
 #else
     SceUID pid = p2s_get_running_app_pid();
@@ -115,35 +104,32 @@ int p2s_moduleListForPid(SceUID pid) {
     SceUID ids[256];
     size_t count = 256;
 
-#if defined(DEBUG)
-    int res = sceKernelGetModuleList(0xFF, ids, (int *) &count);
+#ifdef __KERNEL__
+    int res = kp2s_get_module_list(false, pid, 0xFF, 1, ids, &count);
 #else
-    int res = kp2s_get_module_list(pid, 0xFF, 1, ids, &count);
+    int res = kp2s_get_module_list(true, pid, 0xFF, 1, ids, &count);
 #endif
-
     if (res != 0) {
         PRINT_ERR("module list failed: 0x%08X", res);
         return res;
     } else {
+        PRINT("kp2s_get_module_list: module count=%i\n", count);
         PRINT("\n");
         SceKernelModuleInfo moduleInfo;
         for (int i = 0; i < count; i++) {
             if (ids[i] > 0) {
                 memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
-
-#if defined(DEBUG)
-                moduleInfo.size = sizeof(SceKernelModuleInfo);
-                res = sceKernelGetModuleInfo(ids[i], &moduleInfo);
+#ifdef __KERNEL__
+                res = kp2s_get_module_info(false, pid, ids[i], &moduleInfo);
 #else
-                res = kp2s_get_module_info(pid, ids[i], &moduleInfo);
+                res = kp2s_get_module_info(true, pid, ids[i], &moduleInfo);
 #endif
                 if (res == 0) {
                     PRINT("\t%s (uid: 0x%08X)\n",
-                             moduleInfo.module_name, moduleInfo.handle);
+                          moduleInfo.module_name, moduleInfo.handle);
                 }
             }
         }
-        PRINT("\r\n");
     }
 
     return 0;
@@ -152,7 +138,7 @@ int p2s_moduleListForPid(SceUID pid) {
 SceUID p2s_moduleLoadStart(char *modulePath) {
 
 #ifdef __KERNEL__
-    PRINT_ERR("TODO: p2s_moduleLoadStart");
+    PRINT_ERR("use modloadp (provide pid), or launch an application");
     return 0;
 #else
     SceUID pid = p2s_get_running_app_pid();
@@ -170,7 +156,7 @@ SceUID p2s_moduleLoadStartForPid(SceUID pid, char *modulePath) {
     if (uid < 0) {
         PRINT_ERR("module load/start failed: 0x%08X", uid);
     } else {
-        PRINT_OK("module loaded/started: uid = 0x%08X", uid);
+        PRINT_COL(COL_GREEN, "module loaded/started: uid = 0x%08X\n", uid);
     }
 
     return uid;
@@ -179,7 +165,7 @@ SceUID p2s_moduleLoadStartForPid(SceUID pid, char *modulePath) {
 int p2s_moduleStopUnload(SceUID uid) {
 
 #ifdef __KERNEL__
-    PRINT_ERR("TODO: p2s_moduleStopUnload");
+    PRINT_ERR("use modstopp(provide pid), or launch an application");
     return 0;
 #else
     SceUID pid = p2s_get_running_app_pid();
@@ -199,7 +185,7 @@ int p2s_moduleStopUnloadForPid(SceUID pid, SceUID uid) {
     if (res != 0) {
         PRINT_ERR("module stop/unload failed: 0x%08X", status);
     } else {
-        PRINT_OK("module stopped/unloaded");
+        PRINT_COL(COL_GREEN, "module stopped/unloaded\n");
     }
 
     return res;
@@ -211,7 +197,7 @@ SceUID p2s_kmoduleLoadStart(char *modulePath) {
     if (uid < 0) {
         PRINT_ERR("module load/start failed: 0x%08X", uid);
     } else {
-        PRINT_OK("module loaded/started: uid = 0x%08X", uid);
+        PRINT_COL(COL_GREEN, "module loaded/started: uid = 0x%08X\n", uid);
     }
 
     return uid;
@@ -225,7 +211,7 @@ int p2s_kmoduleStopUnload(SceUID uid) {
     if (res != 0) {
         PRINT_ERR("module stop/unload failed: 0x%08X", status);
     } else {
-        PRINT_OK("module stopped/unloaded");
+        PRINT_COL(COL_GREEN, "module stopped/unloaded\n");
     }
 
     return res;
@@ -233,17 +219,12 @@ int p2s_kmoduleStopUnload(SceUID uid) {
 
 int p2s_moduleDumpForPid(SceUID pid, SceUID uid, const char *dst) {
 
-#ifdef __KERNEL__
-    PRINT_ERR("TODO: p2s_moduleDumpForPid");
-    return -1;
-#else
     int res = kp2s_dump_module(pid, uid, dst);
     if (res != 0) {
-        PRINT_ERR("\nmodule dump failed: 0x%08X\n\n", res);
+        PRINT_ERR("module dump failed: 0x%08X", res);
     } else {
-        PRINT_OK("\nmodule dump success\n\n");
+        PRINT_COL(COL_GREEN, "module dump success\n");
     }
 
     return res;
-#endif
 }

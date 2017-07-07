@@ -53,9 +53,11 @@ add_executable(${PROJECT_NAME}
         kp2s_cmd_parser.c
         usbhostfs/usbhostfs.c
         usbhostfs/host_driver.c
+        ${CMAKE_SOURCE_DIR}/common/p2s_module.c
         ${CMAKE_SOURCE_DIR}/common/p2s_cmd.c
         ${CMAKE_SOURCE_DIR}/common/p2s_msg.c
-        ../common/libmodule.c)
+        ${CMAKE_SOURCE_DIR}/common/libmodule.c
+        )
 target_include_directories(${PROJECT_NAME} PRIVATE
         usbhostfs
         ${CMAKE_CURRENT_SOURCE_DIR}

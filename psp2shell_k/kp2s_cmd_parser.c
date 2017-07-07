@@ -17,6 +17,7 @@
 */
 
 #include "psp2shell_k.h"
+#include "p2s_module.h"
 
 static bool is_root_path(const char *path) {
     return strncmp(path, HOME_PATH, MAX_PATH_LENGTH) == 0;
@@ -193,6 +194,44 @@ int kp2s_cmd_parse(kp2s_client *client, P2S_CMD *cmd) {
 
         case CMD_CP:
             cmd_cp(client, cmd->args[0], cmd->args[1]);
+            break;
+
+        case CMD_MODLS_PID:
+            p2s_moduleListForPid((SceUID) strtoul(cmd->args[0], NULL, 16));
+            PRINT_PROMPT();
+            break;
+
+        case CMD_MODINFO_PID:
+            p2s_moduleInfoForPid((SceUID) strtoul(cmd->args[0], NULL, 16), (SceUID) strtoul(cmd->args[1], NULL, 16));
+            PRINT_PROMPT();
+            break;
+
+        case CMD_MODLOADSTART_PID:
+            p2s_moduleLoadStartForPid((SceUID) strtoul(cmd->args[0], NULL, 16), cmd->args[1]);
+            PRINT_PROMPT();
+            break;
+
+        case CMD_MODSTOPUNLOAD_PID:
+            p2s_moduleStopUnloadForPid((SceUID) strtoul(cmd->args[0], NULL, 16),
+                                       (SceUID) strtoul(cmd->args[1], NULL, 16));
+            PRINT_PROMPT();
+            break;
+
+        case CMD_KMODLOADSTART:
+            p2s_kmoduleLoadStart(cmd->args[0]);
+            PRINT_PROMPT();
+            break;
+
+        case CMD_KMODSTOPUNLOAD:
+            p2s_kmoduleStopUnload((SceUID) strtoul(cmd->args[0], NULL, 16));
+            PRINT_PROMPT();
+            break;
+
+        case CMD_MODDUMP:
+            p2s_moduleDumpForPid((SceUID) strtoul(cmd->args[0], NULL, 16),
+                                 (SceUID) strtoul(cmd->args[1], NULL, 16),
+                                 cmd->args[2]);
+            PRINT_PROMPT();
             break;
 
         default: // not handled by kernel
