@@ -16,10 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "libmodule.h"
-#include "p2s_main.h"
-#include "psp2shell.h"
-#include "p2s_thread.h"
+#include "psp2shell_k.h"
 
 #define THREADS_START 0x40010000
 #define THREADS_RANGE 0x100000
@@ -51,20 +48,14 @@ static void printThreadInfoFull(SceKernelThreadInfo *threadInfo, int thid) {
 }
 */
 
-#ifndef __KERNEL__
 static void printThreadInfo(SceKernelThreadInfo *threadInfo, int thid) {
 
-    PRINT_OK("%s id: 0x%08X, stack: 0x%08X (0x%08X)\n",
-             threadInfo->name, thid, threadInfo->stack, threadInfo->stackSize);
+    PRINT("%s id: 0x%08X, stack: 0x%08X (0x%08X)\n",
+          threadInfo->name, thid, threadInfo->stack, threadInfo->stackSize);
 }
-#endif
 
 int ps_threadList() {
 
-#ifdef __KERNEL__
-    PRINT_ERR("TODO: p2s_moduleInfo\n");
-    return 0;
-#else
     int i = 1;
     while (i <= THREADS_RANGE) {
         SceKernelThreadInfo status;
@@ -77,5 +68,4 @@ int ps_threadList() {
     }
 
     return 0;
-#endif
 }

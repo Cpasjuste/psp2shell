@@ -16,8 +16,8 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PROJECT_UTILITY_H
-#define PROJECT_UTILITY_H
+#ifndef KP2S_UTILITY_H
+#define KP2S_UTILITY_H
 
 int kp2s_has_slash(const char *path);
 
@@ -25,4 +25,4 @@ int kp2s_add_slash(char *path);
 
 int kp2s_remove_slash(char *path);
 
-#endif //PROJECT_UTILITY_H
+#endif //KP2S_UTILITY_H

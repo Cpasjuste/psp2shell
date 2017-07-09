@@ -140,7 +140,7 @@ int kp2s_wait_cmd(P2S_CMD *cmd) {
     ksceKernelWaitSema(u_sema, 1, NULL);
     //PRINT_ERR("ksceKernelWaitSema: u_sema received\n");
 
-    if (kp2s_cmd.type > CMD_START) {
+    if (kp2s_ready && kp2s_cmd.type > CMD_START) {
         ksceKernelMemcpyKernelToUser((uintptr_t) cmd, &kp2s_cmd, sizeof(P2S_CMD));
         kp2s_cmd.type = 0;
         ret = 0;
@@ -151,6 +151,17 @@ int kp2s_wait_cmd(P2S_CMD *cmd) {
     EXIT_SYSCALL(state);
 
     return ret;
+}
+
+void kp2s_set_ready(bool rdy) {
+
+    if (kp2s_ready != rdy) {
+        kp2s_ready = rdy;
+        if (kp2s_ready <= 0) {
+            // unlock user thread
+            ksceKernelSignalSema(u_sema, 1);
+        }
+    }
 }
 
 static int thread_wait_cmd(SceSize args, void *argp) {
@@ -167,7 +178,7 @@ static int thread_wait_cmd(SceSize args, void *argp) {
     usbShellInit();
     welcome();
 
-    //set_hooks();
+    set_hooks();
 
     kp2s_client client;
     memset(&client, 0, sizeof(kp2s_client));
@@ -180,10 +191,10 @@ static int thread_wait_cmd(SceSize args, void *argp) {
 
         if (res != 0) {
             if (!usbhostfs_connected()) {
-                PRINT_ERR("p2s_cmd_receive failed, waiting for usb...");
+                printf("p2s_cmd_receive failed, waiting for usb...\n");
                 usbWaitForConnect();
             } else {
-                PRINT_ERR("p2s_cmd_receive failed, unknow error...");
+                printf("p2s_cmd_receive failed, unknow error...");
             }
         } else {
             res = kp2s_cmd_parse(&client, &kp2s_cmd);
@@ -239,7 +250,7 @@ int module_stop(SceSize argc, const void *args) {
         printf("module_stop: usbhostfs_stop failed\n");
     }
 
-    if(p2s_data_buf != NULL) {
+    if (p2s_data_buf != NULL) {
         p2s_free(p2s_data_buf);
     }
 

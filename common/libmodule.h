@@ -28,6 +28,7 @@
 #include <taihen.h>
 
 #ifdef __KERNEL__
+
 #include <psp2kern/kernel/sysmem.h>
 #include <psp2kern/kernel/threadmgr.h>
 #include <psp2kern/kernel/processmgr.h>
@@ -38,6 +39,7 @@
 #include <psp2kern/io/stat.h>
 #include <psp2kern/io/devctl.h>
 #include <psp2kern/types.h>
+
 #ifdef DEBUG
 #define printf ksceDebugPrintf
 #endif

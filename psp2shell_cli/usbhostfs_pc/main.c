@@ -332,8 +332,8 @@ void do_hostfs(struct HostFsCmd *cmd, int readlen) {
 }
 
 void do_async(struct AsyncCommand *cmd, int readlen) {
-    uint8_t *data;
 
+    uint8_t *data;
     unsigned long data_len = readlen - sizeof(struct AsyncCommand);
     V_PRINTF(2, "Async Magic: %08X\n", LE32(cmd->magic));
     V_PRINTF(2, "Async Channel: %08X\n", LE32(cmd->channel));
@@ -353,10 +353,13 @@ void do_async(struct AsyncCommand *cmd, int readlen) {
             }
 
         } else if (chan == ASYNC_STDOUT) {
-            printf("%s", data);
+            char msg[data_len + 1];
+            strncpy(msg, (const char *) data, data_len);
+            msg[data_len] = '\0';
+            printf("%s", msg);
         }
 
-        // TODO: add file transfer
+        // TODO: add file transfer ? (should be handled by hostfs)
         /*
         if ((chan < MAX_ASYNC_CHANNELS) && (g_clientsocks[chan] >= 0)) {
             write(g_clientsocks[chan], data, readlen - sizeof(struct AsyncCommand));

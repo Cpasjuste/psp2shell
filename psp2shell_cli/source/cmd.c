@@ -412,7 +412,9 @@ int cmd_help(int argc, char **argv) {
 
     int i = 0;
     while (cmd[i].name != NULL) {
-        printf(GRN "%s %s" RES, cmd[i].name, cmd[i].args);
+        printf(GRN
+        "%s %s"
+        RES, cmd[i].name, cmd[i].args);
         printf(" -- %s\n", cmd[i].desc);
         i++;
     }
@@ -460,7 +462,7 @@ COMMAND cmd[] = {
         {"?",         "",                           "Display the help.",                             cmd_help},
         {"help",      "",                           "Display the help.",                             cmd_help},
         {"exit",      "",                           "Exit the shell.",                               cmd_exit},
-        {NULL, NULL, NULL}
+        {NULL,        NULL,                         NULL}
 };
 
 COMMAND *cmd_find(char *name) {

@@ -20,7 +20,9 @@
 #include "psp2shell_k.h"
 
 #ifdef __KERNEL__
+
 #include "usbasync.h"
+
 #define send(a, b, c, d) usbShellWrite((unsigned int)a, b, c)
 #else
 #define send(a, b, c, d) printf("send: not implemented\n")

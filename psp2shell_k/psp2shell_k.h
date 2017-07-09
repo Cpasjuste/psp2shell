@@ -41,11 +41,9 @@ typedef struct {
 } kp2s_client;
 
 #ifdef __KERNEL__
-
 int kp2s_print_stdout(const char *data, size_t size);
-
+int kp2s_print_stdout_user(const char *data, size_t size);
 int kp2s_print_color(int color, const char *fmt, ...);
-
 #define p2s_print_color kp2s_print_color
 #else
 int kp2s_print_stdout_user(const char *data, size_t size);
@@ -63,9 +61,9 @@ int kp2s_wait_cmd(P2S_CMD *cmd);
 
 void kp2s_set_ready(bool ready);
 
-int kp2s_get_module_info(bool userMode, SceUID pid, SceUID uid, SceKernelModuleInfo *info);
+int kp2s_print_module_info(SceUID pid, SceUID uid);
 
-int kp2s_get_module_list(bool userMode, SceUID pid, int flags1, int flags2, SceUID *modids, size_t *num);
+int kp2s_print_module_list(SceUID pid, int flags1, int flags2);
 
 int kp2s_dump_module(SceUID pid, SceUID uid, const char *dst);
 

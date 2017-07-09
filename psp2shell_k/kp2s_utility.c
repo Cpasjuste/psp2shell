@@ -16,6 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <vitasdkkern.h>
 #include "psp2shell_k.h"
 
 bool kp2s_ready = false;
@@ -48,11 +49,6 @@ int kp2s_remove_slash(char *path) {
     }
 
     return 0;
-}
-
-void kp2s_set_ready(bool rdy) {
-
-    kp2s_ready = rdy;
 }
 
 int kp2s_dump(SceUID pid, const char *filename, void *addr, unsigned int size) {
@@ -131,54 +127,88 @@ int kp2s_dump_module(SceUID pid, SceUID uid, const char *dst) {
     return ret;
 }
 
-int kp2s_get_module_info(bool userMode, SceUID pid, SceUID uid, SceKernelModuleInfo *info) {
+static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
 
-    int ret;
-    SceKernelModuleInfo kinfo;
-    memset(&kinfo, 0, sizeof(SceKernelModuleInfo));
-    kinfo.size = sizeof(SceKernelModuleInfo);
-
-    if (userMode) {
-        uint32_t state;
-        ENTER_SYSCALL(state);
-        SceUID kid = ksceKernelKernelUidForUserUid(pid, uid);
-        if (kid < 0) {
-            kid = uid;
+    PRINT("\nmodule_name: %s\n", moduleInfo->module_name);
+    PRINT("\tpath: %s\n", moduleInfo->path);
+    PRINT("\thandle: 0x%08X\n", moduleInfo->handle);
+    PRINT("\tflags: 0x%08X\n", moduleInfo->flags);
+    PRINT("\tmodule_start: 0x%08X\n", moduleInfo->module_start);
+    PRINT("\tmodule_stop: 0x%08X\n", moduleInfo->module_stop);
+    PRINT("\texidxTop: 0x%08X\n", moduleInfo->exidxTop);
+    PRINT("\texidxBtm: 0x%08X\n", moduleInfo->exidxBtm);
+    PRINT("\ttlsInit: 0x%08X\n", moduleInfo->tlsInit);
+    PRINT("\ttlsInitSize: 0x%08X\n", moduleInfo->tlsInitSize);
+    PRINT("\ttlsAreaSize: 0x%08X\n", moduleInfo->tlsAreaSize);
+    PRINT("\ttype: %i\n", moduleInfo->type);
+    PRINT("\tunk28: 0x%08X\n", moduleInfo->unk28);
+    PRINT("\tunk30: 0x%08X\n", moduleInfo->unk30);
+    PRINT("\tunk40: 0x%08X\n", moduleInfo->unk40);
+    PRINT("\tunk44: 0x%08X\n", moduleInfo->unk44);
+    for (int i = 0; i < 4; ++i) {
+        if (moduleInfo->segments[i].memsz <= 0) {
+            continue;
         }
-        ret = ksceKernelGetModuleInfo(pid, kid, &kinfo);
-        if (ret >= 0) {
-            ksceKernelMemcpyKernelToUser((uintptr_t) info, &kinfo, sizeof(SceKernelModuleInfo));
-        }
-        EXIT_SYSCALL(state);
-    } else {
-        ret = ksceKernelGetModuleInfo(pid, pid, info);
+        PRINT("\tsegment[%i].perms: 0x%08X\n", i, moduleInfo->segments[i].perms);
+        PRINT("\tsegment[%i].vaddr: 0x%08X\n", i, moduleInfo->segments[i].vaddr);
+        PRINT("\tsegment[%i].memsz: 0x%08X\n", i, moduleInfo->segments[i].memsz);
+        PRINT("\tsegment[%i].flags: 0x%08X\n", i, moduleInfo->segments[i].flags);
+        PRINT("\tsegment[%i].res: %i\n", i, moduleInfo->segments[i].res);
     }
-
-    return ret;
 }
 
-int kp2s_get_module_list(bool userMode, SceUID pid, int flags1, int flags2, SceUID *modids, size_t *num) {
+int kp2s_print_module_info(SceUID pid, SceUID uid) {
 
-    int res;
+    uint32_t state;
+    ENTER_SYSCALL(state);
 
-    if (userMode) {
-        size_t count = 256;
-        SceUID kmodids[256];
-        uint32_t state;
-        ENTER_SYSCALL(state);
-        memset(kmodids, 0, sizeof(SceUID) * 256);
-        res = ksceKernelGetModuleList(pid, flags1, flags2, kmodids, &count);
-        if (res >= 0) {
-            ksceKernelMemcpyKernelToUser((uintptr_t) modids, &kmodids, sizeof(SceUID) * 256);
-            ksceKernelMemcpyKernelToUser((uintptr_t) num, &count, sizeof(size_t));
-        } else {
-            ksceKernelMemcpyKernelToUser((uintptr_t) num, &count, sizeof(size_t));
-        }
-        EXIT_SYSCALL(state);
-    } else {
-        res = ksceKernelGetModuleList(pid, flags1, flags2, modids, num);
+    SceKernelModuleInfo info;
+    memset(&info, 0, sizeof(SceKernelModuleInfo));
+    info.size = sizeof(SceKernelModuleInfo);
+    SceUID kuid = ksceKernelKernelUidForUserUid(pid, uid);
+    if (kuid < 0) {
+        kuid = uid;
     }
+
+    int res = ksceKernelGetModuleInfo(pid, kuid, &info);
+    if (res >= 0) {
+        printModuleInfoFull(&info);
+    } else {
+        PRINT_ERR("getting module info failed: 0x%08X", res);
+    }
+
+    EXIT_SYSCALL(state);
 
     return res;
 }
 
+int kp2s_print_module_list(SceUID pid, int flags1, int flags2) {
+
+    uint32_t state;
+    ENTER_SYSCALL(state);
+
+    size_t count = 256;
+    SceUID modids[256];
+    memset(modids, 0, sizeof(SceUID) * 256);
+
+    int res = ksceKernelGetModuleList(pid, flags1, flags2, modids, &count);
+    if (res >= 0) {
+        PRINT("\n");
+        SceKernelModuleInfo info;
+        for (int i = 0; i < count; i++) {
+            memset(&info, 0, sizeof(SceKernelModuleInfo));
+            info.size = sizeof(SceKernelModuleInfo);
+            res = ksceKernelGetModuleInfo(pid, modids[i], &info);
+            if (res == 0) {
+                PRINT("\t%s (uid: 0x%08X)\n",
+                      info.module_name, info.handle);
+            }
+        }
+    } else {
+        PRINT_ERR("module list failed: 0x%08X", res);
+    }
+
+    EXIT_SYSCALL(state);
+
+    return res;
+}

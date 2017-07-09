@@ -19,38 +19,12 @@
 
 #include "psp2shell_k.h"
 
-static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
-
-    PRINT("\nmodule_name: %s\n", moduleInfo->module_name);
-    PRINT("\tpath: %s\n", moduleInfo->path);
-    PRINT("\thandle: 0x%08X\n", moduleInfo->handle);
-    PRINT("\tflags: 0x%08X\n", moduleInfo->flags);
-    PRINT("\tmodule_start: 0x%08X\n", moduleInfo->module_start);
-    PRINT("\tmodule_stop: 0x%08X\n", moduleInfo->module_stop);
-    PRINT("\texidxTop: 0x%08X\n", moduleInfo->exidxTop);
-    PRINT("\texidxBtm: 0x%08X\n", moduleInfo->exidxBtm);
-    PRINT("\ttlsInit: 0x%08X\n", moduleInfo->tlsInit);
-    PRINT("\ttlsInitSize: 0x%08X\n", moduleInfo->tlsInitSize);
-    PRINT("\ttlsAreaSize: 0x%08X\n", moduleInfo->tlsAreaSize);
-    PRINT("\ttype: %i\n", moduleInfo->type);
-    PRINT("\tunk28: 0x%08X\n", moduleInfo->unk28);
-    PRINT("\tunk30: 0x%08X\n", moduleInfo->unk30);
-    PRINT("\tunk40: 0x%08X\n", moduleInfo->unk40);
-    PRINT("\tunk44: 0x%08X\n", moduleInfo->unk44);
-    for (int i = 0; i < 4; ++i) {
-        if (moduleInfo->segments[i].memsz <= 0) {
-            continue;
-        }
-        PRINT("\tsegment[%i].perms: 0x%08X\n", i, moduleInfo->segments[i].perms);
-        PRINT("\tsegment[%i].vaddr: 0x%08X\n", i, moduleInfo->segments[i].vaddr);
-        PRINT("\tsegment[%i].memsz: 0x%08X\n", i, moduleInfo->segments[i].memsz);
-        PRINT("\tsegment[%i].flags: 0x%08X\n", i, moduleInfo->segments[i].flags);
-        PRINT("\tsegment[%i].res: %i\n", i, moduleInfo->segments[i].res);
-    }
-}
+#ifndef __KERNEL__
+#include "p2s_module.h"
+#include "../psp2shell_m/include/p2s_utility.h"
+#endif
 
 int p2s_moduleInfo(SceUID uid) {
-
 #ifdef __KERNEL__
     PRINT_ERR("use modinfop (provide pid)");
     return 0;
@@ -66,26 +40,12 @@ int p2s_moduleInfo(SceUID uid) {
 
 int p2s_moduleInfoForPid(SceUID pid, SceUID uid) {
 
-    SceKernelModuleInfo moduleInfo;
-    memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
-    moduleInfo.size = sizeof(SceKernelModuleInfo);
-
-#ifdef __KERNEL__
-    int res = kp2s_get_module_info(false, pid, uid, &moduleInfo);
-#else
-    int res = kp2s_get_module_info(true, pid, uid, &moduleInfo);
-#endif
-    if (res == 0) {
-        printModuleInfoFull(&moduleInfo);
-    } else {
-        PRINT_ERR("getting module info failed: 0x%08X", res);
-    }
+    int res = kp2s_print_module_info(pid, uid);
 
     return res;
 }
 
 int p2s_moduleList() {
-
 #ifdef __KERNEL__
     PRINT_ERR("use modlistp (provide pid), or launch an application");
     return 0;
@@ -101,38 +61,9 @@ int p2s_moduleList() {
 
 int p2s_moduleListForPid(SceUID pid) {
 
-    SceUID ids[256];
-    size_t count = 256;
+    int res = kp2s_print_module_list(pid, 0xFF, 1);
 
-#ifdef __KERNEL__
-    int res = kp2s_get_module_list(false, pid, 0xFF, 1, ids, &count);
-#else
-    int res = kp2s_get_module_list(true, pid, 0xFF, 1, ids, &count);
-#endif
-    if (res != 0) {
-        PRINT_ERR("module list failed: 0x%08X", res);
-        return res;
-    } else {
-        PRINT("kp2s_get_module_list: module count=%i\n", count);
-        PRINT("\n");
-        SceKernelModuleInfo moduleInfo;
-        for (int i = 0; i < count; i++) {
-            if (ids[i] > 0) {
-                memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
-#ifdef __KERNEL__
-                res = kp2s_get_module_info(false, pid, ids[i], &moduleInfo);
-#else
-                res = kp2s_get_module_info(true, pid, ids[i], &moduleInfo);
-#endif
-                if (res == 0) {
-                    PRINT("\t%s (uid: 0x%08X)\n",
-                          moduleInfo.module_name, moduleInfo.handle);
-                }
-            }
-        }
-    }
-
-    return 0;
+    return res;
 }
 
 SceUID p2s_moduleLoadStart(char *modulePath) {

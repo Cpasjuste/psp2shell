@@ -8,17 +8,17 @@ execute_process(COMMAND "date" "+%Y.%m.%d" OUTPUT_VARIABLE BUILD_DATE OUTPUT_STR
 
 set(SRC_FILES
         source/p2s_main.c
-        source/p2s_cmd_parser.c
         source/p2s_utility.c
-        source/p2s_io.c
         source/p2s_thread.c
+        source/p2s_cmd_parser.c
         ${CMAKE_SOURCE_DIR}/common/p2s_module.c
         ${CMAKE_SOURCE_DIR}/common/p2s_cmd.c
         ${CMAKE_SOURCE_DIR}/common/p2s_msg.c
         )
 
 set(INC_FILES
-        ../common
+        ${CMAKE_SOURCE_DIR}/psp2shell_k
+        ${CMAKE_SOURCE_DIR}/common
         include
         )
 

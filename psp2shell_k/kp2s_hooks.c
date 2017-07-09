@@ -9,9 +9,8 @@
 #include <libk/stdio.h>
 #include <taihen.h>
 
-#include "kp2s_hooks.h"
-#include "kp2s_utility.h"
 #include "psp2shell_k.h"
+#include "kp2s_hooks.h"
 
 #define P2S_MSG_LEN 256
 
@@ -28,11 +27,7 @@ static int _kDebugPrintf(const char *fmt, ...) {
     int len = vsnprintf(temp_buf, P2S_MSG_LEN, fmt, args);
     va_end(args);
 
-#ifdef __USB__
-    kp2s_print_stdout(temp_buf, len);
-#else
-    kp2s_print("%s", temp_buf);
-#endif
+    kp2s_print_stdout(temp_buf, (size_t) len);
 
     return TAI_CONTINUE(int, ref_hooks[2], fmt, args);
 }
@@ -46,11 +41,7 @@ static int _kDebugPrintf2(int num0, int num1, const char *fmt, ...) {
     int len = vsnprintf(temp_buf, P2S_MSG_LEN, fmt, args);
     va_end(args);
 
-#ifdef __USB__
-    kp2s_print_stdout(temp_buf, len);
-#else
-    kp2s_print("%s", temp_buf);
-#endif
+    kp2s_print_stdout(temp_buf, (size_t) len);
 
     return TAI_CONTINUE(int, ref_hooks[3], num0, num1, fmt, args);
 }
@@ -61,18 +52,9 @@ static int _sceIoWrite(SceUID fd, const void *data, SceSize size) {
         return 0;
     }
 
-#ifdef __USB__
     if (fd == __stdout_fd) {
-        kp2s_print_stdout(data, size);
+        kp2s_print_stdout_user(data, size);
     }
-#else
-    if (fd == __stdout_fd && size < P2S_MSG_LEN) {
-        char temp_buf[size];
-        memset(temp_buf, 0, size);
-        ksceKernelStrncpyUserToKernel(temp_buf, (uintptr_t) data, size);
-        kp2s_print_len(size, "%s", temp_buf);
-    }
-#endif
 
     return TAI_CONTINUE(int, ref_hooks[0], fd, data, size);
 }

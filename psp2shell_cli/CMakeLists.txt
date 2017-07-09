@@ -35,7 +35,7 @@ target_compile_options(${PROJECT_NAME}_usb PRIVATE
         -DREADLINE_SHELL
         -DPC_SIDE
         -D_FILE_OFFSET_BITS=64
-)
+        )
 target_include_directories(${PROJECT_NAME}_usb PRIVATE
         include
         ../common
