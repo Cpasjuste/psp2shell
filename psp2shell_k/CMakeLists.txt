@@ -49,6 +49,7 @@ add_executable(${PROJECT_NAME}
         kp2s_io.c
         kp2s_main.c
         kp2s_hooks.c
+        kp2s_hooks_io.c
         kp2s_utility.c
         kp2s_cmd_parser.c
         usbhostfs/usbhostfs.c

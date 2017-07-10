@@ -70,6 +70,8 @@ int sceClibPrintf(const char *, ...);
 
 #ifdef __KERNEL__
 
+#define taiHookRelease taiHookReleaseForKernel
+#define taiHookFunctionImport taiHookFunctionImportForKernel
 #define taiLoadStartKernelModule(a, b, c, d) ksceKernelLoadStartModule(a, b, c, d, NULL, 0)
 #define taiStopUnloadKernelModule ksceKernelStopUnloadModule
 #define taiLoadStartModuleForPid(a, b, c, d, e) ksceKernelLoadStartModuleForPid(a, b, c, d, e, NULL, 0)

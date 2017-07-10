@@ -171,8 +171,6 @@ void p2s_cmd_parse(P2S_CMD *cmd) {
             cmd_reboot();
             break;
 
-        case CMD_MEMR:
-
         case CMD_MODLS:
             p2s_moduleList();
             PRINT_PROMPT();

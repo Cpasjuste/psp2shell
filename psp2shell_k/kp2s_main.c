@@ -20,6 +20,7 @@
 
 #include "usbhostfs/usbasync.h"
 #include "usbhostfs/usbhostfs.h"
+#include "kp2s_hooks_io.h"
 
 static bool quit = false;
 static SceUID u_sema = -1;
@@ -179,6 +180,7 @@ static int thread_wait_cmd(SceSize args, void *argp) {
     welcome();
 
     set_hooks();
+    set_hooks_io();
 
     kp2s_client client;
     memset(&client, 0, sizeof(kp2s_client));
@@ -231,6 +233,7 @@ int module_start(SceSize argc, const void *args) {
 
 int module_stop(SceSize argc, const void *args) {
 
+    delete_hooks_io();
     delete_hooks();
 
     quit = true;
