@@ -54,7 +54,8 @@ static int open_host_fd(const char *file, int flags, SceMode mode) {
 
     for (int i = 0; i < MAX_HOST_FD; i++) {
         if (host_fds[i] < 0) {
-            uid = io_open((char *) file, flags, mode);
+            char buf[256];
+            uid = io_open((char *) path_to_host(file, buf), flags, mode);
             host_fds[i] = uid;
             break;
         }
@@ -254,9 +255,7 @@ int _sceIoDclose(SceUID fd) {
 int _sceIoMkdir(const char *dir, SceMode mode) {
 
     if (strncmp(dir, "host0", 5) != 0) {
-        int res = TAI_CONTINUE(int, hooks[HOOK_IO_MKDIR].ref, dir, mode);
-        printf("_sceIoMkdir(%s, 0x%08X) == 0x%08X\n", dir, mode, res);
-        return res;
+        return TAI_CONTINUE(int, hooks[HOOK_IO_MKDIR].ref, dir, mode);
     }
 
     char buf[256];
@@ -285,8 +284,9 @@ int _sceIoGetstat(const char *file, SceIoStat *stat) {
     }
 
     char buf[256];
-    int res = io_getstat(path_to_host(file, buf), stat);
-    printf("_sceIoGetstat(%s) == 0x%08X\n", file, res);
+    const char *path = path_to_host(file, buf);
+    int res = io_getstat(path, stat);
+    printf("_sceIoGetstat(%s) == 0x%08X (size=%d, mode=%i)\n", path, res, stat->st_size, stat->st_mode);
     return res;
 }
 
@@ -296,7 +296,7 @@ int _sceIoGetstatByFd(SceUID fd, SceIoStat *stat) {
 
     if (is_host_fd(fd)) {
         res = io_getstatbyfd(fd, stat);
-        printf("_sceIoGetstatByFd(0x%08X) == 0x%08X\n", fd, res);
+        printf("_sceIoGetstatByFd(0x%08X) == 0x%08X (m=%i a=%i s=%i)\n", fd, res, stat->st_mode, stat->st_attr, stat->st_size);
     } else {
         res = TAI_CONTINUE(int, hooks[HOOK_IO_GETSTATBYFD].ref, fd, stat);
     }

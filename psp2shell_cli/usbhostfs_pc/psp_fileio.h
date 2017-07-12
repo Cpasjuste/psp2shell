@@ -17,13 +17,13 @@
 
 #define PSP_O_RDONLY    0x0001
 #define PSP_O_WRONLY    0x0002
-#define PSP_O_RDWR    (PSP_O_RDONLY | PSP_O_WRONLY)
+#define PSP_O_RDWR      (PSP_O_RDONLY | PSP_O_WRONLY)
 #define PSP_O_NBLOCK    0x0004
-#define PSP_O_DIROPEN    0x0008    // Internal use for dopen
+#define PSP_O_DIROPEN   0x0008    // Internal use for dopen
 #define PSP_O_APPEND    0x0100
-#define PSP_O_CREAT        0x0200
-#define PSP_O_TRUNC        0x0400
-#define    PSP_O_EXCL        0x0800
+#define PSP_O_CREAT     0x0200
+#define PSP_O_TRUNC     0x0400
+#define PSP_O_EXCL      0x0800
 #define PSP_O_NOWAIT    0x8000
 
 #define PSP_SEEK_SET    0
@@ -95,16 +95,6 @@ enum IOFileModes {
             FIO_SO_IXOTH = 0x0001,        // execute
 };
 
-typedef struct ScePspDateTime {
-    uint16_t year;
-    uint16_t month;
-    uint16_t day;
-    uint16_t hour;
-    uint16_t minute;
-    uint16_t second;
-    uint32_t microsecond;
-} ScePspDateTime;
-
 #define PSP_CHSTAT_MODE   0x01
 #define PSP_CHSTAT_ATTR   0x02
 #define PSP_CHSTAT_SIZE   0x04
@@ -112,20 +102,28 @@ typedef struct ScePspDateTime {
 #define PSP_CHSTAT_ATIME  0x10
 #define PSP_CHSTAT_MTIME  0x20
 
+typedef int SceMode; //!< Mode for I/O functions
+typedef int64_t SceOff; //!< Offset type
+
+typedef struct SceDateTime {
+    unsigned short year;
+    unsigned short month;
+    unsigned short day;
+    unsigned short hour;
+    unsigned short minute;
+    unsigned short second;
+    unsigned int microsecond;
+} SceDateTime;
+
 /** Structure to hold the status information about a file */
 typedef struct SceIoStat {
-    uint32_t mode;
-    uint32_t attr;
-    /** Size of the file in bytes. */
-    int64_t size;
-    /** Creation time. */
-    ScePspDateTime ctime;
-    /** Access time. */
-    ScePspDateTime atime;
-    /** Modification time. */
-    ScePspDateTime mtime;
-    /** Device-specific data. */
-    uint32_t st_private[6];
+    SceMode mode;             //!< One or more ::SceIoAccessMode
+    unsigned int attr;        //!< One or more ::SceIoFileMode
+    SceOff size;              //!< Size of the file in bytes
+    SceDateTime ctime;        //!< Creation time
+    SceDateTime atime;        //!< Last access time
+    SceDateTime mtime;        //!< Last modification time
+    unsigned int private[6];  //!< Device-specific data
 } SceIoStat;
 
 typedef struct SceIoDirent {
@@ -134,8 +132,7 @@ typedef struct SceIoDirent {
     /** File name. */
     char name[256];
     /** Device-specific data. */
-    uint32_t
-private;
+    uint32_t private;
     uint32_t dummy;
 } SceIoDirent;
 

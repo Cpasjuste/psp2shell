@@ -265,8 +265,17 @@ struct HostFsGetstatByFdCmd {
     uint32_t fsnum;
 } __attribute__((packed));
 
+#ifndef __PSP2__
+#include "psp_fileio.h"
+#endif
 struct HostFsGetstatByFdResp {
     struct HostFsCmd cmd;
+    SceMode mode;
+    unsigned int attr;
+    SceOff size;
+    SceDateTime ctime;
+    SceDateTime atime;
+    SceDateTime mtime;
     int32_t res;
 } __attribute__((packed));
 
@@ -322,11 +331,11 @@ struct BulkCommand {
 
 // use psp2shell to print
 #ifdef DEBUG
-//#include <psp2kern/kernel/sysmem.h>
-//#define DEBUG_PRINTF ksceDebugPrintf
-//#define MODPRINTF ksceDebugPrintf
-#define DEBUG_PRINTF(fmt, ...)
-#define MODPRINTF DEBUG_PRINTF
+#include <psp2kern/kernel/sysmem.h>
+#define DEBUG_PRINTF ksceDebugPrintf
+#define MODPRINTF ksceDebugPrintf
+//#define DEBUG_PRINTF(fmt, ...)
+//#define MODPRINTF DEBUG_PRINTF
 #else
 #define DEBUG_PRINTF(fmt, ...)
 #define MODPRINTF DEBUG_PRINTF

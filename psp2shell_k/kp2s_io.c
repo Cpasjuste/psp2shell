@@ -214,13 +214,13 @@ int kp2s_io_copy_file(const char *src_path, const char *dst_path) {
 
     SceUID fdsrc = sceIoOpen(src_path, SCE_O_RDONLY, 0);
     if (fdsrc < 0) {
-        PRINT_ERR_CODE("sceIoOpen(src)", fdsrc);
+        PRINT_ERR("sceIoOpen(%s) = 0x%08X", src_path, fdsrc);
         return fdsrc;
     }
 
     SceUID fddst = sceIoOpen(dst_path, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
     if (fddst < 0) {
-        PRINT_ERR_CODE("sceIoOpen(dst)", fddst);
+        PRINT_ERR("sceIoOpen(%s) = 0x%08X", dst_path, fddst);
         sceIoClose(fdsrc);
         return fddst;
     }
@@ -297,13 +297,18 @@ int kp2s_io_copy_path(const char *src_path, const char *dst_path) {
     }
 
     SceUID dfd = sceIoDopen(src_path);
+    printf("sceIoDopen(%s) = 0x%08X\n", src_path, dfd);
+
     if (dfd >= 0) {
 
         SceIoStat stat;
         memset(&stat, 0, sizeof(SceIoStat));
-        ksceIoGetstatByFd(dfd, &stat);
+        int res2 = sceIoGetstat(src_path, &stat);
+       // int res2 = ksceIoGetstatByFd(dfd, &stat);
+        printf("sceIoGetstat(0x%08X) = 0x%08X (m=%i a=%i s=%i)\n", dfd, res2, stat.st_mode, stat.st_attr, stat.st_size);
 
         int ret = sceIoMkdir(dst_path, stat.st_mode & 0xFFF);
+        printf("sceIoMkdir(%s, %i) = 0x%08X\n", dst_path, stat.st_mode & 0xFFF, ret);
         if (ret < 0 && ret != SCE_ERROR_ERRNO_EEXIST) {
             PRINT_ERR_CODE("sceIoMkdir", ret);
             sceIoDclose(dfd);
@@ -318,6 +323,7 @@ int kp2s_io_copy_path(const char *src_path, const char *dst_path) {
             memset(&dir, 0, sizeof(SceIoDirent));
 
             res = sceIoDread(dfd, &dir);
+            printf("sceIoDread(0x%08X) = 0x%08X (%s)\n", dfd, res, dir.d_name);
 
             if (res > 0) {
                 char *new_src_path = p2s_malloc(strlen(src_path) + strlen(dir.d_name) + 2);

@@ -311,7 +311,7 @@ int open_file(int drive, const char *path, unsigned int mode, unsigned int mask)
     return fd;
 }
 
-void fill_time(time_t t, ScePspDateTime *scetime) {
+void fill_time(time_t t, SceDateTime *scetime) {
     struct tm *filetime;
 
     memset(scetime, 0, sizeof(*scetime));
@@ -1061,6 +1061,7 @@ int handle_getstat(struct usb_dev_handle *hDev, struct HostFsGetstatCmd *cmd, in
             resp.res = LE32(fill_stat(NULL, fullpath, &st));
             if (LE32(resp.res) == 0) {
                 resp.cmd.extralen = LE32(sizeof(st));
+                printf("Getstat(%s): m=%i a=%i s=%i\n", fullpath, st.mode, st.attr, st.size);
             }
         }
 
@@ -1079,6 +1080,7 @@ int handle_getstat(struct usb_dev_handle *hDev, struct HostFsGetstatCmd *cmd, in
 }
 
 int handle_getstatbyfd(struct usb_dev_handle *hDev, struct HostFsGetstatByFdCmd *cmd, int cmdlen) {
+
     struct HostFsGetstatByFdResp resp;
     SceIoStat st;
     int ret = -1;
@@ -1097,10 +1099,17 @@ int handle_getstatbyfd(struct usb_dev_handle *hDev, struct HostFsGetstatByFdCmd 
 
         int32_t fid = LE32(cmd->fid);
         V_PRINTF(2, "GetstatByFd fd: 0x%08X\n", fid);
+
         resp.res = LE32(fill_statbyfd(fid, &st));
         if (LE32(resp.res) == 0) {
-            printf("GetstatByFd: size = %i\n", st.size);
-            resp.cmd.extralen = LE32(sizeof(st));
+            resp.mode = st.mode;
+            resp.attr = st.attr;
+            resp.size = st.size;
+            resp.ctime = st.ctime;
+            resp.atime = st.atime;
+            resp.mtime = st.mtime;
+            printf("GetstatByFd: m=%i a=%i s=%i\n", st.mode, st.attr, st.size);
+            //resp.cmd.extralen = LE32(sizeof(st));
         }
 
         ret = euid_usb_bulk_write(hDev, 0x2, (char *) &resp, sizeof(resp), 10000);
@@ -1109,9 +1118,6 @@ int handle_getstatbyfd(struct usb_dev_handle *hDev, struct HostFsGetstatByFdCmd 
             break;
         }
 
-        if (LE32(resp.cmd.extralen) > 0) {
-            ret = euid_usb_bulk_write(hDev, 0x2, (char *) &st, sizeof(st), 10000);
-        }
     } while (0);
 
     return ret;

@@ -611,9 +611,16 @@ int io_getstatbyfd(SceUID fd, SceIoStat *stat) {
     cmd.fsnum = 0;
 
     if (usbhostfs_connected()) {
-        if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), NULL, 0, stat, sizeof(SceIoStat))) {
+        if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), NULL, 0, NULL, 0)) {
             ret = resp.res;
-            DEBUG_PRINTF("Returned res %d\n", resp.res);
+            stat->st_mode = resp.mode;
+            stat->st_attr = resp.attr;
+            stat->st_size = resp.size;
+            stat->st_ctime = resp.ctime;
+            stat->st_atime = resp.atime;
+            stat->st_mtime = resp.mtime;
+            //memcpy(stat, &resp.stat, sizeof(SceIoStat));
+            DEBUG_PRINTF("io_getstatbyfd: returned res %d (m=%i a=%i s=%i)\n", resp.res, stat->st_mode, stat->st_attr, stat->st_size);
         } else {
             MODPRINTF("Error in sending getstat command\n");
         }

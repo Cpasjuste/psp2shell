@@ -110,7 +110,7 @@ int euid_usb_bulk_write(usb_dev_handle *dev, int ep, char *bytes, int size,
     V_PRINTF(2, "Bulk Write dev %p, ep 0x%x, bytes %p, size %d, timeout %d\n",
              dev, ep, bytes, size, timeout);
 
-    V_PRINTF(2, "Last usb error: %s\n", usb_strerror());
+    //V_PRINTF(2, "Last usb error: %s\n", usb_strerror());
 
     seteuid(0);
     setegid(0);
@@ -119,7 +119,7 @@ int euid_usb_bulk_write(usb_dev_handle *dev, int ep, char *bytes, int size,
     setegid(getgid());
 
     V_PRINTF(2, "Bulk Write returned %d\n", ret);
-    V_PRINTF(2, "Last usb error: %s\n", usb_strerror());
+    //V_PRINTF(2, "Last usb error: %s\n", usb_strerror());
 
     return ret;
 }
@@ -1166,7 +1166,7 @@ int main(int argc, char **argv) {
 
     if (parse_args(argc, argv)) {
 
-        //g_verbose = 2;
+        g_verbose = 2;
 
         pthread_t thid;
         usb_init();
