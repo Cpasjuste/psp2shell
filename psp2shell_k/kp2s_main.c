@@ -179,7 +179,7 @@ static int thread_wait_cmd(SceSize args, void *argp) {
     usbShellInit();
     welcome();
 
-    set_hooks();
+    //set_hooks();
     set_hooks_io();
 
     kp2s_client client;

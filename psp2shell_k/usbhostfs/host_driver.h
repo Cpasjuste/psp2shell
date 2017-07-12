@@ -35,6 +35,8 @@ int io_dread(SceUID fd, SceIoDirent *dir);
 
 int io_getstat(const char *file, SceIoStat *stat);
 
+int io_getstatbyfd(SceUID fd, SceIoStat *stat);
+
 int io_chstat(const char *file, SceIoStat *stat, int bits);
 
 int io_rename(const char *oldname, const char *newname);

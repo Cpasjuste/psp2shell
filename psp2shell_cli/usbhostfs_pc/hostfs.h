@@ -130,6 +130,8 @@ int handle_mkdir(struct usb_dev_handle *hDev, struct HostFsMkdirCmd *cmd, int cm
 
 int handle_getstat(struct usb_dev_handle *hDev, struct HostFsGetstatCmd *cmd, int cmdlen);
 
+int handle_getstatbyfd(struct usb_dev_handle *hDev, struct HostFsGetstatByFdCmd *cmd, int cmdlen);
+
 int handle_chstat(struct usb_dev_handle *hDev, struct HostFsChstatCmd *cmd, int cmdlen);
 
 int handle_rename(struct usb_dev_handle *hDev, struct HostFsRenameCmd *cmd, int cmdlen);

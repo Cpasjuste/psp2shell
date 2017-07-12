@@ -80,7 +80,6 @@ int kp2s_io_list_dir(const char *path) {
 
     int res = 0;
     do {
-
         SceIoDirent dir;
         memset(&dir, 0, sizeof(SceIoDirent));
         res = sceIoDread(dfd, &dir);

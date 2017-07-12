@@ -28,42 +28,14 @@ enum {
     HOOK_IO_DOPEN,
     HOOK_IO_DREAD,
     HOOK_IO_DCLOSE,
+    HOOK_IO_MKDIR,
+    HOOK_IO_RMDIR,
+    HOOK_IO_GETSTAT,
+    HOOK_IO_GETSTATBYFD,
+    HOOK_IO_CHSTAT,
+    HOOK_IO_DEVCTL,
     HOOK_END
 };
-
-// user hooks
-/*
-enum {
-    HOOK_IO_OPEN = 0,
-    HOOK_IO_OPEN_ASYNC,
-    HOOK_IO_CLOSE,
-    HOOK_IO_CLOSE_ASYNC,
-    HOOK_IO_READ,
-    HOOK_IO_READ_ASYNC,
-    HOOK_IO_WRITE,
-    HOOK_IO_WRITE_ASYNC,
-    HOOK_IO_LSEEK,
-    HOOK_IO_LSEEK_ASYNC,
-    HOOK_IO_LSEEK32,
-    //HOOK_IO_LSEEK32_ASYNC,        // TODO: nid ?
-            HOOK_IO_REMOVE,
-    HOOK_IO_RENAME,
-    HOOK_IO_SYNC,
-    HOOK_IO_SYNC_BY_FD,
-    //HOOK_IO_WAIT_ASYNC,           // TODO: nid ?
-    //HOOK_IO_WAIT_ASYNC_CB,        // TODO: nid ?
-    //HOOK_IO_POLL_ASYNC,           // TODO: nid ?
-    //HOOK_IO_GET_ASYNC_STAT,       // TODO: nid ?
-            HOOK_IO_CANCEL,
-    //HOOK_IO_GET_DEV_TYPE,         // TODO: nid ?
-    //HOOK_IO_CHANGE_ASYNC_PRIORITY,// TODO: nid ?
-    //HOOK_IO_SET_ASYNC_CALLBACK,   // TODO: nid ?
-            HOOK_IO_DOPEN,
-    HOOK_IO_DREAD,
-    HOOK_IO_DCLOSE,
-    HOOK_END
-};
-*/
 
 // psp2/io/fcntl.h
 SceUID _sceIoOpen(const char *file, int flags, SceMode mode);
@@ -122,6 +94,22 @@ int _sceIoDread(SceUID fd, SceIoDirent *dir);
 
 int _sceIoDclose(SceUID fd);
 // psp2/io/dirent.h
+
+// io/stat.h
+int _sceIoMkdir(const char *dir, SceMode mode);
+
+int _sceIoRmdir(const char *path);
+
+int _sceIoGetstat(const char *file, SceIoStat *stat);
+
+int _sceIoGetstatByFd(SceUID fd, SceIoStat *stat);
+
+int _sceIoChstat(const char *file, SceIoStat *stat, int bits);
+// io/stat.h
+
+// io/devctl.h
+int _sceIoDevctl(const char *dev, unsigned int cmd, void *indata, int inlen, void *outdata, int outlen);
+// io/devctl.h
 
 void set_hooks_io();
 

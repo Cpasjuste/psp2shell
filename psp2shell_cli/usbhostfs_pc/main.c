@@ -310,6 +310,11 @@ void do_hostfs(struct HostFsCmd *cmd, int readlen) {
                 fprintf(stderr, "Error in getstat command\n");
             }
             break;
+        case HOSTFS_CMD_GETSTATBYFD:
+            if (handle_getstatbyfd(g_hDev, (struct HostFsGetstatByFdCmd *) cmd, readlen) < 0) {
+                fprintf(stderr, "Error in getstatbyfd command\n");
+            }
+            break;
         case HOSTFS_CMD_CHSTAT:
             if (handle_chstat(g_hDev, (struct HostFsChstatCmd *) cmd, readlen) < 0) {
                 fprintf(stderr, "Error in chstat command\n");
@@ -1156,10 +1161,13 @@ int main(int argc, char **argv) {
     int i;
 
     printf("USBHostFS (c) TyRaNiD 2k6\n");
-    printf("USBHostFS (PSP2) (c) Cpasjuste\n");
+    printf("PSP2SHELL (c) Cpasjuste\n");
     printf("Built %s %s - $Revision: 2368 $\n", __DATE__, __TIME__);
 
     if (parse_args(argc, argv)) {
+
+        //g_verbose = 2;
+
         pthread_t thid;
         usb_init();
 

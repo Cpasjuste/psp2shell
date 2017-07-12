@@ -592,6 +592,38 @@ int io_getstat(const char *file, SceIoStat *stat) {
     return ret;
 }
 
+int io_getstatbyfd(SceUID fd, SceIoStat *stat) {
+    int ret = -1;
+    struct HostFsGetstatByFdCmd cmd;
+    struct HostFsGetstatByFdResp resp;
+
+    if (stat == NULL) {
+        MODPRINTF("Invalid stat pointer\n");
+        return -1;
+    }
+
+    memset(&cmd, 0, sizeof(cmd));
+    memset(&resp, 0, sizeof(resp));
+    cmd.cmd.magic = HOSTFS_MAGIC;
+    cmd.cmd.command = HOSTFS_CMD_GETSTATBYFD;
+    cmd.cmd.extralen = 0;
+    cmd.fid = fd;
+    cmd.fsnum = 0;
+
+    if (usbhostfs_connected()) {
+        if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), NULL, 0, stat, sizeof(SceIoStat))) {
+            ret = resp.res;
+            DEBUG_PRINTF("Returned res %d\n", resp.res);
+        } else {
+            MODPRINTF("Error in sending getstat command\n");
+        }
+    } else {
+        MODPRINTF("%s: Error PC side not connected\n", __FUNCTION__);
+    }
+
+    return ret;
+}
+
 int io_chstat(const char *file, SceIoStat *stat, int bits) {
     int ret = -1;
     struct HostFsChstatCmd cmd;

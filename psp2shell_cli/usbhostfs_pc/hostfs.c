@@ -263,8 +263,12 @@ int open_file(int drive, const char *path, unsigned int mode, unsigned int mask)
             V_PRINTF(2, "Write mode\n");
             real_mode = O_WRONLY;
         } else {
+            V_PRINTF(2, "Read mode\n");
+            real_mode = O_RDONLY;
+            /*
             fprintf(stderr, "No access mode specified\n");
             return GETERROR(EINVAL);
+            */
         }
     }
 
@@ -342,6 +346,38 @@ int fill_stat(const char *dirname, const char *name, SceIoStat *scestat) {
 
     if (stat(path, &st) < 0) {
         fprintf(stderr, "Couldn't stat file %s (%s)\n", path, strerror(errno));
+        return GETERROR(errno);
+    }
+
+    scestat->size = LE64(st.st_size);
+    scestat->mode = 0;
+    scestat->attr = 0;
+    if (S_ISLNK(st.st_mode)) {
+        scestat->attr = LE32(FIO_SO_IFLNK);
+        scestat->mode = LE32(FIO_S_IFLNK);
+    } else if (S_ISDIR(st.st_mode)) {
+        scestat->attr = LE32(FIO_SO_IFDIR);
+        scestat->mode = LE32(FIO_S_IFDIR);
+    } else {
+        scestat->attr = LE32(FIO_SO_IFREG);
+        scestat->mode = LE32(FIO_S_IFREG);
+    }
+
+    scestat->mode |= LE32(st.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO));
+
+    fill_time(st.st_ctime, &scestat->ctime);
+    fill_time(st.st_atime, &scestat->atime);
+    fill_time(st.st_mtime, &scestat->mtime);
+
+    return 0;
+}
+
+int fill_statbyfd(int32_t fd, SceIoStat *scestat) {
+
+    struct stat st;
+
+    if (fstat(fd, &st) < 0) {
+        fprintf(stderr, "Couldn't stat fd 0x%08X (%s)\n", fd, strerror(errno));
         return GETERROR(errno);
     }
 
@@ -1042,6 +1078,45 @@ int handle_getstat(struct usb_dev_handle *hDev, struct HostFsGetstatCmd *cmd, in
     return ret;
 }
 
+int handle_getstatbyfd(struct usb_dev_handle *hDev, struct HostFsGetstatByFdCmd *cmd, int cmdlen) {
+    struct HostFsGetstatByFdResp resp;
+    SceIoStat st;
+    int ret = -1;
+
+    memset(&resp, 0, sizeof(resp));
+    resp.cmd.magic = LE32(HOSTFS_MAGIC);
+    resp.cmd.command = LE32(HOSTFS_CMD_GETSTATBYFD);
+    resp.res = LE32(-1);
+    memset(&st, 0, sizeof(st));
+
+    do {
+        if (cmdlen != sizeof(struct HostFsGetstatByFdCmd)) {
+            fprintf(stderr, "Error, invalid getstatbyfd command size %d\n", cmdlen);
+            break;
+        }
+
+        int32_t fid = LE32(cmd->fid);
+        V_PRINTF(2, "GetstatByFd fd: 0x%08X\n", fid);
+        resp.res = LE32(fill_statbyfd(fid, &st));
+        if (LE32(resp.res) == 0) {
+            printf("GetstatByFd: size = %i\n", st.size);
+            resp.cmd.extralen = LE32(sizeof(st));
+        }
+
+        ret = euid_usb_bulk_write(hDev, 0x2, (char *) &resp, sizeof(resp), 10000);
+        if (ret < 0) {
+            fprintf(stderr, "Error writing getstatbyfd response (%d)\n", ret);
+            break;
+        }
+
+        if (LE32(resp.cmd.extralen) > 0) {
+            ret = euid_usb_bulk_write(hDev, 0x2, (char *) &st, sizeof(st), 10000);
+        }
+    } while (0);
+
+    return ret;
+}
+
 int psp_settime(const char *path, const struct HostFsTimeStamp *ts, int set) {
     time_t convtime;
     struct tm stime;
@@ -1063,7 +1138,7 @@ int psp_settime(const char *path, const struct HostFsTimeStamp *ts, int set) {
     tbuf.modtime = st.st_mtime;
 
     convtime = mktime(&stime);
-    if (convtime == (time_t) - 1) {
+    if (convtime == (time_t) -1) {
         return -1;
     }
 

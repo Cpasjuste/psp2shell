@@ -69,11 +69,12 @@ enum HostFsCommands {
     HOSTFS_CMD_DREAD = 0x8FFC000B,
     HOSTFS_CMD_DCLOSE = 0x8FFC000C,
     HOSTFS_CMD_GETSTAT = 0x8FFC000D,
-    HOSTFS_CMD_CHSTAT = 0x8FFC000E,
-    HOSTFS_CMD_RENAME = 0x8FFC000F,
-    HOSTFS_CMD_CHDIR = 0x8FFC0010,
-    HOSTFS_CMD_IOCTL = 0x8FFC0011,
-    HOSTFS_CMD_DEVCTL = 0x8FFC0012
+    HOSTFS_CMD_GETSTATBYFD = 0x8FFC000E,
+    HOSTFS_CMD_CHSTAT = 0x8FFC000F,
+    HOSTFS_CMD_RENAME = 0x8FFC0010,
+    HOSTFS_CMD_CHDIR = 0x8FFC0011,
+    HOSTFS_CMD_IOCTL = 0x8FFC0012,
+    HOSTFS_CMD_DEVCTL = 0x8FFC0013
 };
 
 struct HostFsTimeStamp {
@@ -254,6 +255,17 @@ struct HostFsGetstatCmd {
 } __attribute__((packed));
 
 struct HostFsGetstatResp {
+    struct HostFsCmd cmd;
+    int32_t res;
+} __attribute__((packed));
+
+struct HostFsGetstatByFdCmd {
+    struct HostFsCmd cmd;
+    int32_t fid;
+    uint32_t fsnum;
+} __attribute__((packed));
+
+struct HostFsGetstatByFdResp {
     struct HostFsCmd cmd;
     int32_t res;
 } __attribute__((packed));
