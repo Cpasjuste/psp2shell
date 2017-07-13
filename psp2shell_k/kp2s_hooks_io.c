@@ -12,28 +12,28 @@ static int host_fds[MAX_HOST_FD];
 // kernel hooks
 static Hook hooks[HOOK_END] = {
         // io/fcntl.h
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x75192972, _sceIoOpen},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0xF99DD8A3, _sceIoClose},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0xE17EFC03, _sceIoRead},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x21EE91F0, _sceIoWrite},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x62090481, _sceIoLseek},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x0D7BB3E1, _sceIoRemove},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0xDC0C4997, _sceIoRename},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x75192972, _ksceIoOpen},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0xF99DD8A3, _ksceIoClose},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0xE17EFC03, _ksceIoRead},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x21EE91F0, _ksceIoWrite},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x62090481, _ksceIoLseek},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x0D7BB3E1, _ksceIoRemove},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0xDC0C4997, _ksceIoRename},
         // io/fcntl.h
         // io/dirent.h
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x463B25CC, _sceIoDopen},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x20CF5FC7, _sceIoDread},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x19C81DD6, _sceIoDclose},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x463B25CC, _ksceIoDopen},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x20CF5FC7, _ksceIoDread},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x19C81DD6, _ksceIoDclose},
         // io/dirent.h
         // io/stat.h
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x7F710B25, _sceIoMkdir},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x1CC9C634, _sceIoRmdir},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x75C96D25, _sceIoGetstat},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x462F059B, _sceIoGetstatByFd},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x7D42B8DC, _sceIoChstat},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x7F710B25, _ksceIoMkdir},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x1CC9C634, _ksceIoRmdir},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x75C96D25, _ksceIoGetstat},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x462F059B, _ksceIoGetstatByFd},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x7D42B8DC, _ksceIoChstat},
         // io/stat.h
         // io/devctl.h
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x16882FC4, _sceIoDevctl},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x16882FC4, _ksceIoDevctl},
         // io/devctl.h
 };
 
@@ -121,29 +121,27 @@ static bool is_host_fd(int fd) {
     return false;
 }
 
-
-SceUID _sceIoOpen(const char *file, int flags, SceMode mode) {
+SceUID _ksceIoOpen(const char *file, int flags, SceMode mode) {
 
     // TODO:
     SCE_KERNEL_ERROR_INVALID_UID when called from user :/
 
     if (strncmp(file, "host0", 5) != 0) {
-        //printf("_sceIoOpen(%s, %i, %i): host0 not detected\n", kfile, flags, mode);
-        return TAI_CONTINUE(SceUID, hooks[HOOK_IO_OPEN].ref, file, flags, mode);
+        return TAI_CONTINUE(SceUID, hooks[HOOK_IO_KOPEN].ref, file, flags, mode);
     }
 
     int fid = open_host_fd(file, flags, mode);
-    printf("_sceIoOpen(%s, 0x%08X, 0x%08X) = 0x%08X\n", file, flags, mode, fid);
+    printf("_ksceIoOpen(%s, 0x%08X, 0x%08X) = 0x%08X\n", file, flags, mode, fid);
     return fid;
 }
 
-int _sceIoClose(SceUID fd) {
+int _ksceIoClose(SceUID fd) {
 
     int res;
 
     if (is_host_fd(fd)) {
         res = close_host_fd(fd);
-        printf("_sceIoClose(0x%08X) = 0x%08X\n", fd, res);
+        printf("_ksceIoClose(0x%08X) = 0x%08X\n", fd, res);
     } else {
         res = TAI_CONTINUE(int, hooks[HOOK_IO_CLOSE].ref, fd);
     }
@@ -151,13 +149,13 @@ int _sceIoClose(SceUID fd) {
     return res;
 }
 
-int _sceIoRead(SceUID fd, void *data, SceSize size) {
+int _ksceIoRead(SceUID fd, void *data, SceSize size) {
 
     int res;
 
     if (is_host_fd(fd)) {
         res = io_read(fd, data, size);
-        printf("_sceIoRead(0x%08X, data, %i) = 0x%08X\n", fd, size, res);
+        printf("_ksceIoRead(0x%08X, data, %i) = 0x%08X\n", fd, size, res);
     } else {
         res = TAI_CONTINUE(int, hooks[HOOK_IO_READ].ref, fd, data, size);
     }
@@ -165,13 +163,13 @@ int _sceIoRead(SceUID fd, void *data, SceSize size) {
     return res;
 }
 
-int _sceIoWrite(SceUID fd, const void *data, SceSize size) {
+int _ksceIoWrite(SceUID fd, const void *data, SceSize size) {
 
     int res;
 
     if (is_host_fd(fd)) {
         res = io_write(fd, data, size);
-        printf("_sceIoWrite(0x%08X, data, %i) = 0x%08X\n", fd, size, res);
+        printf("_ksceIoWrite(0x%08X, data, %i) = 0x%08X\n", fd, size, res);
     } else {
         res = TAI_CONTINUE(int, hooks[HOOK_IO_WRITE].ref, fd, data, size);
     }
@@ -179,13 +177,13 @@ int _sceIoWrite(SceUID fd, const void *data, SceSize size) {
     return res;
 }
 
-SceOff _sceIoLseek(SceUID fd, SceOff offset, int whence) {
+SceOff _ksceIoLseek(SceUID fd, SceOff offset, int whence) {
 
     SceOff res;
 
     if (is_host_fd(fd)) {
         res = io_lseek(fd, offset, whence);
-        printf("_sceIoLseek(0x%08X, %lld, %i) == %lld\n", fd, offset, whence, res);
+        printf("_ksceIoLseek(0x%08X, %lld, %i) == %lld\n", fd, offset, whence, res);
     } else {
         res = TAI_CONTINUE(SceOff, hooks[HOOK_IO_LSEEK].ref, fd, offset, whence);
     }
@@ -193,19 +191,19 @@ SceOff _sceIoLseek(SceUID fd, SceOff offset, int whence) {
     return res;
 }
 
-int _sceIoRemove(const char *file) {
+int _ksceIoRemove(const char *file) {
 
     if (strncmp(file, "host0", 5) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_REMOVE].ref, file);
     }
     char buf[256];
     int res = io_remove(path_to_host(file, buf));
-    printf("_sceIoRemove(%s) == 0x%08X\n", file, res);
+    printf("_ksceIoRemove(%s) == 0x%08X\n", file, res);
 
     return res;
 }
 
-int _sceIoRename(const char *oldname, const char *newname) {
+int _ksceIoRename(const char *oldname, const char *newname) {
 
     if (strncmp(oldname, "host0", 5) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_RENAME].ref, oldname, newname);
@@ -213,22 +211,22 @@ int _sceIoRename(const char *oldname, const char *newname) {
 
     char buf0[256], buf1[256];
     int res = io_rename(path_to_host(oldname, buf0), path_to_host(newname, buf1));
-    printf("_sceIoRename(%s, %s) == 0x%08X\n", oldname, newname, res);
+    printf("_ksceIoRename(%s, %s) == 0x%08X\n", oldname, newname, res);
     return res;
 }
 
-SceUID _sceIoDopen(const char *dirname) {
+SceUID _ksceIoDopen(const char *dirname) {
 
     if (strncmp(dirname, "host0", 5) != 0) {
         return TAI_CONTINUE(SceUID, hooks[HOOK_IO_DOPEN].ref, dirname);
     }
 
     int res = open_host_dfd(dirname);
-    printf("_sceIoDopen(%s) == 0x%08X\n", dirname, res);
+    printf("_ksceIoDopen(%s) == 0x%08X\n", dirname, res);
     return res;
 }
 
-int _sceIoDread(SceUID fd, SceIoDirent *dir) {
+int _ksceIoDread(SceUID fd, SceIoDirent *dir) {
 
     int res;
 
@@ -241,13 +239,13 @@ int _sceIoDread(SceUID fd, SceIoDirent *dir) {
     return res;
 }
 
-int _sceIoDclose(SceUID fd) {
+int _ksceIoDclose(SceUID fd) {
 
     int res;
 
     if (is_host_fd(fd)) {
         res = close_host_dfd(fd);
-        printf("_sceIoDclose(0x%08X) == 0x%08X\n", fd, res);
+        printf("_ksceIoDclose(0x%08X) == 0x%08X\n", fd, res);
     } else {
         res = TAI_CONTINUE(int, hooks[HOOK_IO_DCLOSE].ref, fd);
     }
@@ -255,7 +253,7 @@ int _sceIoDclose(SceUID fd) {
     return res;
 }
 
-int _sceIoMkdir(const char *dir, SceMode mode) {
+int _ksceIoMkdir(const char *dir, SceMode mode) {
 
     if (strncmp(dir, "host0", 5) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_MKDIR].ref, dir, mode);
@@ -265,11 +263,11 @@ int _sceIoMkdir(const char *dir, SceMode mode) {
     const char *path = path_to_host(dir, buf);
     // int res = io_mkdir(path, mode); TODO: fix mode ?
     int res = io_mkdir(path, 6);
-    printf("_sceIoMkdir(%s, 0x%08X) == 0x%08X\n", path, mode, res);
+    printf("_ksceIoMkdir(%s, 0x%08X) == 0x%08X\n", path, mode, res);
     return res;
 }
 
-int _sceIoRmdir(const char *path) {
+int _ksceIoRmdir(const char *path) {
 
     if (strncmp(path, "host0", 5) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_RMDIR].ref, path);
@@ -277,11 +275,11 @@ int _sceIoRmdir(const char *path) {
 
     char buf[256];
     int res = io_rmdir(path_to_host(path, buf));
-    printf("_sceIoRmdir(%s) == 0x%08X\n", path, res);
+    printf("_ksceIoRmdir(%s) == 0x%08X\n", path, res);
     return res;
 }
 
-int _sceIoGetstat(const char *file, SceIoStat *stat) {
+int _ksceIoGetstat(const char *file, SceIoStat *stat) {
 
     if (strncmp(file, "host0", 5) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_GETSTAT].ref, file, stat);
@@ -290,18 +288,18 @@ int _sceIoGetstat(const char *file, SceIoStat *stat) {
     char buf[256];
     const char *path = path_to_host(file, buf);
     int res = io_getstat(path, stat);
-    printf("_sceIoGetstat(%s) == 0x%08X (m=0x%08X a=0x%08X s=%i)\n",
+    printf("_ksceIoGetstat(%s) == 0x%08X (m=0x%08X a=0x%08X s=%i)\n",
            path, res, stat->st_mode, stat->st_attr, (int) stat->st_size);
     return res;
 }
 
-int _sceIoGetstatByFd(SceUID fd, SceIoStat *stat) {
+int _ksceIoGetstatByFd(SceUID fd, SceIoStat *stat) {
 
     int res;
 
     if (is_host_fd(fd)) {
         res = io_getstatbyfd(fd, stat);
-        printf("_sceIoGetstatByFd(0x%08X) == 0x%08X (m=0x%08X a=0x%08X s=%i)\n",
+        printf("_ksceIoGetstatByFd(0x%08X) == 0x%08X (m=0x%08X a=0x%08X s=%i)\n",
                fd, res, stat->st_mode, stat->st_attr, (int) stat->st_size);
     } else {
         res = TAI_CONTINUE(int, hooks[HOOK_IO_GETSTATBYFD].ref, fd, stat);
@@ -310,7 +308,7 @@ int _sceIoGetstatByFd(SceUID fd, SceIoStat *stat) {
     return res;
 }
 
-int _sceIoChstat(const char *file, SceIoStat *stat, int bits) {
+int _ksceIoChstat(const char *file, SceIoStat *stat, int bits) {
 
     if (strncmp(file, "host0", 5) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_GETSTAT].ref, file, stat, bits);
@@ -318,18 +316,18 @@ int _sceIoChstat(const char *file, SceIoStat *stat, int bits) {
 
     char buf[256];
     int res = io_chstat(path_to_host(file, buf), stat, bits);
-    printf("_sceIoChstat(%s) == 0x%08X\n", file, res);
+    printf("_ksceIoChstat(%s) == 0x%08X\n", file, res);
     return res;
 }
 
-int _sceIoDevctl(const char *dev, unsigned int cmd, void *indata, int inlen, void *outdata, int outlen) {
+int _ksceIoDevctl(const char *dev, unsigned int cmd, void *indata, int inlen, void *outdata, int outlen) {
 
     if (strncmp(dev, "host0", 5) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_DEVCTL].ref, dev, cmd, indata, inlen, outdata, outlen);
     }
 
     int res = io_devctl(dev, cmd, indata, inlen, outdata, outlen);
-    printf("_sceIoDevctl(%s, 0x%08X) == 0x%08X\n", dev, cmd, res);
+    printf("_ksceIoDevctl(%s, 0x%08X) == 0x%08X\n", dev, cmd, res);
     return res;
 }
 

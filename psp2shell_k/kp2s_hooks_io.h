@@ -18,7 +18,7 @@ typedef struct Hook {
 
 // kernel hooks
 enum {
-    HOOK_IO_OPEN = 0,
+    HOOK_IO_KOPEN = 0,
     HOOK_IO_CLOSE,
     HOOK_IO_READ,
     HOOK_IO_WRITE,
@@ -38,23 +38,23 @@ enum {
 };
 
 // psp2/io/fcntl.h
-SceUID _sceIoOpen(const char *file, int flags, SceMode mode);
+SceUID _ksceIoOpen(const char *file, int flags, SceMode mode);
 
 SceUID _sceIoOpenAsync(const char *file, int flags, SceMode mode);
 
-int _sceIoClose(SceUID fd);
+int _ksceIoClose(SceUID fd);
 
 int _sceIoCloseAsync(SceUID fd);
 
-int _sceIoRead(SceUID fd, void *data, SceSize size);
+int _ksceIoRead(SceUID fd, void *data, SceSize size);
 
 int _sceIoReadAsync(SceUID fd, void *data, SceSize size);
 
-int _sceIoWrite(SceUID fd, const void *data, SceSize size);
+int _ksceIoWrite(SceUID fd, const void *data, SceSize size);
 
 int _sceIoWriteAsync(SceUID fd, const void *data, SceSize size);
 
-SceOff _sceIoLseek(SceUID fd, SceOff offset, int whence);
+SceOff _ksceIoLseek(SceUID fd, SceOff offset, int whence);
 
 int _sceIoLseekAsync(SceUID fd, SceOff offset, int whence);
 
@@ -62,9 +62,9 @@ int _sceIoLseek32(SceUID fd, int offset, int whence);
 
 int _sceIoLseek32Async(SceUID fd, int offset, int whence);
 
-int _sceIoRemove(const char *file);
+int _ksceIoRemove(const char *file);
 
-int _sceIoRename(const char *oldname, const char *newname);
+int _ksceIoRename(const char *oldname, const char *newname);
 
 int _sceIoSync(const char *device, unsigned int unk);
 
@@ -88,27 +88,27 @@ int _sceIoSetAsyncCallback(SceUID fd, SceUID cb, void *argp);
 // psp2/io/fcntl.h
 
 // psp2/io/dirent.h
-SceUID _sceIoDopen(const char *dirname);
+SceUID _ksceIoDopen(const char *dirname);
 
-int _sceIoDread(SceUID fd, SceIoDirent *dir);
+int _ksceIoDread(SceUID fd, SceIoDirent *dir);
 
-int _sceIoDclose(SceUID fd);
+int _ksceIoDclose(SceUID fd);
 // psp2/io/dirent.h
 
 // io/stat.h
-int _sceIoMkdir(const char *dir, SceMode mode);
+int _ksceIoMkdir(const char *dir, SceMode mode);
 
-int _sceIoRmdir(const char *path);
+int _ksceIoRmdir(const char *path);
 
-int _sceIoGetstat(const char *file, SceIoStat *stat);
+int _ksceIoGetstat(const char *file, SceIoStat *stat);
 
-int _sceIoGetstatByFd(SceUID fd, SceIoStat *stat);
+int _ksceIoGetstatByFd(SceUID fd, SceIoStat *stat);
 
-int _sceIoChstat(const char *file, SceIoStat *stat, int bits);
+int _ksceIoChstat(const char *file, SceIoStat *stat, int bits);
 // io/stat.h
 
 // io/devctl.h
-int _sceIoDevctl(const char *dev, unsigned int cmd, void *indata, int inlen, void *outdata, int outlen);
+int _ksceIoDevctl(const char *dev, unsigned int cmd, void *indata, int inlen, void *outdata, int outlen);
 // io/devctl.h
 
 void set_hooks_io();
