@@ -41,7 +41,17 @@
 #include <psp2kern/types.h>
 
 #ifdef DEBUG
+
 #define printf ksceDebugPrintf
+/*
+int kp2s_print_stdout(const char *data, size_t size);
+#define printf(...) \
+do { \
+    char buffer[256]; \
+    snprintf(buffer, sizeof(buffer), ##__VA_ARGS__); \
+    kp2s_print_stdout(buffer, strlen(buffer)); \
+} while (0)
+*/
 #endif
 #else
 

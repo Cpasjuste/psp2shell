@@ -27,7 +27,9 @@ static int _kDebugPrintf(const char *fmt, ...) {
     int len = vsnprintf(temp_buf, P2S_MSG_LEN, fmt, args);
     va_end(args);
 
-    kp2s_print_stdout(temp_buf, (size_t) len);
+    if (len > 0) {
+        kp2s_print_stdout(temp_buf, (size_t) len);
+    }
 
     return TAI_CONTINUE(int, ref_hooks[2], fmt, args);
 }
@@ -41,7 +43,9 @@ static int _kDebugPrintf2(int num0, int num1, const char *fmt, ...) {
     int len = vsnprintf(temp_buf, P2S_MSG_LEN, fmt, args);
     va_end(args);
 
-    kp2s_print_stdout(temp_buf, (size_t) len);
+    if (len > 0) {
+        kp2s_print_stdout(temp_buf, (size_t) len);
+    }
 
     return TAI_CONTINUE(int, ref_hooks[3], num0, num1, fmt, args);
 }

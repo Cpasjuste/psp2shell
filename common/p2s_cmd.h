@@ -49,6 +49,7 @@ enum p2s_cmd_t {
     CMD_MV,
     CMD_CP,
     CMD_PWD,
+    CMD_STAT,
     CMD_GET,
     CMD_PUT,
     CMD_LAUNCH,

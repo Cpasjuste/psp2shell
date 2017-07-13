@@ -357,7 +357,7 @@ void do_async(struct AsyncCommand *cmd, int readlen) {
                 msg_parse(&msg);
             }
 
-        } else if (chan == ASYNC_STDOUT) {
+        } else if (chan == ASYNC_STDOUT || chan == ASYNC_STDERR || chan == ASYNC_GDB) {
             char msg[data_len + 1];
             strncpy(msg, (const char *) data, data_len);
             msg[data_len] = '\0';
@@ -496,6 +496,9 @@ int parse_args(int argc, char **argv) {
     for (i = 0; i < MAX_HOSTDRIVES; i++) {
         strcpy(g_drives[i].rootdir, g_rootdir);
     }
+
+    // TODO: REMOVE
+    strcpy(g_drives[0].rootdir, "/home/cpasjuste/dev/psvita/psp2shell/cmake-build-debug/psp2shell_k/");
 
     while (1) {
         int ch;
@@ -1166,7 +1169,7 @@ int main(int argc, char **argv) {
 
     if (parse_args(argc, argv)) {
 
-        g_verbose = 2;
+        //g_verbose = 2;
 
         pthread_t thid;
         usb_init();

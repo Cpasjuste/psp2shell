@@ -286,7 +286,8 @@ int _sceIoGetstat(const char *file, SceIoStat *stat) {
     char buf[256];
     const char *path = path_to_host(file, buf);
     int res = io_getstat(path, stat);
-    printf("_sceIoGetstat(%s) == 0x%08X (size=%d, mode=%i)\n", path, res, stat->st_size, stat->st_mode);
+    printf("_sceIoGetstat(%s) == 0x%08X (m=0x%08X a=0x%08X s=%lli)\n",
+           path, res, stat->st_mode, stat->st_attr, stat->st_size);
     return res;
 }
 
@@ -296,7 +297,8 @@ int _sceIoGetstatByFd(SceUID fd, SceIoStat *stat) {
 
     if (is_host_fd(fd)) {
         res = io_getstatbyfd(fd, stat);
-        printf("_sceIoGetstatByFd(0x%08X) == 0x%08X (m=%i a=%i s=%i)\n", fd, res, stat->st_mode, stat->st_attr, stat->st_size);
+        printf("_sceIoGetstatByFd(0x%08X) == 0x%08X (m=0x%08X a=0x%08X s=%lli)\n",
+               fd, res, stat->st_mode, stat->st_attr, stat->st_size);
     } else {
         res = TAI_CONTINUE(int, hooks[HOOK_IO_GETSTATBYFD].ref, fd, stat);
     }

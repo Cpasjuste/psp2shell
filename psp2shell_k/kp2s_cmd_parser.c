@@ -16,6 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <psp2/rtc.h>
 #include "psp2shell_k.h"
 #include "p2s_module.h"
 
@@ -164,6 +165,66 @@ static void cmd_rmdir(kp2s_client *client, char *path) {
     PRINT_PROMPT();
 }
 
+static void cmd_mkdir(kp2s_client *client, char *path) {
+
+    char new_path[MAX_PATH_LENGTH];
+
+    strncpy(new_path, path, MAX_PATH_LENGTH);
+    to_abs_path(client->path, new_path);
+
+    int res = sceIoMkdir(new_path, 6);
+    if (res == 0) {
+        PRINT("\nOK\n\r\n");
+    } else {
+        PRINT_ERR("sceIoMkdir(%s, %i) = 0x%08X", new_path, res);
+    }
+}
+
+static void cmd_stat(kp2s_client *client, char *path) {
+
+    char new_path[MAX_PATH_LENGTH];
+
+    strncpy(new_path, path, MAX_PATH_LENGTH);
+    to_abs_path(client->path, new_path);
+
+    SceIoStat stat;
+    memset(&stat, 0, sizeof(stat));
+    int res = sceIoGetstat(new_path, &stat);
+    if (res == 0) {
+        int len = strlen(new_path);
+        PRINT("\n");
+        for (int i = 0; i < len; i++) {
+            PRINT("-");
+        }
+        PRINT("\n%s\n", new_path);
+        for (int i = 0; i < len; i++) {
+            PRINT("-");
+        }
+        PRINT("\n");
+
+        PRINT("\tmode: 0x%08X\n", stat.st_mode);
+        PRINT("\tattributes: 0x%08X\n", stat.st_attr);
+        PRINT("\tsize: %ld\n", (long) stat.st_size);
+
+        PRINT("\tcreation: %04d/%02d/%02d %02d:%02d\n",
+               stat.st_ctime.year, stat.st_ctime.month,
+               stat.st_ctime.day, stat.st_ctime.hour, stat.st_ctime.minute);
+
+        PRINT("\taccess: %04d/%02d/%02d %02d:%02d\n",
+               stat.st_atime.year, stat.st_atime.month,
+               stat.st_atime.day, stat.st_atime.hour, stat.st_atime.minute);
+
+        PRINT("\tmodification: %04d/%02d/%02d %02d:%02d\n",
+               stat.st_mtime.year, stat.st_mtime.month,
+               stat.st_mtime.day, stat.st_mtime.hour, stat.st_mtime.minute);
+
+        PRINT_PROMPT();
+
+    } else {
+        PRINT_ERR("sceIoMkdir(%s, %i) = 0x%08X", new_path, res);
+    }
+}
+
 int kp2s_cmd_parse(kp2s_client *client, P2S_CMD *cmd) {
 
     switch (cmd->type) {
@@ -188,12 +249,20 @@ int kp2s_cmd_parse(kp2s_client *client, P2S_CMD *cmd) {
             cmd_rmdir(client, cmd->args[0]);
             break;
 
+        case CMD_MKDIR:
+            cmd_mkdir(client, cmd->args[0]);
+            break;
+
         case CMD_MV:
             cmd_mv(client, cmd->args[0], cmd->args[1]);
             break;
 
         case CMD_CP:
             cmd_cp(client, cmd->args[0], cmd->args[1]);
+            break;
+
+        case CMD_STAT:
+            cmd_stat(client, cmd->args[0]);
             break;
 
         case CMD_MODLS_PID:

@@ -67,7 +67,6 @@ int kp2s_io_list_dir(const char *path) {
     }
 
     int len = strlen(path);
-
     PRINT("\n");
     for (int i = 0; i < len; i++) {
         PRINT("-");
@@ -305,7 +304,7 @@ int kp2s_io_copy_path(const char *src_path, const char *dst_path) {
         memset(&stat, 0, sizeof(SceIoStat));
         int res2 = sceIoGetstat(src_path, &stat);
        // int res2 = ksceIoGetstatByFd(dfd, &stat);
-        printf("sceIoGetstat(0x%08X) = 0x%08X (m=%i a=%i s=%i)\n", dfd, res2, stat.st_mode, stat.st_attr, stat.st_size);
+        printf("sceIoGetstat(0x%08X) = 0x%08X (m=%i a=%i s=%lli)\n", dfd, res2, stat.st_mode, stat.st_attr, stat.st_size);
 
         int ret = sceIoMkdir(dst_path, stat.st_mode & 0xFFF);
         printf("sceIoMkdir(%s, %i) = 0x%08X\n", dst_path, stat.st_mode & 0xFFF, ret);

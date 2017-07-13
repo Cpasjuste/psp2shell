@@ -41,9 +41,15 @@ typedef struct {
 } kp2s_client;
 
 #ifdef __KERNEL__
+
 int kp2s_print_stdout(const char *data, size_t size);
+
+int kp2s_print_stdout2(const char *data, size_t size);
+
 int kp2s_print_stdout_user(const char *data, size_t size);
+
 int kp2s_print_color(int color, const char *fmt, ...);
+
 #define p2s_print_color kp2s_print_color
 #else
 int kp2s_print_stdout_user(const char *data, size_t size);

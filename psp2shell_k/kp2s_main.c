@@ -27,6 +27,7 @@ static SceUID u_sema = -1;
 static SceUID k_sema = -1;
 static SceUID thid_wait = -1;
 static P2S_CMD kp2s_cmd;
+static int kp2s_busy = 0;
 extern bool kp2s_ready;
 extern void *p2s_data_buf;
 
@@ -66,7 +67,11 @@ int kp2s_print_stdout(const char *data, size_t size) {
         return -1;
     }
 
+    while (kp2s_busy);
+    kp2s_busy = 1;
     int ret = usbAsyncWrite(ASYNC_STDOUT, data, size);
+    kp2s_busy = 0;
+
     return ret;
 }
 
@@ -84,7 +89,10 @@ int kp2s_print_stdout_user(const char *data, size_t size) {
     memset(kbuf, 0, size);
     ksceKernelMemcpyUserToKernel(kbuf, (uintptr_t) data, size);
 
+    while (kp2s_busy);
+    kp2s_busy = 1;
     int ret = usbAsyncWrite(ASYNC_STDOUT, kbuf, size);
+    kp2s_busy = 0;
 
     EXIT_SYSCALL(state);
     return ret;
@@ -103,7 +111,10 @@ int kp2s_print_color(int color, const char *fmt, ...) {
     int len = vsnprintf(buffer, P2S_KMSG_SIZE, fmt, args);
     va_end(args);
 
+    while (kp2s_busy);
+    kp2s_busy = 1;
     p2s_msg_send(ASYNC_SHELL, color, buffer);
+    kp2s_busy = 0;
 
     return len;
 }
@@ -114,7 +125,7 @@ int kp2s_print_color_user(int color, const char *data, size_t size) {
     ENTER_SYSCALL(state);
 
     if (!usbhostfs_connected()) {
-        PRINT_ERR("kp2s_print_color_user(k): !usbhostfs_connected\n");
+        PRINT_ERR("kp2s_print_color_user(k): not connected\n");
         EXIT_SYSCALL(state);
         return -1;
     }
@@ -123,7 +134,11 @@ int kp2s_print_color_user(int color, const char *data, size_t size) {
     memset(buffer, 0, size + 1);
     ksceKernelMemcpyUserToKernel(buffer, (uintptr_t) data, size);
     buffer[size + 1] = '\0';
+
+    while (kp2s_busy);
+    kp2s_busy = 1;
     p2s_msg_send(ASYNC_SHELL, color, buffer);
+    kp2s_busy = 0;
 
     EXIT_SYSCALL(state);
 
@@ -168,7 +183,7 @@ void kp2s_set_ready(bool rdy) {
 static int thread_wait_cmd(SceSize args, void *argp) {
 
     printf("thread_wait_cmd start\n");
-    //ksceKernelDelayThread(1000*1000*5);
+    ksceKernelDelayThread(1000 * 1000 * 5);
 
     int res = usbhostfs_start();
     if (res != 0) {
@@ -179,7 +194,7 @@ static int thread_wait_cmd(SceSize args, void *argp) {
     usbShellInit();
     welcome();
 
-    //set_hooks();
+    set_hooks();
     set_hooks_io();
 
     kp2s_client client;
@@ -195,9 +210,9 @@ static int thread_wait_cmd(SceSize args, void *argp) {
             if (!usbhostfs_connected()) {
                 printf("p2s_cmd_receive failed, waiting for usb...\n");
                 usbWaitForConnect();
-            } else {
+            } /*else {
                 printf("p2s_cmd_receive failed, unknow error...");
-            }
+            }*/
         } else {
             res = kp2s_cmd_parse(&client, &kp2s_cmd);
             if (res != 0) {

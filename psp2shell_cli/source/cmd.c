@@ -96,6 +96,18 @@ int cmd_rmdir(int argc, char **argv) {
     return 0;
 }
 
+int cmd_mkdir(int argc, char **argv) {
+
+    if (argc < 2) {
+        printf("incorrect number of arguments\n");
+        return -1;
+    }
+
+    p2s_cmd_send_string(cmd_sock, CMD_MKDIR, argv[1]);
+
+    return 0;
+}
+
 int cmd_mv(int argc, char **argv) {
 
     if (argc < 3) {
@@ -116,6 +128,18 @@ int cmd_cp(int argc, char **argv) {
     }
 
     p2s_cmd_send_fmt(cmd_sock, "%i\"%s\"%s\"", CMD_CP, argv[1], argv[2]);
+
+    return 0;
+}
+
+int cmd_stat(int argc, char **argv) {
+
+    if (argc < 2) {
+        printf("incorrect number of arguments\n");
+        return -1;
+    }
+
+    p2s_cmd_send_string(cmd_sock, CMD_STAT, argv[1]);
 
     return 0;
 }
@@ -413,8 +437,8 @@ int cmd_help(int argc, char **argv) {
     int i = 0;
     while (cmd[i].name != NULL) {
         printf(GRN
-        "%s %s"
-        RES, cmd[i].name, cmd[i].args);
+                       "%s %s"
+                       RES, cmd[i].name, cmd[i].args);
         printf(" -- %s\n", cmd[i].desc);
         i++;
     }
@@ -434,8 +458,10 @@ COMMAND cmd[] = {
         {"pwd",       "",                           "Get working directory.",                        cmd_pwd},
         {"rm",        "<remote_file>",              "Remove a file",                                 cmd_rm},
         {"rmdir",     "<remote_path>",              "Remove a directory",                            cmd_rmdir},
+        {"mkdir",     "<path>",                     "Make a directory",                              cmd_mkdir},
         {"mv",        "<remote_src> <remote_dst>",  "Move a file/directory",                         cmd_mv},
         {"cp",        "<local_src> <remote_dst>",   "Copy a file/directory",                         cmd_cp},
+        {"stat",      "<path>",                     "Get file stat",                                 cmd_stat},
         {"put",       "<local_path> <remote_path>", "Upload a file.",                                cmd_put},
         {"reset",     "",                           "Restart the application.",                      cmd_reset},
         {"load",      "<title_id> <eboot.bin>",     "Send (eboot.bin) and restart the application.", cmd_load},
@@ -462,7 +488,7 @@ COMMAND cmd[] = {
         {"?",         "",                           "Display the help.",                             cmd_help},
         {"help",      "",                           "Display the help.",                             cmd_help},
         {"exit",      "",                           "Exit the shell.",                               cmd_exit},
-        {NULL,        NULL,                         NULL}
+        {NULL, NULL, NULL}
 };
 
 COMMAND *cmd_find(char *name) {
