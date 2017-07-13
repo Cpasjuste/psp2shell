@@ -39,8 +39,6 @@
 #include <psp2/power.h>
 #include <psp2/appmgr.h>
 
-int sceKernelStartModule(SceUID modid, SceSize args, void *argp, int flags, void *option, int *status);
-
 #endif
 
 #ifdef DEBUG
@@ -57,8 +55,6 @@ int sceClibPrintf(const char *, ...);
 #include <psp2kern/io/stat.h>
 
 #define sceKernelStartModule ksceKernelStartModule
-
-SceUID ksceKernelFindMemBlockByAddr(const void *addr, SceSize size);
 
 #define sceKernelAllocMemBlock ksceKernelAllocMemBlock
 #define sceKernelGetMemBlockBase ksceKernelGetMemBlockBase
@@ -90,23 +86,7 @@ SceUID ksceKernelFindMemBlockByAddr(const void *addr, SceSize size);
 #define sceNetHtons ksceNetHtons
 #define sceNetHtonl ksceNetHtonl
 
-#else
-
-int sceKernelStopModule(SceUID modid, SceSize args, void *argp, int flags, void *option, int *status);
-
-SceUID sceAppMgrGetProcessIdByAppIdForShell(SceUID appId);
-
-int sceAppMgrGetRunningAppIdListForShell(SceUID *ids, int count);
-
-// return AppId ?
-SceUID sceAppMgrLaunchAppByName2ForShell(const char *name, const char *param, SceAppMgrLaunchAppOptParam *optParam);
-
-int sceAppMgrDestroyOtherAppByAppIdForShell(SceUID appId, void *a, void *b);
-
-int sceAppMgrDestroyAppByAppId(SceUID aid);
-
 #endif
-
 
 void *malloc(size_t size);
 
