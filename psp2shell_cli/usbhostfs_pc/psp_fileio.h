@@ -49,13 +49,13 @@ enum IOAccessModes {
             FIO_S_ISVTX = 0x0200,
 
     /** User access rights mask */
-            FIO_S_IRWXU = 0x01C0,
+            FIO_S_IRWXU = 0x0007,
     /** Read user permission */
-            FIO_S_IRUSR = 0x0100,
+            FIO_S_IRUSR = 0x0004,
     /** Write user permission */
-            FIO_S_IWUSR = 0x0080,
+            FIO_S_IWUSR = 0x0002,
     /** Execute user permission */
-            FIO_S_IXUSR = 0x0040,
+            FIO_S_IXUSR = 0x0001,
 
     /** Group access rights mask */
             FIO_S_IRWXG = 0x0038,
@@ -67,13 +67,13 @@ enum IOAccessModes {
             FIO_S_IXGRP = 0x0008,
 
     /** Others access rights mask */
-            FIO_S_IRWXO = 0x0007,
+            FIO_S_IRWXO = 0x01C0,
     /** Others read permission */
-            FIO_S_IROTH = 0x0004,
+            FIO_S_IROTH = 0x0100,
     /** Others write permission */
-            FIO_S_IWOTH = 0x0002,
+            FIO_S_IWOTH = 0x0080,
     /** Others execute permission */
-            FIO_S_IXOTH = 0x0001,
+            FIO_S_IXOTH = 0x0040,
 };
 
 /** File modes, used for the st_attr parameter in SceIoStat (confirm?). */

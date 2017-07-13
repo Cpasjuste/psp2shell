@@ -770,6 +770,14 @@ int io_umount() {
     return -1;
 }
 
+int kp2s_print_stdout(const char *data, size_t size);
+#define printf(...) \
+do { \
+    char buffer[256]; \
+    snprintf(buffer, sizeof(buffer), ##__VA_ARGS__); \
+    kp2s_print_stdout(buffer, strlen(buffer)); \
+} while (0)
+
 int io_devctl(const char *name, unsigned int cmdno, void *indata, int inlen, void *outdata,
               int outlen) {
     int ret = -1;
@@ -777,22 +785,27 @@ int io_devctl(const char *name, unsigned int cmdno, void *indata, int inlen, voi
     struct HostFsDevctlResp resp;
 
     if (name == NULL) {
-        MODPRINTF("Invalid name (NULL)\n");
+        printf("Invalid name (NULL)\n");
         return -1;
     }
 
     /* Handle the get info devctl */
+    /*
     if (cmdno == DEVCTL_GET_INFO) {
+        printf("cmdno == DEVCTL_GET_INFO\n");
         void **p = (void **) indata;
         if ((p) && (*p)) {
+            printf("OK: indata\n");
             outdata = *p;
-            outlen = sizeof(struct DevctlGetInfo);
+            outlen = sizeof(SceIoDevInfo);
             indata = NULL;
             inlen = 0;
         } else {
+            printf("NOK: indata\n");
             return -1;
         }
     }
+    */
 
     /* Ensure our lengths are zeroed */
     if (indata == NULL) {

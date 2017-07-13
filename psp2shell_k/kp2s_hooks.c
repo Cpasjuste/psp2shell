@@ -28,7 +28,8 @@ static int _kDebugPrintf(const char *fmt, ...) {
     va_end(args);
 
     if (len > 0) {
-        kp2s_print_stdout(temp_buf, (size_t) len);
+        //kp2s_print_stdout(temp_buf, (size_t) len);
+        //kp2s_print_stdout("ksceDebugPrintf: %i\n", len);
     }
 
     return TAI_CONTINUE(int, ref_hooks[2], fmt, args);

@@ -30,20 +30,29 @@
 
 #define HOSTFS_BULK_MAXWRITE  (1024*1024)
 
-#define DEVCTL_GET_INFO       0x02425818
+#define DEVCTL_GET_INFO       0x3001
 
+/*
 struct DevctlGetInfo {
-    /* Total number of blocks */
+    // Total number of blocks
     unsigned int btotal;
-    /* Total number of free blocks */
+    // Total number of free blocks
     unsigned int bfree;
-    /* Unknown */
+    // Unknown
     unsigned int unk;
-    /* Sector size */
+    // Sector size
     unsigned int ssize;
-    /* Number of sectors per block */
+    // Number of sectors per block
     unsigned int sects;
 };
+*/
+
+typedef struct {
+    uint64_t max_size;
+    uint64_t free_size;
+    uint32_t cluster_size;
+    void *unk;
+} SceIoDevInfo;
 
 enum USB_ASYNC_CHANNELS {
     ASYNC_SHELL = 0,

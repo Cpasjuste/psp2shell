@@ -12,6 +12,7 @@
 #include <utime.h>
 #include <pthread.h>
 #include <sys/statvfs.h>
+#include <usbhostfs/usbhostfs.h>
 
 #include "usbhostfs.h"
 #include "hostfs.h"
@@ -349,7 +350,7 @@ int fill_stat(const char *dirname, const char *name, SceIoStat *scestat) {
         return GETERROR(errno);
     }
 
-    scestat->size = LE64(st.st_size);
+    scestat->size = (SceOff) LE64(st.st_size);
     scestat->mode = 0;
     scestat->attr = 0;
     if (S_ISLNK(st.st_mode)) {
@@ -363,7 +364,8 @@ int fill_stat(const char *dirname, const char *name, SceIoStat *scestat) {
         scestat->mode = LE32(FIO_S_IFREG);
     }
 
-    scestat->mode |= LE32(st.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO));
+    // TODO: fix mode for psp2
+    scestat->mode |= 0777;//|= LE32(st.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO));
 
     fill_time(st.st_ctime, &scestat->ctime);
     fill_time(st.st_atime, &scestat->atime);
@@ -381,7 +383,7 @@ int fill_statbyfd(int32_t fd, SceIoStat *scestat) {
         return GETERROR(errno);
     }
 
-    scestat->size = LE64(st.st_size);
+    scestat->size = (SceOff) LE64(st.st_size);
     scestat->mode = 0;
     scestat->attr = 0;
     if (S_ISLNK(st.st_mode)) {
@@ -395,13 +397,22 @@ int fill_statbyfd(int32_t fd, SceIoStat *scestat) {
         scestat->mode = LE32(FIO_S_IFREG);
     }
 
-    scestat->mode |= LE32(st.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO));
+    // TODO: fix mode for psp2
+    scestat->mode |= 0777;//LE32(st.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO));
 
     fill_time(st.st_ctime, &scestat->ctime);
     fill_time(st.st_atime, &scestat->atime);
     fill_time(st.st_mtime, &scestat->mtime);
 
     return 0;
+}
+
+static int filter_dots(const struct dirent *e) {
+    if (strcmp(e->d_name, ".") == 0
+        || strcmp(e->d_name, "..") == 0) {
+        return 0;
+    }
+    return 1;
 }
 
 int dir_open(int drive, const char *dirname) {
@@ -435,9 +446,9 @@ int dir_open(int drive, const char *dirname) {
 
         memset(&open_dirs[did], 0, sizeof(open_dirs[did]));
 
-        dirnum = scandir(fulldir, &entries, NULL, alphasort);
+        dirnum = scandir(fulldir, &entries, filter_dots, alphasort);
         if (dirnum <= 0) {
-            fprintf(stderr, "Could not scan directory %s (%s)\n", fulldir, strerror(errno));
+            V_PRINTF(2, "Could not scan directory %s (%s)\n", fulldir, strerror(errno));
             ret = GETERROR(errno);
             break;
         }
@@ -1061,7 +1072,7 @@ int handle_getstat(struct usb_dev_handle *hDev, struct HostFsGetstatCmd *cmd, in
             resp.res = LE32(fill_stat(NULL, fullpath, &st));
             if (LE32(resp.res) == 0) {
                 resp.cmd.extralen = LE32(sizeof(st));
-                printf("Getstat(%s): m=%i a=%i s=%i\n", fullpath, st.mode, st.attr, st.size);
+                //printf("Getstat(%s): m=%i a=%i s=%li\n", fullpath, st.mode, st.attr, (long) st.size);
             }
         }
 
@@ -1108,7 +1119,7 @@ int handle_getstatbyfd(struct usb_dev_handle *hDev, struct HostFsGetstatByFdCmd 
             resp.ctime = st.ctime;
             resp.atime = st.atime;
             resp.mtime = st.mtime;
-            printf("GetstatByFd: m=%i a=%i s=%i\n", st.mode, st.attr, st.size);
+            //printf("GetstatByFd: m=%i a=%i s=%li\n", st.mode, st.attr, (long) st.size);
             //resp.cmd.extralen = LE32(sizeof(st));
         }
 
@@ -1395,7 +1406,7 @@ int handle_ioctl(struct usb_dev_handle *hDev, struct HostFsIoctlCmd *cmd, int cm
     return ret;
 }
 
-int get_drive_info(struct DevctlGetInfo *info, unsigned int drive) {
+int get_drive_info(SceIoDevInfo *info, unsigned int drive) {
     int ret = -1;
 
     if (drive >= MAX_HOSTDRIVES) {
@@ -1418,13 +1429,10 @@ int get_drive_info(struct DevctlGetInfo *info, unsigned int drive) {
             break;
         }
 
-        info->btotal = st.f_blocks;
-        info->bfree = st.f_bfree;
-        info->unk = st.f_blocks;
-        info->ssize = 512;
-        info->sects = st.f_bsize / 512;
-
-        memset(info, 0, sizeof(struct DevctlGetInfo));
+        info->cluster_size = (uint32_t) (st.f_frsize);
+        info->max_size = st.f_blocks * info->cluster_size;
+        info->free_size = st.f_bfree * info->cluster_size;
+        info->unk = 0;
 #else
         struct statvfs st;
 
@@ -1433,11 +1441,10 @@ int get_drive_info(struct DevctlGetInfo *info, unsigned int drive) {
             break;
         }
 
-        info->btotal = st.f_blocks;
-        info->bfree = st.f_bfree;
-        info->unk = st.f_blocks;
-        info->ssize = 512;
-        info->sects = st.f_frsize / 512;
+        info->cluster_size = (uint32_t) (st.f_frsize);
+        info->max_size = st.f_blocks * info->cluster_size;
+        info->free_size = st.f_bfree * info->cluster_size;
+        info->unk = 0;
 #endif
 
         ret = 0;
@@ -1462,6 +1469,9 @@ int handle_devctl(struct usb_dev_handle *hDev, struct HostFsDevctlCmd *cmd, int 
     resp.res = LE32(-1);
 
     do {
+
+        printf("handle_devctl\n");
+
         if (cmdlen != sizeof(struct HostFsDevctlCmd)) {
             fprintf(stderr, "Error, invalid devctl command size %d\n", cmdlen);
             break;
@@ -1483,9 +1493,9 @@ int handle_devctl(struct usb_dev_handle *hDev, struct HostFsDevctlCmd *cmd, int 
 
         switch (cmdno) {
             case DEVCTL_GET_INFO:
-                resp.res = LE32(get_drive_info((struct DevctlGetInfo *) outbuf, LE32(cmd->fsnum)));
+                resp.res = LE32(get_drive_info((SceIoDevInfo *) outbuf, LE32(cmd->fsnum)));
                 if (LE32(resp.res) == 0) {
-                    resp.cmd.extralen = LE32(sizeof(struct DevctlGetInfo));
+                    resp.cmd.extralen = LE32(sizeof(SceIoDevInfo));
                 }
                 break;
             default:

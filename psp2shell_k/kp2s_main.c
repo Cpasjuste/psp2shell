@@ -57,7 +57,7 @@ static void welcome() {
     PRINT("\\____ \\/  ___/\\____ \\ /  ____/  /  ___/  |  \\_/ __ \\|  | |  |  \n");
     PRINT("|  |_> >___ \\ |  |_> >       \\  \\___ \\|   Y  \\  ___/|  |_|  |__\n");
     PRINT("|   __/____  >|   __/\\_______ \\/____  >___|  /\\___  >____/____/\n");
-    PRINT("|__|       \\/ |__|           \\/     \\/     \\/     \\/ %s\n\n", "0.0");
+    PRINT("|__|       \\/ |__|           \\/     \\/     \\/     \\/ %s\n\n", __DATE__);
     PRINT("\r\n");
 }
 
@@ -67,7 +67,7 @@ int kp2s_print_stdout(const char *data, size_t size) {
         return -1;
     }
 
-    while (kp2s_busy);
+    while (kp2s_busy) { sceKernelDelayThread(1000); };
     kp2s_busy = 1;
     int ret = usbAsyncWrite(ASYNC_STDOUT, data, size);
     kp2s_busy = 0;
@@ -89,7 +89,7 @@ int kp2s_print_stdout_user(const char *data, size_t size) {
     memset(kbuf, 0, size);
     ksceKernelMemcpyUserToKernel(kbuf, (uintptr_t) data, size);
 
-    while (kp2s_busy);
+    while (kp2s_busy) { sceKernelDelayThread(1000); };
     kp2s_busy = 1;
     int ret = usbAsyncWrite(ASYNC_STDOUT, kbuf, size);
     kp2s_busy = 0;
@@ -111,7 +111,7 @@ int kp2s_print_color(int color, const char *fmt, ...) {
     int len = vsnprintf(buffer, P2S_KMSG_SIZE, fmt, args);
     va_end(args);
 
-    while (kp2s_busy);
+    while (kp2s_busy) { sceKernelDelayThread(1000); };
     kp2s_busy = 1;
     p2s_msg_send(ASYNC_SHELL, color, buffer);
     kp2s_busy = 0;
@@ -135,7 +135,7 @@ int kp2s_print_color_user(int color, const char *data, size_t size) {
     ksceKernelMemcpyUserToKernel(buffer, (uintptr_t) data, size);
     buffer[size + 1] = '\0';
 
-    while (kp2s_busy);
+    while (kp2s_busy) { sceKernelDelayThread(1000); };
     kp2s_busy = 1;
     p2s_msg_send(ASYNC_SHELL, color, buffer);
     kp2s_busy = 0;

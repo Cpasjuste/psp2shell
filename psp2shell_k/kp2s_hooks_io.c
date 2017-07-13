@@ -124,6 +124,9 @@ static bool is_host_fd(int fd) {
 
 SceUID _sceIoOpen(const char *file, int flags, SceMode mode) {
 
+    // TODO:
+    SCE_KERNEL_ERROR_INVALID_UID when called from user :/
+
     if (strncmp(file, "host0", 5) != 0) {
         //printf("_sceIoOpen(%s, %i, %i): host0 not detected\n", kfile, flags, mode);
         return TAI_CONTINUE(SceUID, hooks[HOOK_IO_OPEN].ref, file, flags, mode);
@@ -260,7 +263,8 @@ int _sceIoMkdir(const char *dir, SceMode mode) {
 
     char buf[256];
     const char *path = path_to_host(dir, buf);
-    int res = io_mkdir(path, mode);
+    // int res = io_mkdir(path, mode); TODO: fix mode ?
+    int res = io_mkdir(path, 6);
     printf("_sceIoMkdir(%s, 0x%08X) == 0x%08X\n", path, mode, res);
     return res;
 }
@@ -286,8 +290,8 @@ int _sceIoGetstat(const char *file, SceIoStat *stat) {
     char buf[256];
     const char *path = path_to_host(file, buf);
     int res = io_getstat(path, stat);
-    printf("_sceIoGetstat(%s) == 0x%08X (m=0x%08X a=0x%08X s=%lli)\n",
-           path, res, stat->st_mode, stat->st_attr, stat->st_size);
+    printf("_sceIoGetstat(%s) == 0x%08X (m=0x%08X a=0x%08X s=%i)\n",
+           path, res, stat->st_mode, stat->st_attr, (int) stat->st_size);
     return res;
 }
 
@@ -297,8 +301,8 @@ int _sceIoGetstatByFd(SceUID fd, SceIoStat *stat) {
 
     if (is_host_fd(fd)) {
         res = io_getstatbyfd(fd, stat);
-        printf("_sceIoGetstatByFd(0x%08X) == 0x%08X (m=0x%08X a=0x%08X s=%lli)\n",
-               fd, res, stat->st_mode, stat->st_attr, stat->st_size);
+        printf("_sceIoGetstatByFd(0x%08X) == 0x%08X (m=0x%08X a=0x%08X s=%i)\n",
+               fd, res, stat->st_mode, stat->st_attr, (int) stat->st_size);
     } else {
         res = TAI_CONTINUE(int, hooks[HOOK_IO_GETSTATBYFD].ref, fd, stat);
     }
@@ -325,7 +329,7 @@ int _sceIoDevctl(const char *dev, unsigned int cmd, void *indata, int inlen, voi
     }
 
     int res = io_devctl(dev, cmd, indata, inlen, outdata, outlen);
-    printf("_sceIoDevctl(%s) == 0x%08X\n", dev, res);
+    printf("_sceIoDevctl(%s, 0x%08X) == 0x%08X\n", dev, cmd, res);
     return res;
 }
 
