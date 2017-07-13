@@ -128,7 +128,7 @@ SceUID _ksceIoOpen(const char *file, int flags, SceMode mode) {
     }
 
     // TODO:
-    //SCE_KERNEL_ERROR_INVALID_UID when called from user :/
+    // SCE_KERNEL_ERROR_INVALID_UID when called from user "sceIoOpen" :/
 
     int fid = open_host_fd(file, flags, mode);
     printf("_ksceIoOpen(%s, 0x%08X, 0x%08X) = 0x%08X\n", file, flags, mode, fid);
