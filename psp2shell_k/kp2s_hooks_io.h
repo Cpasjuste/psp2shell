@@ -19,26 +19,28 @@ typedef struct Hook {
 // kernel hooks
 enum {
     HOOK_IO_KOPEN = 0,
-    HOOK_IO_CLOSE,
-    HOOK_IO_READ,
-    HOOK_IO_WRITE,
-    HOOK_IO_LSEEK,
-    HOOK_IO_REMOVE,
-    HOOK_IO_RENAME,
-    HOOK_IO_DOPEN,
-    HOOK_IO_DREAD,
-    HOOK_IO_DCLOSE,
-    HOOK_IO_MKDIR,
-    HOOK_IO_RMDIR,
-    HOOK_IO_GETSTAT,
-    HOOK_IO_GETSTATBYFD,
-    HOOK_IO_CHSTAT,
-    HOOK_IO_DEVCTL,
+    HOOK_IO_KCLOSE,
+    HOOK_IO_KREAD,
+    HOOK_IO_KWRITE,
+    HOOK_IO_KLSEEK,
+    HOOK_IO_KREMOVE,
+    HOOK_IO_KRENAME,
+    HOOK_IO_KDOPEN,
+    HOOK_IO_KDREAD,
+    HOOK_IO_KDCLOSE,
+    HOOK_IO_KMKDIR,
+    HOOK_IO_KRMDIR,
+    HOOK_IO_KGETSTAT,
+    HOOK_IO_KGETSTATBYFD,
+    HOOK_IO_KCHSTAT,
+    HOOK_IO_KDEVCTL,
     HOOK_END
 };
 
 // psp2/io/fcntl.h
 SceUID _ksceIoOpen(const char *file, int flags, SceMode mode);
+
+SceUID _sceIoOpen(const char *file, int flags, SceMode mode);
 
 SceUID _sceIoOpenAsync(const char *file, int flags, SceMode mode);
 
