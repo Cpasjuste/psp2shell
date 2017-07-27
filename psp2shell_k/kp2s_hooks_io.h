@@ -18,7 +18,8 @@ typedef struct Hook {
 
 // kernel hooks
 enum {
-    HOOK_IO_KOPEN = 0,
+    HOOK_IO__OPEN = 0,
+    HOOK_IO_KOPEN,
     HOOK_IO_KCLOSE,
     HOOK_IO_KREAD,
     HOOK_IO_KWRITE,
@@ -38,11 +39,11 @@ enum {
 };
 
 // psp2/io/fcntl.h
-SceUID _ksceIoOpen(const char *file, int flags, SceMode mode);
+SceUID _ksceIoOpen(const char *path, int flags, SceMode mode);
 
-SceUID _sceIoOpen(const char *file, int flags, SceMode mode);
+SceUID __sceIoOpen(const char *path, int flags, SceMode mode, void *args);
 
-SceUID _sceIoOpenAsync(const char *file, int flags, SceMode mode);
+SceUID _sceIoOpenAsync(const char *path, int flags, SceMode mode);
 
 int _ksceIoClose(SceUID fd);
 

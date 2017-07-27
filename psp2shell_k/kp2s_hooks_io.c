@@ -12,36 +12,37 @@ static int host_fds[MAX_HOST_FD];
 // kernel hooks
 static Hook hooks[HOOK_END] = {
         // io/fcntl.h
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x75192972, _ksceIoOpen},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0xF99DD8A3, _ksceIoClose},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0xE17EFC03, _ksceIoRead},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x21EE91F0, _ksceIoWrite},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x62090481, _ksceIoLseek},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x0D7BB3E1, _ksceIoRemove},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0xDC0C4997, _ksceIoRename},
+        {-1, 0, "SceIofilemgr", TAI_ANY_LIBRARY, 0xCC67B6FD, __sceIoOpen},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7,      0x75192972, _ksceIoOpen},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7,      0xF99DD8A3, _ksceIoClose},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7,      0xE17EFC03, _ksceIoRead},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7,      0x21EE91F0, _ksceIoWrite},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7,      0x62090481, _ksceIoLseek},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7,      0x0D7BB3E1, _ksceIoRemove},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7,      0xDC0C4997, _ksceIoRename},
         // io/fcntl.h
         // io/dirent.h
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x463B25CC, _ksceIoDopen},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x20CF5FC7, _ksceIoDread},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x19C81DD6, _ksceIoDclose},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7,      0x463B25CC, _ksceIoDopen},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7,      0x20CF5FC7, _ksceIoDread},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7,      0x19C81DD6, _ksceIoDclose},
         // io/dirent.h
         // io/stat.h
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x7F710B25, _ksceIoMkdir},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x1CC9C634, _ksceIoRmdir},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x75C96D25, _ksceIoGetstat},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x462F059B, _ksceIoGetstatByFd},
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x7D42B8DC, _ksceIoChstat},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7,      0x7F710B25, _ksceIoMkdir},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7,      0x1CC9C634, _ksceIoRmdir},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7,      0x75C96D25, _ksceIoGetstat},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7,      0x462F059B, _ksceIoGetstatByFd},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7,      0x7D42B8DC, _ksceIoChstat},
         // io/stat.h
         // io/devctl.h
-        {-1, 0, "SceIofilemgr", 0x40FD29C7, 0x16882FC4, _ksceIoDevctl},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7,      0x16882FC4, _ksceIoDevctl},
         // io/devctl.h
 };
 
 static const char *path_to_host(const char *path, char *buffer) {
 
     size_t len = strlen(path);
-    if (len > 5) {
-        strncpy(buffer, path + 6, len - 5);
+    if (len > 4) {
+        strncpy(buffer, path + 5, len - 4);
         return buffer;
     }
 
@@ -121,15 +122,26 @@ static bool is_host_fd(int fd) {
     return false;
 }
 
+SceUID __sceIoOpen(const char *file, int flags, SceMode mode, void *args) {
+
+    TODO:
+    //if (strncmp(file, "p2s0", 4) != 0) {
+        return TAI_CONTINUE(SceUID, hooks[HOOK_IO__OPEN].ref, file, flags, mode, args);
+    //}
+
+    //int fid = open_host_fd(file, flags, mode);
+    //printf("__sceIoOpen(%s, 0x%08X, 0x%08X) = 0x%08X\n", file, flags, mode, fid);
+    //return fid;
+}
+
 SceUID _ksceIoOpen(const char *file, int flags, SceMode mode) {
 
-    if (strncmp(file, "host0", 5) != 0) {
+    if (strncmp(file, "p2s0", 4) != 0) {
         return TAI_CONTINUE(SceUID, hooks[HOOK_IO_KOPEN].ref, file, flags, mode);
     }
 
     // TODO:
     // SCE_KERNEL_ERROR_INVALID_UID when called from user "sceIoOpen" :/
-
     int fid = open_host_fd(file, flags, mode);
     printf("_ksceIoOpen(%s, 0x%08X, 0x%08X) = 0x%08X\n", file, flags, mode, fid);
     return fid;
@@ -193,7 +205,7 @@ SceOff _ksceIoLseek(SceUID fd, SceOff offset, int whence) {
 
 int _ksceIoRemove(const char *file) {
 
-    if (strncmp(file, "host0", 5) != 0) {
+    if (strncmp(file, "p2s0", 4) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KREMOVE].ref, file);
     }
     char buf[256];
@@ -205,7 +217,7 @@ int _ksceIoRemove(const char *file) {
 
 int _ksceIoRename(const char *oldname, const char *newname) {
 
-    if (strncmp(oldname, "host0", 5) != 0) {
+    if (strncmp(oldname, "p2s0", 4) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KRENAME].ref, oldname, newname);
     }
 
@@ -217,7 +229,7 @@ int _ksceIoRename(const char *oldname, const char *newname) {
 
 SceUID _ksceIoDopen(const char *dirname) {
 
-    if (strncmp(dirname, "host0", 5) != 0) {
+    if (strncmp(dirname, "p2s0", 4) != 0) {
         return TAI_CONTINUE(SceUID, hooks[HOOK_IO_KDOPEN].ref, dirname);
     }
 
@@ -255,7 +267,7 @@ int _ksceIoDclose(SceUID fd) {
 
 int _ksceIoMkdir(const char *dir, SceMode mode) {
 
-    if (strncmp(dir, "host0", 5) != 0) {
+    if (strncmp(dir, "p2s0", 4) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KMKDIR].ref, dir, mode);
     }
 
@@ -269,7 +281,7 @@ int _ksceIoMkdir(const char *dir, SceMode mode) {
 
 int _ksceIoRmdir(const char *path) {
 
-    if (strncmp(path, "host0", 5) != 0) {
+    if (strncmp(path, "p2s0", 4) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KRMDIR].ref, path);
     }
 
@@ -281,7 +293,7 @@ int _ksceIoRmdir(const char *path) {
 
 int _ksceIoGetstat(const char *file, SceIoStat *stat) {
 
-    if (strncmp(file, "host0", 5) != 0) {
+    if (strncmp(file, "p2s0", 4) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KGETSTAT].ref, file, stat);
     }
 
@@ -310,7 +322,7 @@ int _ksceIoGetstatByFd(SceUID fd, SceIoStat *stat) {
 
 int _ksceIoChstat(const char *file, SceIoStat *stat, int bits) {
 
-    if (strncmp(file, "host0", 5) != 0) {
+    if (strncmp(file, "p2s0", 4) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KCHSTAT].ref, file, stat, bits);
     }
 
@@ -322,7 +334,7 @@ int _ksceIoChstat(const char *file, SceIoStat *stat, int bits) {
 
 int _ksceIoDevctl(const char *dev, unsigned int cmd, void *indata, int inlen, void *outdata, int outlen) {
 
-    if (strncmp(dev, "host0", 5) != 0) {
+    if (strncmp(dev, "p2s0", 4) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KDEVCTL].ref, dev, cmd, indata, inlen, outdata, outlen);
     }
 
