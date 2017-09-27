@@ -12,8 +12,10 @@ static int host_fds[MAX_HOST_FD];
 // kernel hooks
 static Hook hooks[HOOK_END] = {
         // io/fcntl.h
-        {-1, 0, "SceIofilemgr", TAI_ANY_LIBRARY, 0xCC67B6FD, __sceIoOpen},
+        //{-1, 0, "SceIofilemgr", TAI_ANY_LIBRARY, 0xCC67B6FD, _sceIoOpen},
+        //{-1, 0, "SceIofilemgr", 0xCAE9ACE6, 0x6C60AC61, _sceIoOpen},
         {-1, 0, "SceIofilemgr", 0x40FD29C7,      0x75192972, _ksceIoOpen},
+        {-1, 0, "SceIofilemgr", 0x40FD29C7,      0xC3D34965, _ksceIoOpen2},
         {-1, 0, "SceIofilemgr", 0x40FD29C7,      0xF99DD8A3, _ksceIoClose},
         {-1, 0, "SceIofilemgr", 0x40FD29C7,      0xE17EFC03, _ksceIoRead},
         {-1, 0, "SceIofilemgr", 0x40FD29C7,      0x21EE91F0, _ksceIoWrite},
@@ -122,17 +124,21 @@ static bool is_host_fd(int fd) {
     return false;
 }
 
-SceUID __sceIoOpen(const char *file, int flags, SceMode mode, void *args) {
+/*
+SceUID _sceIoOpen(const char *file, int flags, SceMode mode, struct sceIoOpenOpt *opt) {
+//SceUID _sceIoOpen(const char *file, int flags, SceMode mode) {
 
     TODO:
-    //if (strncmp(file, "p2s0", 4) != 0) {
-        return TAI_CONTINUE(SceUID, hooks[HOOK_IO__OPEN].ref, file, flags, mode, args);
-    //}
+    if (strncmp(file, "p2s0", 4) != 0) {
+        //return TAI_CONTINUE(SceUID, hooks[HOOK_IO_OPEN].ref, file, flags, mode);
+        return TAI_CONTINUE(SceUID, hooks[HOOK_IO_OPEN].ref, file, flags, mode, opt);
+    }
 
-    //int fid = open_host_fd(file, flags, mode);
-    //printf("__sceIoOpen(%s, 0x%08X, 0x%08X) = 0x%08X\n", file, flags, mode, fid);
-    //return fid;
+    int fid = open_host_fd(file, flags, mode);
+    //printf("_sceIoOpen(%s, 0x%08X, 0x%08X) = 0x%08X\n", file, flags, mode, fid);
+    return fid;
 }
+*/
 
 SceUID _ksceIoOpen(const char *file, int flags, SceMode mode) {
 
@@ -143,7 +149,28 @@ SceUID _ksceIoOpen(const char *file, int flags, SceMode mode) {
     // TODO:
     // SCE_KERNEL_ERROR_INVALID_UID when called from user "sceIoOpen" :/
     int fid = open_host_fd(file, flags, mode);
-    printf("_ksceIoOpen(%s, 0x%08X, 0x%08X) = 0x%08X\n", file, flags, mode, fid);
+
+    SceUID pid = ksceKernelGetProcessId();
+    SceUID kid = ksceKernelKernelUidForUserUid(pid, fid);
+    if (kid >= 0) {
+        printf("_ksceIoOpen(%s, 0x%08X, 0x%08X) = 0x%08X\n", file, flags, mode, kid);
+    } else {
+        printf("_ksceIoOpen error: 0x%08X\n", kid);
+    }
+
+    return kid;
+}
+
+SceUID _ksceIoOpen2(const char *file, int flags, SceMode mode) {
+
+    if (strncmp(file, "p2s0", 4) != 0) {
+        return TAI_CONTINUE(SceUID, hooks[HOOK_IO_KOPEN2].ref, file, flags, mode);
+    }
+
+    // TODO:
+    // SCE_KERNEL_ERROR_INVALID_UID when called from user "sceIoOpen" :/
+    int fid = open_host_fd(file, flags, mode);
+    printf("_ksceIoOpen2(%s, 0x%08X, 0x%08X) = 0x%08X\n", file, flags, mode, fid);
     return fid;
 }
 

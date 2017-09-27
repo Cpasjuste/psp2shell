@@ -45,7 +45,6 @@ struct DevctlGetInfo {
     // Number of sectors per block
     unsigned int sects;
 };
-*/
 
 typedef struct {
     uint64_t max_size;
@@ -53,6 +52,7 @@ typedef struct {
     uint32_t cluster_size;
     void *unk;
 } SceIoDevInfo;
+*/
 
 enum USB_ASYNC_CHANNELS {
     ASYNC_SHELL = 0,
