@@ -18,8 +18,8 @@ typedef struct Hook {
 
 // kernel hooks
 enum {
-    //HOOK_IO_OPEN = 0,
-    HOOK_IO_KOPEN = 0,
+    HOOK_IO_OPEN = 0,
+    HOOK_IO_KOPEN,
     HOOK_IO_KOPEN2,
     HOOK_IO_KCLOSE,
     HOOK_IO_KREAD,
