@@ -251,9 +251,7 @@ static int thread_wait_cmd(SceSize args, void *argp) {
             if (!usbhostfs_connected()) {
                 printf("p2s_cmd_receive failed, waiting for usb...\n");
                 usbWaitForConnect();
-            } /*else {
-                printf("p2s_cmd_receive failed, unknow error...");
-            }*/
+            }
         } else {
             res = kp2s_cmd_parse(&client, &kp2s_cmd);
             if (res != 0) {
