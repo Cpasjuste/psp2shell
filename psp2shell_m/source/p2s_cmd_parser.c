@@ -128,14 +128,6 @@ static void cmd_reset() {
     }
 }
 
-static void cmd_reboot() {
-#ifdef __KERNEL__
-    PRINT_ERR("TODO: cmd_reboot\n");
-#else
-    scePowerRequestColdReset();
-#endif
-}
-
 void p2s_cmd_parse(P2S_CMD *cmd) {
 
     switch (cmd->type) {
@@ -165,10 +157,6 @@ void p2s_cmd_parse(P2S_CMD *cmd) {
 
         case CMD_RESET:
             cmd_reset();
-            break;
-
-        case CMD_REBOOT:
-            cmd_reboot();
             break;
 
         case CMD_MODLS:

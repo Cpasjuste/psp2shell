@@ -20,6 +20,8 @@
 #include "psp2shell_k.h"
 #include "p2s_module.h"
 
+extern int ksceSysconResetDevice(int type, int unk);
+
 static bool is_root_path(const char *path) {
     return strncmp(path, HOME_PATH, MAX_PATH_LENGTH) == 0;
 }
@@ -207,16 +209,16 @@ static void cmd_stat(kp2s_client *client, char *path) {
         PRINT("\tsize: %ld\n", (long) stat.st_size);
 
         PRINT("\tcreation: %04d/%02d/%02d %02d:%02d\n",
-               stat.st_ctime.year, stat.st_ctime.month,
-               stat.st_ctime.day, stat.st_ctime.hour, stat.st_ctime.minute);
+              stat.st_ctime.year, stat.st_ctime.month,
+              stat.st_ctime.day, stat.st_ctime.hour, stat.st_ctime.minute);
 
         PRINT("\taccess: %04d/%02d/%02d %02d:%02d\n",
-               stat.st_atime.year, stat.st_atime.month,
-               stat.st_atime.day, stat.st_atime.hour, stat.st_atime.minute);
+              stat.st_atime.year, stat.st_atime.month,
+              stat.st_atime.day, stat.st_atime.hour, stat.st_atime.minute);
 
         PRINT("\tmodification: %04d/%02d/%02d %02d:%02d\n",
-               stat.st_mtime.year, stat.st_mtime.month,
-               stat.st_mtime.day, stat.st_mtime.hour, stat.st_mtime.minute);
+              stat.st_mtime.year, stat.st_mtime.month,
+              stat.st_mtime.day, stat.st_mtime.hour, stat.st_mtime.minute);
 
         PRINT_PROMPT();
 
@@ -300,6 +302,11 @@ int kp2s_cmd_parse(kp2s_client *client, P2S_CMD *cmd) {
             p2s_moduleDumpForPid((SceUID) strtoul(cmd->args[0], NULL, 16),
                                  (SceUID) strtoul(cmd->args[1], NULL, 16),
                                  cmd->args[2]);
+            PRINT_PROMPT();
+            break;
+
+        case CMD_REBOOT:
+            ksceSysconResetDevice(0x2, 2);
             PRINT_PROMPT();
             break;
 

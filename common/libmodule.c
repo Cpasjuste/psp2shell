@@ -43,3 +43,12 @@ void p2s_free(void *p) {
         sceKernelFreeMemBlock(uid);
     }
 }
+
+/*
+void LOG_WRITE(const char *buffer) {
+    SceUID fd = ksceIoOpen("ux0:logs.txt",
+                           SCE_O_WRONLY | SCE_O_CREAT | SCE_O_APPEND, 6);
+    ksceIoWrite(fd, buffer, strlen(buffer));
+    ksceIoClose(fd);
+}
+*/
