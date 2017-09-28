@@ -48,8 +48,8 @@ static Hook hooks[HOOK_END] = {
 static const char *path_to_host(const char *path, char *buffer) {
 
     size_t len = strlen(path);
-    if (len > 4) {
-        strncpy(buffer, path + 5, len - 4);
+    if (len > 5) {
+        strncpy(buffer, path + 6, len - 5);
         return buffer;
     }
 
@@ -134,7 +134,7 @@ SceUID _ksceIoOpen(const char *file, int flags, SceMode mode) {
     int fid, ret;
     fopen_fd *ffd;
 
-    if (strncmp(file, "p2s0", 4) != 0) {
+    if (strncmp(file, "host0", 5) != 0) {
         return TAI_CONTINUE(SceUID, hooks[HOOK_IO_KOPEN].ref, file, flags, mode);
     }
 
@@ -157,7 +157,7 @@ SceUID _ksceIoOpen2(SceUID pid, const char *file, int flags, SceMode mode) {
     int fid, ret;
     fopen_fd *ffd;
 
-    if (strncmp(file, "p2s0", 4) != 0) {
+    if (strncmp(file, "host0", 5) != 0) {
         return TAI_CONTINUE(SceUID, hooks[HOOK_IO_KOPEN2].ref, pid, file, flags, mode);
     }
 
@@ -255,7 +255,7 @@ SceOff _ksceIoLseek(SceUID uid, SceOff offset, int whence) {
 
 int _ksceIoRemove(const char *file) {
 
-    if (strncmp(file, "p2s0", 4) != 0) {
+    if (strncmp(file, "host0", 5) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KREMOVE].ref, file);
     }
 
@@ -268,7 +268,7 @@ int _ksceIoRemove(const char *file) {
 
 int _ksceIoRename(const char *oldname, const char *newname) {
 
-    if (strncmp(oldname, "p2s0", 4) != 0) {
+    if (strncmp(oldname, "host0", 5) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KRENAME].ref, oldname, newname);
     }
 
@@ -281,7 +281,7 @@ int _ksceIoRename(const char *oldname, const char *newname) {
 
 SceUID _ksceIoDopen(const char *dirname) {
 
-    if (strncmp(dirname, "p2s0", 4) != 0) {
+    if (strncmp(dirname, "host0", 5) != 0) {
         return TAI_CONTINUE(SceUID, hooks[HOOK_IO_KDOPEN].ref, dirname);
     }
 
@@ -320,7 +320,7 @@ int _ksceIoDclose(SceUID fd) {
 
 int _ksceIoMkdir(const char *dir, SceMode mode) {
 
-    if (strncmp(dir, "p2s0", 4) != 0) {
+    if (strncmp(dir, "host0", 5) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KMKDIR].ref, dir, mode);
     }
 
@@ -335,7 +335,7 @@ int _ksceIoMkdir(const char *dir, SceMode mode) {
 
 int _ksceIoRmdir(const char *path) {
 
-    if (strncmp(path, "p2s0", 4) != 0) {
+    if (strncmp(path, "host0", 5) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KRMDIR].ref, path);
     }
 
@@ -348,7 +348,7 @@ int _ksceIoRmdir(const char *path) {
 
 int _ksceIoGetstat(const char *file, SceIoStat *stat) {
 
-    if (strncmp(file, "p2s0", 4) != 0) {
+    if (strncmp(file, "host0", 5) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KGETSTAT].ref, file, stat);
     }
 
@@ -378,7 +378,7 @@ int _ksceIoGetstatByFd(SceUID fd, SceIoStat *stat) {
 
 int _ksceIoChstat(const char *file, SceIoStat *stat, int bits) {
 
-    if (strncmp(file, "p2s0", 4) != 0) {
+    if (strncmp(file, "host0", 5) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KCHSTAT].ref, file, stat, bits);
     }
 
@@ -391,7 +391,7 @@ int _ksceIoChstat(const char *file, SceIoStat *stat, int bits) {
 
 int _ksceIoDevctl(const char *dev, unsigned int cmd, void *indata, int inlen, void *outdata, int outlen) {
 
-    if (strncmp(dev, "p2s0", 4) != 0) {
+    if (strncmp(dev, "host0", 5) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KDEVCTL].ref, dev, cmd, indata, inlen, outdata, outlen);
     }
 
@@ -402,20 +402,20 @@ int _ksceIoDevctl(const char *dev, unsigned int cmd, void *indata, int inlen, vo
 }
 
 static int init_class(void *ffd) {
-    fopen_fd *fd = (fopen_fd *)ffd;
-    printf("init_class: %p\n", fd);
+    //fopen_fd *fd = (fopen_fd *)ffd;
+    //printf("init_class: %p\n", fd);
     return 0;
 }
 
 static int free_class(void *ffd) {
-    fopen_fd *fd = (fopen_fd *)ffd;
-    printf("free_class: %p\n", fd);
+    //fopen_fd *fd = (fopen_fd *)ffd;
+    //printf("free_class: %p\n", fd);
     return 0;
 }
 
 void set_hooks_io() {
 
-    int ret = ksceKernelCreateClass(&p2sIoClass, "p2sIoClass", ksceKernelGetUidClass(), sizeof(fopen_fd), init_class, free_class);
+    ksceKernelCreateClass(&p2sIoClass, "p2sIoClass", ksceKernelGetUidClass(), sizeof(fopen_fd), init_class, free_class);
     printf("ksceKernelCreateClass(p2sIoClass): 0x%08X\n", ret);
 
     for (int i = 0; i < MAX_HOST_FD; i++) {

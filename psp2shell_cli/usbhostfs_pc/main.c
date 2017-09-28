@@ -498,7 +498,7 @@ int parse_args(int argc, char **argv) {
     }
 
     // TODO: REMOVE
-    strcpy(g_drives[0].rootdir, "/home/cpasjuste/dev/psvita/psp2shell/cmake-build-debug/psp2shell_k/");
+    // strcpy(g_drives[0].rootdir, "/home/cpasjuste/dev/psvita/psp2shell/cmake-build-debug/psp2shell_k/");
 
     while (1) {
         int ch;
