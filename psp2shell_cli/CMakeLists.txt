@@ -6,24 +6,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/Modules/)
 
 project(psp2shell_cli)
 
-add_executable(${PROJECT_NAME}
-        source/main.c
-        source/cmd.c
-        source/utility.c
-        ../common/p2s_cmd.c
-        ../common/p2s_msg.c
-        )
-target_include_directories(${PROJECT_NAME} PRIVATE
-        include
-        ../common
-        )
-target_link_libraries(${PROJECT_NAME}
-        readline
-        termcap
-        pthread
-        )
-
-find_package(LibUSB REQUIRED)
+find_package(libusb-0.1 REQUIRED)
 
 add_executable(${PROJECT_NAME}_usb
         source/main.c
