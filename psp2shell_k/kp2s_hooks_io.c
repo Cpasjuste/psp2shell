@@ -416,7 +416,7 @@ static int free_class(void *ffd) {
 void set_hooks_io() {
 
     ksceKernelCreateClass(&p2sIoClass, "p2sIoClass", ksceKernelGetUidClass(), sizeof(fopen_fd), init_class, free_class);
-    printf("ksceKernelCreateClass(p2sIoClass): 0x%08X\n", ret);
+    //printf("ksceKernelCreateClass(p2sIoClass): 0x%08X\n", ret);
 
     for (int i = 0; i < MAX_HOST_FD; i++) {
         host_fds[i] = -1;
