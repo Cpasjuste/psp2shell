@@ -36,6 +36,13 @@ struct DirHandle {
     SceIoDirent *pDir;
 };
 
+typedef struct SceIoDevInfo {
+    SceOff max_size;
+    SceOff free_size;
+    unsigned int cluster_size;
+    void *unk;
+} SceIoDevInfo;
+
 extern char g_rootdir[PATH_MAX];
 extern struct HostDrive g_drives[MAX_HOSTDRIVES];
 extern struct FileHandle open_files[MAX_FILES];

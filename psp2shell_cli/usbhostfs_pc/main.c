@@ -1169,7 +1169,7 @@ int main(int argc, char **argv) {
 
     if (parse_args(argc, argv)) {
 
-        g_verbose = 2;
+        //g_verbose = 2;
 
         pthread_t thid;
         usb_init();
@@ -1208,7 +1208,6 @@ int main(int argc, char **argv) {
         }
         */
 
-        //g_verbose = 2;
         pthread_create(&thid, NULL, async_thread, NULL);
         start_hostfs();
 

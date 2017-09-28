@@ -41,6 +41,8 @@
 #include <psp2kern/types.h>
 
 #ifdef DEBUG
+#define printf(...)
+/*
 int kp2s_print_stdout(const char *data, size_t size);
 #define printf(...) \
 do { \
@@ -48,7 +50,7 @@ do { \
     snprintf(buffer, sizeof(buffer), ##__VA_ARGS__); \
     kp2s_print_stdout(buffer, strlen(buffer)); \
 } while (0)
-
+*/
 #endif
 #else
 

@@ -1470,8 +1470,6 @@ int handle_devctl(struct usb_dev_handle *hDev, struct HostFsDevctlCmd *cmd, int 
 
     do {
 
-        printf("handle_devctl\n");
-
         if (cmdlen != sizeof(struct HostFsDevctlCmd)) {
             fprintf(stderr, "Error, invalid devctl command size %d\n", cmdlen);
             break;

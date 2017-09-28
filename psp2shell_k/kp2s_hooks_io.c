@@ -6,13 +6,19 @@
 #include "kp2s_hooks_io.h"
 #include "host_driver.h"
 
-#define MAX_HOST_FD 128
+static SceClass p2sIoClass;
+
+typedef struct _fopen_fd {
+    uint32_t sce_reserved[2];
+    int fd;
+    SceUID uid;
+} fopen_fd;
+
 static int host_fds[MAX_HOST_FD];
 
 // kernel hooks
 static Hook hooks[HOOK_END] = {
         // io/fcntl.h
-        {-1, 0, "SceIofilemgr", TAI_ANY_LIBRARY, 0xCC67B6FD, _sceIoOpen},
         {-1, 0, "SceIofilemgr", 0x40FD29C7,      0x75192972, _ksceIoOpen},
         {-1, 0, "SceIofilemgr", 0x40FD29C7,      0xC3D34965, _ksceIoOpen2},
         {-1, 0, "SceIofilemgr", 0x40FD29C7,      0xF99DD8A3, _ksceIoClose},
@@ -123,94 +129,126 @@ static bool is_host_fd(int fd) {
     return false;
 }
 
-SceUID _sceIoOpen(const char *file, int flags, SceMode mode, struct sceIoOpenOpt *opt) {
-
-    // TODO:
-    char kfile[256];
-    int res = ksceKernelStrncpyUserToKernel(kfile, (uintptr_t) file, 256);
-    if (res < 0 || strncmp(kfile, "p2s0", 4) != 0) {
-        return TAI_CONTINUE(SceUID, hooks[HOOK_IO_OPEN].ref, file, flags, mode, opt);
-    }
-
-    int fid = open_host_fd(kfile, flags, mode);
-    printf("_sceIoOpen(%s, 0x%08X, 0x%08X) = 0x%08X\n", kfile, flags, mode, fid);
-    return fid;
-}
-
 SceUID _ksceIoOpen(const char *file, int flags, SceMode mode) {
+
+    int fid, ret;
+    fopen_fd *ffd;
 
     if (strncmp(file, "p2s0", 4) != 0) {
         return TAI_CONTINUE(SceUID, hooks[HOOK_IO_KOPEN].ref, file, flags, mode);
     }
 
-    int fid = open_host_fd(file, flags, mode);
-    printf("_ksceIoOpen(%s, 0x%08X, 0x%08X) = 0x%08X\n", file, flags, mode, fid);
-    return fid;
+    fid = open_host_fd(file, flags, mode);
+    ret = ksceKernelCreateUidObj(&p2sIoClass, "io_hook", NULL, (SceObjectBase **)&ffd);
+    if (ret < 0) {
+        printf("_ksceIoOpen: ksceKernelCreateUidObj failed (0x%08X)\n", ret);
+        return ret;
+    }
+
+    ffd->fd = fid;
+    ffd->uid = ret;
+    printf("_ksceIoOpen(%s, 0x%08X, 0x%08X): fid = %i, uid = 0x%08X\n", file, flags, mode, ffd->fd, ffd->uid);
+
+    return ret;
 }
 
-SceUID _ksceIoOpen2(const char *file, int flags, SceMode mode) {
+SceUID _ksceIoOpen2(SceUID pid, const char *file, int flags, SceMode mode) {
+
+    int fid, ret;
+    fopen_fd *ffd;
 
     if (strncmp(file, "p2s0", 4) != 0) {
-        return TAI_CONTINUE(SceUID, hooks[HOOK_IO_KOPEN2].ref, file, flags, mode);
+        return TAI_CONTINUE(SceUID, hooks[HOOK_IO_KOPEN2].ref, pid, file, flags, mode);
     }
 
-    int fid = open_host_fd(file, flags, mode);
-    printf("_ksceIoOpen2(%s, 0x%08X, 0x%08X) = 0x%08X\n", file, flags, mode, fid);
-    return fid;
+    fid = open_host_fd(file, flags, mode);
+    if (pid == KERNEL_PID) {
+        ret = ksceKernelCreateUidObj(&p2sIoClass, "io_hook", NULL, (SceObjectBase **)&ffd);
+    } else {
+        SceCreateUidObjOpt opt;
+        memset(&opt, 0, sizeof(opt));
+        opt.flags = 8;
+        opt.pid = pid;
+        ret = ksceKernelCreateUidObj(&p2sIoClass, "io_hook_user", &opt, (SceObjectBase **)&ffd);
+    }
+    if (ret < 0) {
+        printf("_ksceIoOpen2: ksceKernelCreateUidObj failed (0x%08X)\n", ret);
+        return ret;
+    }
+
+    ffd->fd = fid;
+    ffd->uid = ret;
+    printf("_ksceIoOpen2(%s, 0x%08X, 0x%08X): fid = %i, uid = 0x%08X\n", file, flags, mode, ffd->fd, ffd->uid);
+
+    return ret;
 }
 
-int _ksceIoClose(SceUID fd) {
+int _ksceIoClose(SceUID uid) {
 
     int res;
+    fopen_fd *ffd;
 
-    if (is_host_fd(fd)) {
-        res = close_host_fd(fd);
-        printf("_ksceIoClose(0x%08X) = 0x%08X\n", fd, res);
-    } else {
-        res = TAI_CONTINUE(int, hooks[HOOK_IO_KCLOSE].ref, fd);
+    res = ksceKernelGetObjForUid(uid, &p2sIoClass, (SceObjectBase **)&ffd);
+    if (res < 0) {
+        //printf("ksceKernelGetObjForUid(%x): 0x%08X\n", uid, res);
+        return TAI_CONTINUE(int, hooks[HOOK_IO_KCLOSE].ref, uid);
     }
+
+    res = close_host_fd(ffd->fd);
+    ksceKernelUidRelease(uid);
+    ksceKernelDeleteUid(ffd->uid);
+    printf("_ksceIoClose(0x%08X) = 0x%08X\n", ffd->fd, res);
 
     return res;
 }
 
-int _ksceIoRead(SceUID fd, void *data, SceSize size) {
+int _ksceIoRead(SceUID uid, void *data, SceSize size) {
 
     int res;
+    fopen_fd *ffd;
 
-    if (is_host_fd(fd)) {
-        res = io_read(fd, data, size);
-        printf("_ksceIoRead(0x%08X, data, %i) = 0x%08X\n", fd, size, res);
-    } else {
-        res = TAI_CONTINUE(int, hooks[HOOK_IO_KREAD].ref, fd, data, size);
+    res = ksceKernelGetObjForUid(uid, &p2sIoClass, (SceObjectBase **)&ffd);
+    if (res < 0) {
+        //printf("_ksceIoRead: ksceKernelGetObjForUid(%x): 0x%08X\n", uid, res);
+        return TAI_CONTINUE(int, hooks[HOOK_IO_KREAD].ref, uid, data, size);
     }
+
+    res = io_read(ffd->fd, data, size);
+    //printf("_ksceIoRead(0x%08X, data, %i) = 0x%08X\n", ffd->fd, size, res);
 
     return res;
 }
 
-int _ksceIoWrite(SceUID fd, const void *data, SceSize size) {
+int _ksceIoWrite(SceUID uid, const void *data, SceSize size) {
 
     int res;
+    fopen_fd *ffd;
 
-    if (is_host_fd(fd)) {
-        res = io_write(fd, data, size);
-        printf("_ksceIoWrite(0x%08X, data, %i) = 0x%08X\n", fd, size, res);
-    } else {
-        res = TAI_CONTINUE(int, hooks[HOOK_IO_KWRITE].ref, fd, data, size);
+    res = ksceKernelGetObjForUid(uid, &p2sIoClass, (SceObjectBase **)&ffd);
+    if (res < 0) {
+        //printf("_ksceIoWrite: ksceKernelGetObjForUid(%x): 0x%08X\n", uid, res);
+        return TAI_CONTINUE(int, hooks[HOOK_IO_KWRITE].ref, uid, data, size);
     }
+
+    res = io_write(ffd->fd, data, size);
+    //printf("_ksceIoWrite(0x%08X, data, %i) = 0x%08X\n", ffd->fd, size, res);
 
     return res;
 }
 
-SceOff _ksceIoLseek(SceUID fd, SceOff offset, int whence) {
+SceOff _ksceIoLseek(SceUID uid, SceOff offset, int whence) {
 
     SceOff res;
+    fopen_fd *ffd;
 
-    if (is_host_fd(fd)) {
-        res = io_lseek(fd, offset, whence);
-        printf("_ksceIoLseek(0x%08X, %lld, %i) == %lld\n", fd, offset, whence, res);
-    } else {
-        res = TAI_CONTINUE(SceOff, hooks[HOOK_IO_KLSEEK].ref, fd, offset, whence);
+    res = ksceKernelGetObjForUid(uid, &p2sIoClass, (SceObjectBase **)&ffd);
+    if (res < 0) {
+        //printf("_ksceIoLseek: ksceKernelGetObjForUid(%x): 0x%08X\n", uid, res);
+        return TAI_CONTINUE(SceOff, hooks[HOOK_IO_KLSEEK].ref, uid, offset, whence);
     }
+
+    res = io_lseek(ffd->fd, offset, whence);
+    printf("_ksceIoLseek(0x%08X, %lld, %i) == %lld\n", ffd->fd, offset, whence, res);
 
     return res;
 }
@@ -220,6 +258,7 @@ int _ksceIoRemove(const char *file) {
     if (strncmp(file, "p2s0", 4) != 0) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KREMOVE].ref, file);
     }
+
     char buf[256];
     int res = io_remove(path_to_host(file, buf));
     printf("_ksceIoRemove(%s) == 0x%08X\n", file, res);
@@ -236,6 +275,7 @@ int _ksceIoRename(const char *oldname, const char *newname) {
     char buf0[256], buf1[256];
     int res = io_rename(path_to_host(oldname, buf0), path_to_host(newname, buf1));
     printf("_ksceIoRename(%s, %s) == 0x%08X\n", oldname, newname, res);
+
     return res;
 }
 
@@ -247,6 +287,7 @@ SceUID _ksceIoDopen(const char *dirname) {
 
     int res = open_host_dfd(dirname);
     printf("_ksceIoDopen(%s) == 0x%08X\n", dirname, res);
+
     return res;
 }
 
@@ -288,6 +329,7 @@ int _ksceIoMkdir(const char *dir, SceMode mode) {
     // int res = io_mkdir(path, mode); TODO: fix mode ?
     int res = io_mkdir(path, 6);
     printf("_ksceIoMkdir(%s, 0x%08X) == 0x%08X\n", path, mode, res);
+
     return res;
 }
 
@@ -300,6 +342,7 @@ int _ksceIoRmdir(const char *path) {
     char buf[256];
     int res = io_rmdir(path_to_host(path, buf));
     printf("_ksceIoRmdir(%s) == 0x%08X\n", path, res);
+
     return res;
 }
 
@@ -314,6 +357,7 @@ int _ksceIoGetstat(const char *file, SceIoStat *stat) {
     int res = io_getstat(path, stat);
     printf("_ksceIoGetstat(%s) == 0x%08X (m=0x%08X a=0x%08X s=%i)\n",
            path, res, stat->st_mode, stat->st_attr, (int) stat->st_size);
+
     return res;
 }
 
@@ -341,6 +385,7 @@ int _ksceIoChstat(const char *file, SceIoStat *stat, int bits) {
     char buf[256];
     int res = io_chstat(path_to_host(file, buf), stat, bits);
     printf("_ksceIoChstat(%s) == 0x%08X\n", file, res);
+
     return res;
 }
 
@@ -352,10 +397,26 @@ int _ksceIoDevctl(const char *dev, unsigned int cmd, void *indata, int inlen, vo
 
     int res = io_devctl(dev, cmd, indata, inlen, outdata, outlen);
     printf("_ksceIoDevctl(%s, 0x%08X) == 0x%08X\n", dev, cmd, res);
+
     return res;
 }
 
+static int init_class(void *ffd) {
+    fopen_fd *fd = (fopen_fd *)ffd;
+    printf("init_class: %p\n", fd);
+    return 0;
+}
+
+static int free_class(void *ffd) {
+    fopen_fd *fd = (fopen_fd *)ffd;
+    printf("free_class: %p\n", fd);
+    return 0;
+}
+
 void set_hooks_io() {
+
+    int ret = ksceKernelCreateClass(&p2sIoClass, "p2sIoClass", ksceKernelGetUidClass(), sizeof(fopen_fd), init_class, free_class);
+    printf("ksceKernelCreateClass(p2sIoClass): 0x%08X\n", ret);
 
     for (int i = 0; i < MAX_HOST_FD; i++) {
         host_fds[i] = -1;

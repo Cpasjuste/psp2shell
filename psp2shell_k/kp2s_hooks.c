@@ -6,11 +6,9 @@
 #include <psp2kern/kernel/cpu.h>
 #include <libk/string.h>
 #include <libk/stdarg.h>
-#include <libk/stdio.h>
 #include <taihen.h>
 
 #include "psp2shell_k.h"
-#include "kp2s_hooks.h"
 
 #define P2S_MSG_LEN 256
 
@@ -20,37 +18,38 @@ static int __stdout_fd = 1073807367;
 
 static int _kDebugPrintf(const char *fmt, ...) {
 
-    char temp_buf[P2S_MSG_LEN];
-    memset(temp_buf, 0, P2S_MSG_LEN);
+    /*
+    char buf[P2S_MSG_LEN];
+    memset(buf, 0, P2S_MSG_LEN);
     va_list args;
     va_start(args, fmt);
-    int len = vsnprintf(temp_buf, P2S_MSG_LEN, fmt, args);
+    int len = vsnprintf(buf, P2S_MSG_LEN, fmt, args);
     va_end(args);
 
     if (len > 0) {
-        // TODO:
-        // Crash on enso ?!
-        //kp2s_print_stdout(temp_buf, (size_t) len);
-        //kp2s_print_stdout("ksceDebugPrintf: %i\n", len);
+        kp2s_print_stdgdb(buf, (size_t) len);
     }
 
-    return TAI_CONTINUE(int, ref_hooks[2], fmt, args);
+    //return TAI_CONTINUE(int, ref_hooks[2], fmt, args);
+    */
+    return 0;
 }
 
 static int _kDebugPrintf2(int num0, int num1, const char *fmt, ...) {
 
-    char temp_buf[P2S_MSG_LEN];
-    memset(temp_buf, 0, P2S_MSG_LEN);
+    char buf[P2S_MSG_LEN];
+    memset(buf, 0, P2S_MSG_LEN);
     va_list args;
     va_start(args, fmt);
-    int len = vsnprintf(temp_buf, P2S_MSG_LEN, fmt, args);
+    int len = vsnprintf(buf, P2S_MSG_LEN, fmt, args);
     va_end(args);
 
     if (len > 0) {
-        kp2s_print_stdout(temp_buf, (size_t) len);
+        kp2s_print_stderr(buf, (size_t) len);
     }
 
-    return TAI_CONTINUE(int, ref_hooks[3], num0, num1, fmt, args);
+    //return TAI_CONTINUE(int, ref_hooks[3], num0, num1, fmt, args);
+    return 0;
 }
 
 static int _sceIoWrite(SceUID fd, const void *data, SceSize size) {

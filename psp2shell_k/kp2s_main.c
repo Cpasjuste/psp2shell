@@ -33,21 +33,34 @@ extern void *p2s_data_buf;
 
 static struct AsyncEndpoint g_endpoint;
 static struct AsyncEndpoint g_stdout;
+static struct AsyncEndpoint g_stdgdb;
+static struct AsyncEndpoint g_stderr;
 
 int kp2s_cmd_parse(kp2s_client *client, P2S_CMD *cmd);
 
 static int usbShellInit(void) {
 
+    // shell print
     int ret = usbAsyncRegister(ASYNC_SHELL, &g_endpoint);
     printf("usbAsyncRegister: ASYNC_SHELL = %i\n", ret);
+
+    // stdout print
     ret = usbAsyncRegister(ASYNC_STDOUT, &g_stdout);
     printf("usbAsyncRegister: ASYNC_STDOUT = %i\n", ret);
+
+    // kDebugPrintf print
+    ret = usbAsyncRegister(ASYNC_GDB, &g_stdgdb);
+    printf("usbAsyncRegister: ASYNC_GDB = %i\n", ret);
+
+    // kDebugPrintf2 print
+    ret = usbAsyncRegister(ASYNC_STDERR, &g_stderr);
+    printf("usbAsyncRegister: ASYNC_STDERR = %i\n", ret);
 
     printf("usbWaitForConnect\n");
     ret = usbWaitForConnect();
     printf("usbWaitForConnect: %i\n", ret);
 
-    return 0;
+    return ret;
 }
 
 static void welcome() {
@@ -67,10 +80,10 @@ int kp2s_print_stdout(const char *data, size_t size) {
         return -1;
     }
 
-    while (kp2s_busy) { sceKernelDelayThread(100); };
-    kp2s_busy = 1;
+    //while (kp2s_busy) { sceKernelDelayThread(100); };
+    //kp2s_busy = 1;
     int ret = usbAsyncWrite(ASYNC_STDOUT, data, size);
-    kp2s_busy = 0;
+    //kp2s_busy = 0;
 
     return ret;
 }
@@ -89,12 +102,40 @@ int kp2s_print_stdout_user(const char *data, size_t size) {
     memset(kbuf, 0, size);
     ksceKernelMemcpyUserToKernel(kbuf, (uintptr_t) data, size);
 
-    while (kp2s_busy) { sceKernelDelayThread(100); };
-    kp2s_busy = 1;
+    //while (kp2s_busy) { sceKernelDelayThread(100); };
+    //kp2s_busy = 1;
     int ret = usbAsyncWrite(ASYNC_STDOUT, kbuf, size);
-    kp2s_busy = 0;
+    //kp2s_busy = 0;
 
     EXIT_SYSCALL(state);
+    return ret;
+}
+
+int kp2s_print_stderr(const char *data, size_t size) {
+
+    if (!usbhostfs_connected()) {
+        return -1;
+    }
+
+    //while (kp2s_busy) { sceKernelDelayThread(100); };
+    //kp2s_busy = 1;
+    int ret = usbAsyncWrite(ASYNC_STDERR, data, size);
+    //kp2s_busy = 0;
+
+    return ret;
+}
+
+int kp2s_print_stdgdb(const char *data, size_t size) {
+
+    if (!usbhostfs_connected()) {
+        return -1;
+    }
+
+    //while (kp2s_busy) { sceKernelDelayThread(100); };
+    //kp2s_busy = 1;
+    int ret = usbAsyncWrite(ASYNC_GDB, data, size);
+    //kp2s_busy = 0;
+
     return ret;
 }
 
@@ -238,7 +279,7 @@ int module_start(SceSize argc, const void *args) {
     u_sema = ksceKernelCreateSema("p2s_sem_u", 0, 0, 1, NULL);
     k_sema = ksceKernelCreateSema("p2s_sem_k", 0, 0, 1, NULL);
 
-    thid_wait = ksceKernelCreateThread("kp2s_wait_cmd", thread_wait_cmd, 64, 0x6000, 0, 0x10000, 0);
+    thid_wait = ksceKernelCreateThread("kp2s_wait_cmd", thread_wait_cmd, 64, 0x10000, 0, 0x10000, 0);
     if (thid_wait >= 0) {
         ksceKernelStartThread(thid_wait, 0, NULL);
     }

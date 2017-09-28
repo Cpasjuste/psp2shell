@@ -66,6 +66,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
         )
 target_link_libraries(${PROJECT_NAME}
         taihenForKernel_stub
+        SceSysmemForKernel_stub
         SceSysmemForDriver_stub
         SceThreadmgrForDriver_stub
         SceIofilemgrForDriver_stub

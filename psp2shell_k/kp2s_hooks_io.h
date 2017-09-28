@@ -7,6 +7,8 @@
 
 #include "libmodule.h"
 
+#define MAX_HOST_FD 128
+
 typedef struct Hook {
     SceUID uid;
     tai_hook_ref_t ref;
@@ -18,8 +20,12 @@ typedef struct Hook {
 
 // kernel hooks
 enum {
-    HOOK_IO_OPEN = 0,
-    HOOK_IO_KOPEN,
+    //HOOK_IO_OPEN = 0,
+    //HOOK_IO_CLOSE,
+    //HOOK_IO_READ,
+    //HOOK_IO_WRITE,
+    //HOOK_IO_LSEEK,
+    HOOK_IO_KOPEN = 0,
     HOOK_IO_KOPEN2,
     HOOK_IO_KCLOSE,
     HOOK_IO_KREAD,
@@ -40,35 +46,26 @@ enum {
 };
 
 // psp2/io/fcntl.h
-SceUID _ksceIoOpen(const char *path, int flags, SceMode mode);
 
-SceUID _ksceIoOpen2(const char *path, int flags, SceMode mode);
+int _sceIoClose(SceUID fd);
 
-struct sceIoOpenOpt { uint32_t unk_0;uint32_t unk_4; };
-SceUID _sceIoOpen(const char *path, int flags, SceMode mode, struct sceIoOpenOpt *opt);
-//SceUID _sceIoOpen(const char *path, int flags, SceMode mode);
+int _sceIoRead(SceUID fd, void *data, SceSize size);
 
-SceUID _sceIoOpenAsync(const char *path, int flags, SceMode mode);
-
-int _ksceIoClose(SceUID fd);
-
-int _sceIoCloseAsync(SceUID fd);
-
-int _ksceIoRead(SceUID fd, void *data, SceSize size);
-
-int _sceIoReadAsync(SceUID fd, void *data, SceSize size);
-
-int _ksceIoWrite(SceUID fd, const void *data, SceSize size);
-
-int _sceIoWriteAsync(SceUID fd, const void *data, SceSize size);
-
-SceOff _ksceIoLseek(SceUID fd, SceOff offset, int whence);
-
-int _sceIoLseekAsync(SceUID fd, SceOff offset, int whence);
+int _sceIoWrite(SceUID fd, const void *data, SceSize size);
 
 int _sceIoLseek32(SceUID fd, int offset, int whence);
 
-int _sceIoLseek32Async(SceUID fd, int offset, int whence);
+SceUID _ksceIoOpen(const char *path, int flags, SceMode mode);
+
+SceUID _ksceIoOpen2(SceUID pid, const char *path, int flags, SceMode mode);
+
+int _ksceIoClose(SceUID fd);
+
+int _ksceIoRead(SceUID fd, void *data, SceSize size);
+
+int _ksceIoWrite(SceUID fd, const void *data, SceSize size);
+
+SceOff _ksceIoLseek(SceUID fd, SceOff offset, int whence);
 
 int _ksceIoRemove(const char *file);
 
