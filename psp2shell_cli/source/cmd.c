@@ -10,6 +10,8 @@
 #include "p2s_cmd.h"
 #include "cmd.h"
 
+extern void setup_terminal();
+
 extern int psp2sell_cli_exit();
 
 ssize_t send_file(int sock, FILE *file, long size) {
@@ -442,6 +444,8 @@ int cmd_help(int argc, char **argv) {
         printf(" -- %s\n", cmd[i].desc);
         i++;
     }
+
+    setup_terminal();
 
     return 0;
 }
