@@ -34,10 +34,6 @@
 #define setegid(x)
 #define getuid()
 #define getgid()
-#else
-
-#include <sys/statvfs.h>
-
 #endif
 
 #ifdef READLINE_SHELL
@@ -46,12 +42,11 @@
 #include <readline/history.h>
 #include "p2s_msg.h"
 
+extern int readline_callback;
+
 #endif
 
-#include "psp_fileio.h"
 #include "hostfs.h"
-
-#define BASE_PORT 10000
 
 #ifdef __CYGWIN__
 #define USB_TIMEOUT 1000
@@ -67,11 +62,7 @@ int psp2sell_cli_init();
 
 int msg_parse(P2S_MSG *msg);
 
-//static usb_dev_handle *g_hDev = NULL;
 usb_dev_handle *g_hDev = NULL;
-
-static int g_servsocks[MAX_ASYNC_CHANNELS];
-static int g_clientsocks[MAX_ASYNC_CHANNELS];
 static const char *g_mapfile = NULL;
 
 int g_verbose = 0;
@@ -80,27 +71,6 @@ int g_pid = HOSTFSDRIVER_PID;
 int g_timeout = USB_TIMEOUT;
 int g_globalbind = 0;
 int g_daemon = 0;
-unsigned short g_baseport = BASE_PORT;
-
-void print_gdbdebug(int dir, const uint8_t *data, int len) {
-    int i;
-
-    if (dir) {
-        printf("HOST->GDB (");
-    } else {
-        printf("GDB->HOST (");
-    }
-
-    for (i = 0; i < len; i++) {
-        if (data[i] >= 32) {
-            putchar(data[i]);
-        } else {
-            printf("\\%02x", data[i]);
-        }
-    }
-
-    printf(")\n");
-}
 
 /* Define wrappers for the usb functions we use which can set euid */
 int euid_usb_bulk_write(usb_dev_handle *dev, int ep, char *bytes, int size,
@@ -363,16 +333,6 @@ void do_async(struct AsyncCommand *cmd, int readlen) {
             msg[data_len] = '\0';
             printf("%s", msg);
         }
-
-        // TODO: add file transfer ? (should be handled by hostfs)
-        /*
-        if ((chan < MAX_ASYNC_CHANNELS) && (g_clientsocks[chan] >= 0)) {
-            write(g_clientsocks[chan], data, readlen - sizeof(struct AsyncCommand));
-            if ((chan == ASYNC_GDB) && (g_gdbdebug)) {
-                print_gdbdebug(0, data, readlen - sizeof(struct AsyncCommand));
-            }
-        }
-        */
     }
 
 }
@@ -399,12 +359,6 @@ void do_bulk(struct BulkCommand *cmd, int readlen) {
             break;
         }
         read += readsize;
-    }
-
-    if (read >= len) {
-        if ((chan < MAX_ASYNC_CHANNELS) && (g_clientsocks[chan] >= 0)) {
-            fixed_write(g_clientsocks[chan], block, len);
-        }
     }
 }
 
@@ -497,9 +451,6 @@ int parse_args(int argc, char **argv) {
         strcpy(g_drives[i].rootdir, g_rootdir);
     }
 
-    // TODO: REMOVE
-    // strcpy(g_drives[0].rootdir, "/home/cpasjuste/dev/psvita/psp2shell/cmake-build-debug/psp2shell_k/");
-
     while (1) {
         int ch;
 
@@ -511,9 +462,6 @@ int parse_args(int argc, char **argv) {
         switch (ch) {
             case 'v':
                 g_verbose++;
-                break;
-            case 'b':
-                g_baseport = atoi(optarg);
                 break;
             case 'g':
                 g_globalbind = 1;
@@ -578,7 +526,6 @@ void print_help(void) {
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "-v                : Set verbose mode\n");
     fprintf(stderr, "-vv               : More verbose\n");
-    fprintf(stderr, "-b port           : Specify the base async port (default %d)\n", BASE_PORT);
     fprintf(stderr, "-g                : Specify global bind for the sockets, as opposed to just localhost\n");
     fprintf(stderr, "-p pid            : Specify the product ID of the PSP device\n");
     fprintf(stderr, "-d                : Print GDB transfers\n");
@@ -590,25 +537,8 @@ void print_help(void) {
     fprintf(stderr, "-h                : Print this help\n");
 }
 
-void shutdown_socket(void) {
-    int i;
-
-    for (i = 0; i < MAX_ASYNC_CHANNELS; i++) {
-        if (g_clientsocks[i] >= 0) {
-            close(g_clientsocks[i]);
-            g_clientsocks[i] = -1;
-        }
-
-        if (g_servsocks[i] >= 0) {
-            close(g_servsocks[i]);
-            g_servsocks[i] = -1;
-        }
-    }
-}
-
 int exit_app(void) {
     printf("Exiting\n");
-    shutdown_socket();
     if (g_hDev) {
         /* Nuke the connection */
         seteuid(0);
@@ -617,47 +547,6 @@ int exit_app(void) {
     }
     //exit(1);
     return 0;
-}
-
-void signal_handler(int sig) {
-    exit_app();
-}
-
-int make_socket(unsigned short port) {
-    int sock;
-    int on = 1;
-    struct sockaddr_in name;
-
-    sock = socket(PF_INET, SOCK_STREAM, 0);
-    if (sock < 0) {
-        perror("socket");
-        return -1;
-    }
-
-    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-
-    memset(&name, 0, sizeof(name));
-    name.sin_family = AF_INET;
-    name.sin_port = htons(port);
-    if (g_globalbind) {
-        name.sin_addr.s_addr = htonl(INADDR_ANY);
-    } else {
-        name.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    }
-
-    if (bind(sock, (struct sockaddr *) &name, sizeof(name)) < 0) {
-        perror("bind");
-        close(sock);
-        return -1;
-    }
-
-    if (listen(sock, 1) < 0) {
-        perror("listen");
-        close(sock);
-        return -1;
-    }
-
-    return sock;
 }
 
 int add_drive(int num, const char *dir) {
@@ -949,108 +838,17 @@ struct ShellCmd g_commands[] = {
         {"exit",     "Exit the application",                              exit_app},
 };
 
-void parse_shell(char *buf) {
-    int len;
-
-    if (buf == NULL) {
-        exit_app();
-    }
-
-    if ((buf) && (*buf)) {
-#ifdef READLINE_SHELL
-        add_history(buf);
-#endif
-        /* Remove whitespace */
-        len = strlen(buf);
-        while ((len > 0) && (isspace(buf[len - 1]))) {
-            buf[len - 1] = 0;
-            len--;
-        }
-
-        while (isspace(*buf)) {
-            buf++;
-            len--;
-        }
-
-        if (len > 0) {
-            if (*buf == '!') {
-                system(buf + 1);
-            } else {
-                const char *cmd;
-                int i;
-                int ret = COMMAND_HELP;
-
-                cmd = strtok(buf, " \t");
-                for (i = 0; i < (sizeof(g_commands) / sizeof(struct ShellCmd)); i++) {
-                    if (strcmp(cmd, g_commands[i].name) == 0) {
-                        if (g_commands[i].fn) {
-                            ret = g_commands[i].fn();
-                        }
-                        break;
-                    }
-                }
-
-                if (ret == COMMAND_HELP) {
-                    int i;
-
-                    printf("-= Help =-\n");
-                    for (i = 0; i < (sizeof(g_commands) / sizeof(struct ShellCmd)); i++) {
-                        printf("%-10s: %s\n", g_commands[i].name, g_commands[i].help);
-                    }
-                }
-            }
-        }
-    }
-}
-
-#ifdef READLINE_SHELL
-
-int init_readline(void) {
-    rl_callback_handler_install("sh> ", parse_shell);
-
-    return 1;
-}
-
-#endif
-
-extern int readline_callback;
-
 void *async_thread(void *arg) {
 
-    char buf[512];
-    char *data;
-    struct AsyncCommand *cmd;
-    fd_set read_set, read_save;
-    struct sockaddr_in client;
-    socklen_t size;
-    int max_fd = 0;
-    int flag = 1;
-    int i;
+    fd_set read_save;
     int quit = 0;
 
     FD_ZERO(&read_save);
 
     if (!g_daemon) {
-#ifdef READLINE_SHELL
-        //init_readline();
         psp2sell_cli_init();
-#endif
         FD_SET(STDIN_FILENO, &read_save);
-        max_fd = STDIN_FILENO;
     }
-
-    for (i = 0; i < MAX_ASYNC_CHANNELS; i++) {
-        if (g_servsocks[i] >= 0) {
-            FD_SET(g_servsocks[i], &read_save);
-            if (g_servsocks[i] > max_fd) {
-                max_fd = g_servsocks[i];
-            }
-        }
-    }
-
-    cmd = (struct AsyncCommand *) buf;
-    cmd->magic = LE32(ASYNC_MAGIC);
-    data = buf + sizeof(struct AsyncCommand);
 
     while (!quit) {
 
@@ -1062,106 +860,12 @@ void *async_thread(void *arg) {
         } else if (FD_ISSET(fileno(stdin), &read_save) && readline_callback) {
             rl_callback_read_char();
         }
-
-        /*
-        read_set = read_save;
-        if (select(max_fd + 1, &read_set, NULL, NULL, NULL) > 0) {
-            if (!g_daemon) {
-                if (FD_ISSET(STDIN_FILENO, &read_set)) {
-#ifdef READLINE_SHELL
-                    rl_callback_read_char();
-#else
-                    char buffer[4096];
-
-                    if (fgets(buffer, sizeof(buffer), stdin)) {
-                        parse_shell(buffer);
-                    }
-#endif
-                }
-            }
-            */
-
-        /*
-        for (i = 0; i < MAX_ASYNC_CHANNELS; i++) {
-            if (g_servsocks[i] >= 0) {
-                if (FD_ISSET(g_servsocks[i], &read_set)) {
-                    if (g_clientsocks[i] >= 0) {
-                        FD_CLR(g_clientsocks[i], &read_save);
-                        close(g_clientsocks[i]);
-                    }
-                    size = sizeof(client);
-                    g_clientsocks[i] = accept(g_servsocks[i], (struct sockaddr *) &client, &size);
-                    if (g_clientsocks[i] >= 0) {
-                        printf("Accepting async connection (%d) from %s\n", i, inet_ntoa(client.sin_addr));
-                        FD_SET(g_clientsocks[i], &read_save);
-                        if ((g_daemon) && (i == ASYNC_SHELL)) {
-                            // Duplicate to stdout for the local shell
-                            dup2(g_clientsocks[i], 1);
-                        }
-                        setsockopt(g_clientsocks[i], SOL_TCP, TCP_NODELAY, &flag, sizeof(int));
-                        if (g_clientsocks[i] > max_fd) {
-                            max_fd = g_clientsocks[i];
-                        }
-                    }
-                }
-            }
-        }
-
-        for (i = 0; i < MAX_ASYNC_CHANNELS; i++) {
-            if (g_clientsocks[i] >= 0) {
-                if (FD_ISSET(g_clientsocks[i], &read_set)) {
-                    int readbytes;
-
-                    printf("async_thread: read...\n");
-                    readbytes = read(g_clientsocks[i], data, sizeof(buf) - sizeof(struct AsyncCommand));
-                    if (readbytes > 0) {
-                        printf("async_thread: read: chan=%i, len=%i, data=%s\n", i, readbytes, data);
-                        if ((i == ASYNC_GDB) && (g_gdbdebug)) {
-                            print_gdbdebug(1, (uint8_t *) data, readbytes);
-                        }
-
-                        if (g_daemon) {
-                            if ((i == ASYNC_SHELL) && (data[0] == '@')) {
-                                // We assume locally it should be able to load everything in one go
-                                if (readbytes < (sizeof(buf) - sizeof(struct AsyncCommand))) {
-                                    data[readbytes] = 0;
-                                } else {
-                                    data[sizeof(buf) - sizeof(struct AsyncCommand) - 1] = 0;
-                                }
-
-                                parse_shell(&data[1]);
-                                continue;
-                            }
-                        }
-
-                        if (g_hDev) {
-                            cmd->channel = LE32(i);
-                            printf("async_thread: euid_usb_bulk_write: chan=%i, len=%i, buf=%s\n", cmd->channel,
-                                   (int) (readbytes + sizeof(struct AsyncCommand)), buf);
-                            euid_usb_bulk_write(g_hDev, 0x4, buf, readbytes + sizeof(struct AsyncCommand), 10000);
-                        }
-                    } else {
-                        FD_CLR(g_clientsocks[i], &read_save);
-                        if ((g_daemon) && (i == ASYNC_SHELL)) {
-                            dup2(2, 1);
-                        }
-                        close(g_clientsocks[i]);
-                        g_clientsocks[i] = -1;
-                        printf("Closing async connection (%d)\n", i);
-                    }
-                }
-            }
-        }
-        */
-        //}
-
     }
 
     return NULL;
 }
 
 int main(int argc, char **argv) {
-    int i;
 
     printf("USBHostFS (c) TyRaNiD 2k6\n");
     printf("PSP2SHELL (c) Cpasjuste\n");
@@ -1173,9 +877,6 @@ int main(int argc, char **argv) {
 
         pthread_t thid;
         usb_init();
-
-        //signal(SIGINT, signal_handler);
-        //signal(SIGTERM, signal_handler);
 
         if (g_daemon) {
             pid_t pid = fork();
@@ -1200,13 +901,6 @@ int main(int argc, char **argv) {
         if (g_mapfile) {
             load_mapfile(g_mapfile);
         }
-
-        /*
-        for (i = 0; i < MAX_ASYNC_CHANNELS; i++) {
-            g_servsocks[i] = make_socket(g_baseport + i);
-            g_clientsocks[i] = -1;
-        }
-        */
 
         pthread_create(&thid, NULL, async_thread, NULL);
         start_hostfs();
