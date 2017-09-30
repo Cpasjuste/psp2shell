@@ -71,13 +71,16 @@ int cmd_rm(int argc, char **argv) {
         return -1;
     }
 
+    p2s_cmd_send_string(cmd_sock, CMD_RM, argv[1]);
+    /*
     printf("remove `%s` ? (y/N)\n", argv[1]);
     char c;
     scanf("%c", &c);
-
     if (c == 'y') {
         p2s_cmd_send_string(cmd_sock, CMD_RM, argv[1]);
     }
+    */
+
     return 0;
 }
 
@@ -88,12 +91,15 @@ int cmd_rmdir(int argc, char **argv) {
         return -1;
     }
 
+    p2s_cmd_send_string(cmd_sock, CMD_RMDIR, argv[1]);
+    /*
     printf("remove `%s` ? (y/N)\n", argv[1]);
     char c;
     scanf("%c", &c);
     if (c == 'y') {
         p2s_cmd_send_string(cmd_sock, CMD_RMDIR, argv[1]);
     }
+    */
 
     return 0;
 }

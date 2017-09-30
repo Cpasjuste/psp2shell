@@ -103,12 +103,10 @@ static void cmd_ls(kp2s_client *client, char *path) {
             kp2s_io_list_dir(new_path);
         }
     }
-
-    PRINT_PROMPT();
 }
 
 static void cmd_pwd(kp2s_client *client) {
-    PRINT_COL(COL_YELLOW, "\n\n%s\n\r\n", client->path);
+    PRINT_COL(COL_YELLOW, "\n%s\n", client->path);
 }
 
 static void cmd_mv(kp2s_client *client, char *src, char *dst) {
@@ -149,8 +147,11 @@ static void cmd_rm(kp2s_client *client, char *file) {
     to_abs_path(client->path, new_path);
 
     if (!kp2s_io_isdir(new_path)) {
-        kp2s_io_remove(new_path);
-        PRINT_PROMPT();
+        if (kp2s_io_remove(new_path) == 1) {
+            PRINT_PROMPT();
+        } else {
+            PRINT_ERR("`%s` doesn't exist", new_path);
+        }
     } else {
         PRINT_ERR("not a file: `%s`", new_path);
     }
@@ -162,9 +163,11 @@ static void cmd_rmdir(kp2s_client *client, char *path) {
 
     strncpy(new_path, path, MAX_PATH_LENGTH);
     to_abs_path(client->path, new_path);
-    kp2s_io_remove(new_path);
 
-    PRINT_PROMPT();
+    int ret = kp2s_io_remove(new_path);
+    if (ret != 1) {
+        PRINT_ERR_CODE("rmdir", ret);
+    }
 }
 
 static void cmd_mkdir(kp2s_client *client, char *path) {
@@ -233,14 +236,17 @@ int kp2s_cmd_parse(kp2s_client *client, P2S_CMD *cmd) {
 
         case CMD_CD:
             cmd_cd(client, cmd->args[0]);
+            PRINT_PROMPT();
             break;
 
         case CMD_LS:
             cmd_ls(client, cmd->args[0]);
+            PRINT_PROMPT();
             break;
 
         case CMD_PWD:
             cmd_pwd(client);
+            PRINT_PROMPT();
             break;
 
         case CMD_RM:
@@ -249,6 +255,7 @@ int kp2s_cmd_parse(kp2s_client *client, P2S_CMD *cmd) {
 
         case CMD_RMDIR:
             cmd_rmdir(client, cmd->args[0]);
+            PRINT_PROMPT();
             break;
 
         case CMD_MKDIR:
@@ -307,7 +314,7 @@ int kp2s_cmd_parse(kp2s_client *client, P2S_CMD *cmd) {
 
         case CMD_REBOOT:
             ksceSysconResetDevice(0x2, 2);
-            PRINT_PROMPT();
+            //PRINT_PROMPT();
             break;
 
         default: // not handled by kernel

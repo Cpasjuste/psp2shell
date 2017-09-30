@@ -244,17 +244,21 @@ static int thread_wait_cmd(SceSize args, void *argp) {
 
     while (!quit) {
 
+        //printf("p2s_cmd_receive\n");
         res = p2s_cmd_receive(ASYNC_SHELL, &kp2s_cmd);
         //PRINT_ERR("p2s_cmd_receive: %i", kp2s_cmd.type);
 
         if (res != 0) {
+            //printf("p2s_cmd_receive: res != 0\n");
             if (!usbhostfs_connected()) {
                 printf("p2s_cmd_receive failed, waiting for usb...\n");
                 usbWaitForConnect();
             }
         } else {
+            //printf("kp2s_cmd_parse\n");
             res = kp2s_cmd_parse(&client, &kp2s_cmd);
             if (res != 0) {
+                //printf("kp2s_cmd_parse != 0\n");
                 if (!kp2s_ready) {
                     PRINT_ERR("psp2shell main user module not loaded");
                 } else {

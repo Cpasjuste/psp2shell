@@ -22,6 +22,8 @@ int cmd_sock = -1;
 
 int psp2sell_cli_exit();
 
+extern void *g_hDev;
+
 extern int exit_app(void);
 
 // readline
@@ -119,12 +121,12 @@ void print_hex(char *line) {
         line[strlen(line) - 1] = '\0';
 
         printf(GRN
-        "%s | %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n"
-        RES,
-                line,
-                chars[0], chars[1], chars[2], chars[3], chars[4],
-                chars[5], chars[6], chars[7], chars[8], chars[9],
-                chars[10], chars[11], chars[12], chars[13], chars[14], chars[15]);
+                       "%s | %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n"
+                       RES,
+               line,
+               chars[0], chars[1], chars[2], chars[3], chars[4],
+               chars[5], chars[6], chars[7], chars[8], chars[9],
+               chars[10], chars[11], chars[12], chars[13], chars[14], chars[15]);
         //rl_refresh_line(0, 0);
     }
 }
@@ -135,18 +137,18 @@ int msg_parse(P2S_MSG *msg) {
 
         case COL_RED:
             printf(RED
-            "%s"
-            RES, msg->buffer);
+                           "%s"
+                           RES, msg->buffer);
             break;
         case COL_YELLOW:
             printf(YEL
-            "%s"
-            RES, msg->buffer);
+                           "%s"
+                           RES, msg->buffer);
             break;
         case COL_GREEN:
             printf(GRN
-            "%s"
-            RES, msg->buffer);
+                           "%s"
+                           RES, msg->buffer);
             break;
         case COL_HEX:
             print_hex(msg->buffer);
@@ -188,9 +190,14 @@ void process_line(char *line) {
             if (cmd == NULL) {
                 printf("Command not found. Use ? for help.\n");
             } else {
-                close_terminal();
-                if (cmd->func((int) num_tokens, tokens) != 0) {
+                if (g_hDev == NULL) {
+                    printf("Not connected\n");
                     setup_terminal();
+                } else {
+                    close_terminal();
+                    if (cmd->func((int) num_tokens, tokens) != 0) {
+                        setup_terminal();
+                    }
                 }
             }
         }

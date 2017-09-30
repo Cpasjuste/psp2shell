@@ -61,8 +61,8 @@ void p2s_print_color(int color, const char *fmt, ...);
 
 #define PRINT(...) p2s_print_color(COL_YELLOW, __VA_ARGS__)
 #define PRINT_COL(color, ...) p2s_print_color(color, __VA_ARGS__)
-#define PRINT_ERR(fmt, ...) p2s_print_color(COL_RED, "\n\nNOK: " fmt "\n\r\n", ## __VA_ARGS__)
-#define PRINT_ERR_CODE(func_name, code) p2s_print_color(COL_RED, "\n\nNOK: %s = 0x%08X\n\r\n", func_name, code)
+#define PRINT_ERR(fmt, ...) p2s_print_color(COL_RED, "\n\nNOK: " fmt "\n", ## __VA_ARGS__)
+#define PRINT_ERR_CODE(func_name, code) p2s_print_color(COL_RED, "\n\nNOK: %s = 0x%08X\n", func_name, code)
 #define PRINT_PROMPT() p2s_print_color(COL_NONE, "\r\n");
 
 int kp2s_wait_cmd(P2S_CMD *cmd);

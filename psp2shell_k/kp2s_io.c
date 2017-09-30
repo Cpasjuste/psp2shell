@@ -150,7 +150,6 @@ int kp2s_io_remove(const char *path) {
                 if (SCE_S_ISDIR(dir.d_stat.st_mode)) {
                     int ret = kp2s_io_remove(new_path);
                     if (ret <= 0) {
-                        PRINT_ERR_CODE("rmdir", ret);
                         sceIoDclose(dfd);
                         return ret;
                     }
@@ -158,7 +157,6 @@ int kp2s_io_remove(const char *path) {
                     PRINT("rm | `%s` ", new_path);
                     int ret = sceIoRemove(new_path);
                     if (ret < 0) {
-                        PRINT_ERR_CODE("sceIoRemove", ret);
                         sceIoDclose(dfd);
                         return ret;
                     } else {
@@ -173,7 +171,6 @@ int kp2s_io_remove(const char *path) {
         PRINT("rm | `%s` ", path);
         int ret = sceIoRmdir(path);
         if (ret < 0) {
-            PRINT_ERR_CODE("sceIoRmdir", ret);
             return ret;
         } else {
             PRINT_COL(COL_GREEN, "OK\n");
@@ -183,7 +180,6 @@ int kp2s_io_remove(const char *path) {
         PRINT("rm | `%s` ", path);
         int ret = sceIoRemove(path);
         if (ret < 0) {
-            PRINT_ERR_CODE("sceIoRemove", ret);
             return ret;
         } else {
             PRINT_COL(COL_GREEN, "OK\n");
