@@ -21,10 +21,6 @@
 #include <usbhostfs.h>
 #include <errno.h>
 #include <pthread.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <arpa/inet.h>
 
 #ifdef __CYGWIN__
 #include <sys/vfs.h>
@@ -39,7 +35,6 @@
 #ifdef READLINE_SHELL
 
 #include <readline/readline.h>
-#include <readline/history.h>
 #include "p2s_msg.h"
 
 extern int readline_callback;
@@ -54,10 +49,6 @@ extern int readline_callback;
 #define USB_TIMEOUT 0
 #endif
 
-#ifndef SOL_TCP
-#define SOL_TCP getprotobyname("TCP")->p_proto
-#endif
-
 int psp2sell_cli_init();
 
 int msg_parse(P2S_MSG *msg);
@@ -69,7 +60,6 @@ int g_verbose = 0;
 int g_gdbdebug = 0;
 int g_pid = HOSTFSDRIVER_PID;
 int g_timeout = USB_TIMEOUT;
-int g_globalbind = 0;
 int g_daemon = 0;
 
 /* Define wrappers for the usb functions we use which can set euid */
@@ -463,11 +453,8 @@ int parse_args(int argc, char **argv) {
             case 'v':
                 g_verbose++;
                 break;
-            case 'g':
-                g_globalbind = 1;
-                break;
             case 'p':
-                g_pid = strtoul(optarg, NULL, 0);
+                g_pid = (int) strtoul(optarg, NULL, 0);
                 break;
             case 'd':
                 g_gdbdebug = 1;
@@ -526,7 +513,6 @@ void print_help(void) {
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "-v                : Set verbose mode\n");
     fprintf(stderr, "-vv               : More verbose\n");
-    fprintf(stderr, "-g                : Specify global bind for the sockets, as opposed to just localhost\n");
     fprintf(stderr, "-p pid            : Specify the product ID of the PSP device\n");
     fprintf(stderr, "-d                : Print GDB transfers\n");
     fprintf(stderr, "-f filename       : Load the host drive mappings from a file\n");
