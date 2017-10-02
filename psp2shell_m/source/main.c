@@ -184,6 +184,9 @@ int cmd_thread(SceSize args, void *argp) {
 
 static int thread_wait(SceSize args, void *argp) {
 
+    // Enso fix ?!
+    sceKernelDelayThread(1000 * 1000 * 5);
+
     // load/wait network modules
     while (p2s_netInit() != 0) {
         if (quit) {
@@ -191,7 +194,7 @@ static int thread_wait(SceSize args, void *argp) {
             sceKernelExitDeleteThread(0);
             return -1;
         }
-        sceKernelDelayThread(1000);
+        sceKernelDelayThread(1000 * 1000);
     }
 
     // setup sockets

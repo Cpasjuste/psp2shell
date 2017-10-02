@@ -263,13 +263,6 @@ int kpsp2shell_get_module_list(SceUID pid, int flags1, int flags2, SceUID *modid
     return res;
 }
 
-/*
-int unload_allowed_patched(void) {
-    TAI_CONTINUE(int, ref_hooks[4]);
-    return 1; // always allowed
-}
-*/
-
 void set_hooks() {
 
     uint32_t state;
@@ -310,16 +303,6 @@ void set_hooks() {
             0x02B04343, // ksceDebugPrintf2
             _kDebugPrintf2);
     //LOG("hook: _printf2: 0x%08X\n", g_hooks[3]);
-
-    /*
-    g_hooks[4] = taiHookFunctionImportForKernel(
-            KERNEL_PID,
-            &ref_hooks[4],     // Output a reference
-            "SceKernelModulemgr",
-            0x11F9B314,
-            0xBBA13D9C,
-            unload_allowed_patched);
-    */
 
     EXIT_SYSCALL(state);
 }
