@@ -59,6 +59,7 @@ static char *mount_points[] = {
         "ux0:",
         "vd0:",
         "vs0:",
+        "host0:",
 };
 
 #define N_MOUNT_POINTS (sizeof(mount_points) / sizeof(char **))
