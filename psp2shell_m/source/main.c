@@ -291,7 +291,7 @@ int module_start(SceSize argc, const void *args) {
     client->cmd_sock = -1;
 
 #ifndef DEBUG
-    thid_kbuf = sceKernelCreateThread("psp2shell_kbuf", thread_kbuf, 64, 0x8000, 0, 0x10000, 0);
+    thid_kbuf = sceKernelCreateThread("psp2shell_kbuf", thread_kbuf, 64, 0x6000, 0, 0x10000, 0);
     if (thid_kbuf >= 0) {
         sceKernelStartThread(thid_kbuf, 0, NULL);
     }
