@@ -16,36 +16,19 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <psp2kern/kernel/modulemgr.h>
+#include <psp2kern/kernel/sysmem.h>
+#include <psp2kern/kernel/cpu.h>
+#include <psp2kern/io/fcntl.h>
 #include <libk/string.h>
 #include <libk/stdio.h>
 #include <libk/stdarg.h>
-#include <vitasdkkern.h>
 #include <taihen.h>
 
 #include "psp2shell_k.h"
 
 #define CHUNK_SIZE 2048
 static uint8_t chunk[CHUNK_SIZE];
-
-volatile static int k_buf_at = 0;
-volatile static int k_buf_lock = 0;
-volatile static int k_buf_len = 0;
-volatile static char k_buf[P2S_KMSG_SIZE] = {0};
-
-#define P2S_MSG_LEN 256
-
-#define p2s_print_len(len, fmt, args...) do { \
-  while (k_buf_lock); \
-  k_buf_lock = 1; \
-  k_buf_len = snprintf((char *)k_buf+k_buf_at, P2S_KMSG_SIZE - k_buf_at, fmt, args); \
-  if (len > 0) \
-    k_buf_len = len; \
-  if (k_buf_at + k_buf_len <= P2S_KMSG_SIZE) \
-    k_buf_at += k_buf_len; \
-  k_buf_lock = 0; \
-} while (0)
-
-#define p2s_print(fmt, args...) p2s_print_len(0, fmt, args)
 
 #define MAX_HOOKS 32
 static SceUID g_hooks[MAX_HOOKS];
@@ -54,17 +37,32 @@ static int __stdout_fd = 1073807367;
 
 static bool ready = false;
 
+static kp2s_msg kmsg_list[MSG_MAX];
+
+static void kp2s_add_msg(int len, const char *msg) {
+
+    for (int i = 0; i < MSG_MAX; i++) {
+        if (kmsg_list[i].len <= 0) {
+            memset(kmsg_list[i].msg, 0, P2S_MSG_LEN);
+            int new_len = len > P2S_MSG_LEN ? P2S_MSG_LEN : len;
+            strncpy(kmsg_list[i].msg, msg, (size_t) new_len);
+            kmsg_list[i].len = new_len;
+            break;
+        }
+    }
+}
+
 static int _kDebugPrintf(const char *fmt, ...) {
 
     char temp_buf[P2S_MSG_LEN];
     memset(temp_buf, 0, P2S_MSG_LEN);
     va_list args;
     va_start(args, fmt);
-    vsnprintf(temp_buf, P2S_MSG_LEN, fmt, args);
+    int len = vsnprintf(temp_buf, P2S_MSG_LEN, fmt, args);
     va_end(args);
 
     if (ready) {
-        p2s_print("%s", temp_buf);
+        kp2s_add_msg(len, temp_buf);
     }
 
     return TAI_CONTINUE(int, ref_hooks[2], fmt, args);
@@ -76,11 +74,11 @@ static int _kDebugPrintf2(int num0, int num1, const char *fmt, ...) {
     memset(temp_buf, 0, P2S_MSG_LEN);
     va_list args;
     va_start(args, fmt);
-    vsnprintf(temp_buf, P2S_MSG_LEN, fmt, args);
+    int len = vsnprintf(temp_buf, P2S_MSG_LEN, fmt, args);
     va_end(args);
 
     if (ready) {
-        p2s_print("%s", temp_buf);
+        kp2s_add_msg(len, temp_buf);
     }
 
     return TAI_CONTINUE(int, ref_hooks[3], num0, num1, fmt, args);
@@ -96,7 +94,7 @@ static int _sceIoWrite(SceUID fd, const void *data, SceSize size) {
         char temp_buf[size];
         memset(temp_buf, 0, size);
         ksceKernelStrncpyUserToKernel(temp_buf, (uintptr_t) data, size);
-        p2s_print_len(size, "%s", temp_buf);
+        kp2s_add_msg(size, temp_buf);
     }
 
     return TAI_CONTINUE(int, ref_hooks[0], fd, data, size);
@@ -114,28 +112,25 @@ static int _sceKernelGetStdout() {
     return fd;
 }
 
-SceSize kpsp2shell_wait_buffer(char *buffer) {
+SceSize kpsp2shell_wait_buffer(kp2s_msg *msg_list) {
 
-    if (k_buf_at <= 0) {
-        return 0;
-    }
-
+    SceSize count = 0;
     int state = 0;
-    int count = 0;
 
     ENTER_SYSCALL(state);
 
-    while (k_buf_lock);
-    k_buf_lock = 1;
-
-    count = k_buf_at;
-    ksceKernelStrncpyKernelToUser((uintptr_t) buffer, (char *) k_buf, k_buf_at + 1);
-    k_buf_at = 0;
-    k_buf_lock = 0;
+    for (int i = 0; i < MSG_MAX; i++) {
+        if (kmsg_list[i].len > 0) {
+            ksceKernelMemcpyKernelToUser(
+                    (uintptr_t) &msg_list[count], &kmsg_list[i], sizeof(kp2s_msg));
+            kmsg_list[i].len = 0;
+            count++;
+        }
+    }
 
     EXIT_SYSCALL(state);
 
-    return (SceSize) count;
+    return count;
 }
 
 void kpsp2shell_set_ready(bool rdy) {
@@ -205,7 +200,7 @@ int kpsp2shell_dump_module(SceUID pid, SceUID uid, const char *dst) {
             snprintf(path + strlen(path), 128, "/%s_0x%08X_seg%d.bin",
                      kinfo.module_name, (uintptr_t) seginfo->vaddr, i);
 
-            p2s_print("dumping: %s\n", path);
+            _kDebugPrintf("dumping: %s\n", path);
 
             ret = kpsp2shell_dump(pid, path, seginfo->vaddr, seginfo->memsz);
         }

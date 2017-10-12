@@ -205,7 +205,7 @@ void *msg_thread(void *unused) {
                 printf("p2s_msg_receive sock failed: 0x%08X\n", res);
                 break;
             } else {
-                // print raw data (like kernel print)
+                // print raw data (sceClibPrintf, ksceDebugPrintf...)
                 msg.color = COL_NONE;
             }
         }
@@ -213,15 +213,19 @@ void *msg_thread(void *unused) {
         switch (msg.color) {
             case COL_RED:
                 printf(RED "%s" RES, msg.buffer);
+                send(msg_sock, "\n", 1, 0);
                 break;
             case COL_YELLOW:
                 printf(YEL "%s" RES, msg.buffer);
+                send(msg_sock, "\n", 1, 0);
                 break;
             case COL_GREEN:
                 printf(GRN "%s" RES, msg.buffer);
+                send(msg_sock, "\n", 1, 0);
                 break;
             case COL_HEX:
                 print_hex(msg.buffer);
+                send(msg_sock, "\n", 1, 0);
                 break;
             default:
                 printf("%s", msg.buffer);
@@ -233,9 +237,6 @@ void *msg_thread(void *unused) {
         if (msg.buffer[len - 1] == '\n') { // allow printing to the shell without new line
             rl_refresh_line(0, 0);
         }
-
-        // send "ok/continue"
-        send(msg_sock, "\n", 1, 0);
     }
 
     printf("disconnected\n");

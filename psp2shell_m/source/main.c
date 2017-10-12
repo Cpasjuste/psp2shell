@@ -250,16 +250,16 @@ static int thread_wait(SceSize args, void *argp) {
 
 static int thread_kbuf(SceSize args, void *argp) {
 
-    char buffer[P2S_KMSG_SIZE];
+    kp2s_msg msg_list[MSG_MAX];
 
     while (!quit) {
 
-        if (client->msg_sock >= 0) {
-            SceSize len = kpsp2shell_wait_buffer(buffer);
-            if (client->msg_sock >= 0 && len > 0) {
-                if (sceNetSend(client->msg_sock, buffer, len, 0) >= 0) {
-                    // wait for client to receive message
-                    p2s_msg_wait_reply();
+        if (client != NULL && client->msg_sock >= 0) {
+
+            SceSize count = kpsp2shell_wait_buffer(msg_list);
+            if (client->msg_sock >= 0 && count > 0) {
+                for (int i = 0; i < count; i++) {
+                    sceNetSend(client->msg_sock, msg_list[i].msg, (unsigned int) msg_list[i].len, 0);
                 }
             } else {
                 sceKernelDelayThread(100);
@@ -269,8 +269,7 @@ static int thread_kbuf(SceSize args, void *argp) {
         }
     }
 
-    sceKernelExitDeleteThread(0);
-    return 0;
+    return sceKernelExitDeleteThread(0);
 }
 
 #endif
@@ -292,7 +291,7 @@ int module_start(SceSize argc, const void *args) {
     client->cmd_sock = -1;
 
 #ifndef DEBUG
-    thid_kbuf = sceKernelCreateThread("psp2shell_kbuf", thread_kbuf, 64, 0x2000, 0, 0x10000, 0);
+    thid_kbuf = sceKernelCreateThread("psp2shell_kbuf", thread_kbuf, 64, 0x8000, 0, 0x10000, 0);
     if (thid_kbuf >= 0) {
         sceKernelStartThread(thid_kbuf, 0, NULL);
     }
