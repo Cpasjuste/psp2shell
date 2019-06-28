@@ -99,7 +99,7 @@ size_t p2s_cmd_receive_buffer(int sock, void *buffer, size_t size) {
         if (len == 0) {
             size = 0;
             break;
-        };
+        }
         if (len == -1) {
             break;
         } else {
@@ -193,10 +193,12 @@ int p2s_cmd_to_cmd(P2S_CMD *cmd, const char *buffer) {
 
     memset(cmd, 0, sizeof(P2S_CMD));
 
-    // type
-    char tmp[2];
+    // cmd type
+    char tmp[3];
     strncpy(tmp, buffer, 2);
-    cmd->type = atoi(tmp);
+    tmp[2] = '\0';
+    cmd->type = strtol(tmp, NULL, 10);
+
     if (cmd->type < CMD_START) {
         cmd->type = 0;
         return -1;

@@ -268,12 +268,12 @@ void process_line(char *line) {
         size_t num_tokens;
         char **tokens = strsplit(line, " ", &num_tokens);
         if (num_tokens > 0) {
-            COMMAND *cmd = cmd_find(tokens[0]);
-            if (cmd == NULL) {
+            COMMAND *c = cmd_find(tokens[0]);
+            if (c == NULL) {
                 printf("Command not found. Use ? for help.\n");
             } else {
                 printf("\n");
-                cmd->func((int) num_tokens, tokens);
+                c->func((int) num_tokens, tokens);
                 printf("\n");
             }
         }
@@ -294,7 +294,7 @@ int process_args(int argc, char **argv) {
 
     char *line = (char *) malloc(1024);
 
-    connect_psp2(argv[1], atoi(argv[2]));
+    connect_psp2(argv[1], strtol(argv[2], NULL, 10));
 
     memset(line, 0, 1024);
     for (int i = 3; i < argc; i++) {
@@ -330,7 +330,7 @@ int main(int argc, char **argv) {
     while (!done) {
 
         if (msg_sock < 0) {
-            if (connect_psp2(argv[1], atoi(argv[2])) < 0) {
+            if (connect_psp2(argv[1], strtol(argv[2], NULL, 10)) < 0) {
                 break;
             }
         } else {

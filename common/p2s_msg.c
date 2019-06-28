@@ -103,10 +103,11 @@ int p2s_msg_to_msg(P2S_MSG *msg, const char *buffer) {
 
     memset(msg, 0, sizeof(P2S_MSG));
 
-    // type
-    char tmp[2];
+    // msg color
+    char tmp[3];
     strncpy(tmp, buffer, 2);
-    msg->color = atoi(tmp);
+    tmp[2] = '\0';
+    msg->color = strtol(tmp, NULL, 10);
     if (msg->color < COL_NONE) {
         msg->color = 0;
         return -1;
