@@ -20,7 +20,7 @@
 #include "psp2shell_k.h"
 #include "p2s_module.h"
 
-extern int ksceSysconResetDevice(int type, int unk);
+extern int kscePowerRequestColdReset(void);
 
 static bool is_root_path(const char *path) {
     return strncmp(path, HOME_PATH, MAX_PATH_LENGTH) == 0;
@@ -313,8 +313,7 @@ int kp2s_cmd_parse(kp2s_client *client, P2S_CMD *cmd) {
             break;
 
         case CMD_REBOOT:
-            ksceSysconResetDevice(0x2, 2);
-            //PRINT_PROMPT();
+            kscePowerRequestColdReset();
             break;
 
         default: // not handled by kernel

@@ -66,7 +66,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
         )
 target_link_libraries(${PROJECT_NAME}
         taihenForKernel_stub
-        SceSysconForDriver_stub
+        #SceSysconForDriver_stub
         SceSysmemForKernel_stub
         SceSysmemForDriver_stub
         SceThreadmgrForDriver_stub
@@ -75,7 +75,7 @@ target_link_libraries(${PROJECT_NAME}
         SceModulemgrForKernel_stub
         SceUdcdForDriver_stub
         SceCpuForDriver_stub
-        SceDebugForDriver_stub
+        ScePowerForDriver_stub
         k
         gcc
         -nostdlib
