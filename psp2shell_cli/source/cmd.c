@@ -72,11 +72,15 @@ int cmd_rm(int argc, char **argv) {
 
     printf("remove `%s` ? (y/N)\n", argv[1]);
     char c;
-    scanf("%c", &c);
+    int res = scanf("%c", &c);
+    if (!res) {
+        printf("error: could not get input\n");
+    }
 
     if (c == 'y') {
         p2s_cmd_send_string(cmd_sock, CMD_RM, argv[1]);
     }
+
     return 0;
 }
 
@@ -89,7 +93,11 @@ int cmd_rmdir(int argc, char **argv) {
 
     printf("remove `%s` ? (y/N)\n", argv[1]);
     char c;
-    scanf("%c", &c);
+    int res = scanf("%c", &c);
+    if (!res) {
+        printf("error: could not get input\n");
+    }
+
     if (c == 'y') {
         p2s_cmd_send_string(cmd_sock, CMD_RMDIR, argv[1]);
     }

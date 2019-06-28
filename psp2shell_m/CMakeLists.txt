@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.0)
 
+include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
+include("$ENV{VITASDK}/share/vita.toolchain.cmake" REQUIRED)
+
 project(psp2shell_m)
-include("${VITASDK}/share/vita.cmake" REQUIRED)
 
 # set build date variable
 execute_process(COMMAND "date" "+%Y.%m.%d" OUTPUT_VARIABLE BUILD_DATE OUTPUT_STRIP_TRAILING_WHITESPACE)

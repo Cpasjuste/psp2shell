@@ -1,7 +1,11 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
+
+include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
+include("$ENV{VITASDK}/share/vita.toolchain.cmake" REQUIRED)
+
+message(${CMAKE_C_COMPILER})
 
 project(psp2shell_k)
-include("${VITASDK}/share/vita.cmake" REQUIRED)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,-q -Wall -O3 -std=gnu99 -D__PSP2__")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti -fno-exceptions -D__PSP2__")

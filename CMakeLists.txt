@@ -2,15 +2,13 @@ cmake_minimum_required(VERSION 3.0)
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # set vitasdk path variable
-set(VITASDK $ENV{VITASDK})
-
-if (NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-    if (DEFINED ENV{VITASDK})
-        set(CMAKE_TOOLCHAIN_FILE "$ENV{VITASDK}/share/vita.toolchain.cmake" CACHE PATH "toolchain file")
-    else ()
-        message(FATAL_ERROR "Please define VITASDK to point to your SDK path!")
-    endif ()
+if (NOT DEFINED ENV{VITASDK})
+    set(ENV{VITASDK} "/usr/local/vitasdk")
 endif ()
+set(VITASDK $ENV{VITASDK})
+include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
+include("$ENV{VITASDK}/share/vita.toolchain.cmake" REQUIRED)
+message("${CMAKE_TOOLCHAIN_FILE}")
 
 # set build date variable
 execute_process(COMMAND "date" "+%Y.%m.%d" OUTPUT_VARIABLE BUILD_DATE OUTPUT_STRIP_TRAILING_WHITESPACE)

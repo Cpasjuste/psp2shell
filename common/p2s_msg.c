@@ -86,7 +86,7 @@ int p2s_msg_to_string(char *buffer, P2S_MSG *cmd) {
 
     memset(buffer, 0, P2S_SIZE_MSG);
     sprintf(buffer, "%i", cmd->color);
-    snprintf(buffer + 2, P2S_SIZE_MSG, "%s", cmd->buffer);
+    snprintf(buffer + 2, P2S_SIZE_MSG - 2, "%s", cmd->buffer);
 
     return 0;
 }
