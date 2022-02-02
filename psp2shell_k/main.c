@@ -20,9 +20,6 @@
 #include <psp2kern/kernel/sysmem.h>
 #include <psp2kern/kernel/cpu.h>
 #include <psp2kern/io/fcntl.h>
-#include <libk/string.h>
-#include <libk/stdio.h>
-#include <libk/stdarg.h>
 #include <taihen.h>
 
 #include "psp2shell_k.h"
@@ -40,7 +37,6 @@ static bool ready = false;
 static kp2s_msg kmsg_list[MSG_MAX];
 
 static void kp2s_add_msg(int len, const char *msg) {
-
     for (int i = 0; i < MSG_MAX; i++) {
         if (kmsg_list[i].len <= 0) {
             memset(kmsg_list[i].msg, 0, P2S_MSG_LEN);
@@ -52,8 +48,7 @@ static void kp2s_add_msg(int len, const char *msg) {
     }
 }
 
-static int _kDebugPrintf(const char *fmt, ...) {
-
+static int ksceDebugPrintf_hook(const char *fmt, ...) {
     char temp_buf[P2S_MSG_LEN];
     memset(temp_buf, 0, P2S_MSG_LEN);
     va_list args;
@@ -68,8 +63,7 @@ static int _kDebugPrintf(const char *fmt, ...) {
     return TAI_CONTINUE(int, ref_hooks[2], fmt, args);
 }
 
-static int _kDebugPrintf2(int num0, int num1, const char *fmt, ...) {
-
+static int ksceDebugPrintf2_hook(int num0, int num1, const char *fmt, ...) {
     char temp_buf[P2S_MSG_LEN];
     memset(temp_buf, 0, P2S_MSG_LEN);
     va_list args;
@@ -84,8 +78,7 @@ static int _kDebugPrintf2(int num0, int num1, const char *fmt, ...) {
     return TAI_CONTINUE(int, ref_hooks[3], num0, num1, fmt, args);
 }
 
-static int _sceIoWrite(SceUID fd, const void *data, SceSize size) {
-
+static int sceIoWrite_hook(SceUID fd, const void *data, SceSize size) {
     if (ref_hooks[0] <= 0) {
         return 0;
     }
@@ -93,15 +86,14 @@ static int _sceIoWrite(SceUID fd, const void *data, SceSize size) {
     if (fd == __stdout_fd && ready && size < P2S_MSG_LEN) {
         char temp_buf[size];
         memset(temp_buf, 0, size);
-        ksceKernelStrncpyUserToKernel(temp_buf, (uintptr_t) data, size);
-        kp2s_add_msg(size, temp_buf);
+        ksceKernelStrncpyUserToKernel(temp_buf, data, size);
+        kp2s_add_msg((int) size, temp_buf);
     }
 
     return TAI_CONTINUE(int, ref_hooks[0], fd, data, size);
 }
 
-static int _sceKernelGetStdout() {
-
+static int sceKernelGetStdout_hook() {
     if (ref_hooks[1] <= 0) {
         return 0;
     }
@@ -113,7 +105,6 @@ static int _sceKernelGetStdout() {
 }
 
 SceSize kpsp2shell_wait_buffer(kp2s_msg *msg_list) {
-
     SceSize count = 0;
     int state = 0;
 
@@ -122,7 +113,7 @@ SceSize kpsp2shell_wait_buffer(kp2s_msg *msg_list) {
     for (int i = 0; i < MSG_MAX; i++) {
         if (kmsg_list[i].len > 0) {
             ksceKernelMemcpyKernelToUser(
-                    (uintptr_t) &msg_list[count], &kmsg_list[i], sizeof(kp2s_msg));
+                    &msg_list[count], &kmsg_list[i], sizeof(kp2s_msg));
             kmsg_list[i].len = 0;
             count++;
         }
@@ -134,20 +125,18 @@ SceSize kpsp2shell_wait_buffer(kp2s_msg *msg_list) {
 }
 
 void kpsp2shell_set_ready(bool rdy) {
-
     ready = rdy;
 }
 
 int kpsp2shell_dump(SceUID pid, const char *filename, void *addr, unsigned int size) {
-
     SceUID fd;
     fd = ksceIoOpen(filename, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 6);
     if (fd <= 0) {
         return fd;
     }
 
-    int i = 0;
-    size_t bufsize = 0;
+    size_t i = 0;
+    size_t bufsize;
 
     while (i < size) {
         if (size - i > CHUNK_SIZE) {
@@ -155,7 +144,7 @@ int kpsp2shell_dump(SceUID pid, const char *filename, void *addr, unsigned int s
         } else {
             bufsize = size - i;
         }
-        ksceKernelMemcpyUserToKernelForPid(pid, chunk, (uintptr_t) (addr + i), bufsize);
+        ksceKernelMemcpyUserToKernelForPid(pid, chunk, addr + i, bufsize);
         i += bufsize;
 
         ksceIoWrite(fd, chunk, bufsize);
@@ -167,7 +156,6 @@ int kpsp2shell_dump(SceUID pid, const char *filename, void *addr, unsigned int s
 }
 
 int kpsp2shell_dump_module(SceUID pid, SceUID uid, const char *dst) {
-
     int ret;
     SceKernelModuleInfo kinfo;
     memset(&kinfo, 0, sizeof(SceKernelModuleInfo));
@@ -196,11 +184,11 @@ int kpsp2shell_dump_module(SceUID pid, SceUID uid, const char *dst) {
             }
 
             memset(path, 0, 128);
-            ksceKernelStrncpyUserToKernel(path, (uintptr_t) dst, 128);
+            ksceKernelStrncpyUserToKernel(path, dst, 128);
             snprintf(path + strlen(path), 128, "/%s_0x%08X_seg%d.bin",
                      kinfo.module_name, (uintptr_t) seginfo->vaddr, i);
 
-            _kDebugPrintf("dumping: %s\n", path);
+            ksceDebugPrintf_hook("dumping: %s\n", path);
 
             ret = kpsp2shell_dump(pid, path, seginfo->vaddr, seginfo->memsz);
         }
@@ -212,7 +200,6 @@ int kpsp2shell_dump_module(SceUID pid, SceUID uid, const char *dst) {
 }
 
 int kpsp2shell_get_module_info(SceUID pid, SceUID uid, SceKernelModuleInfo *info) {
-
     int ret;
     SceKernelModuleInfo kinfo;
     memset(&kinfo, 0, sizeof(SceKernelModuleInfo));
@@ -228,7 +215,7 @@ int kpsp2shell_get_module_info(SceUID pid, SceUID uid, SceKernelModuleInfo *info
 
     ret = ksceKernelGetModuleInfo(pid, kid, &kinfo);
     if (ret >= 0) {
-        ksceKernelMemcpyKernelToUser((uintptr_t) info, &kinfo, sizeof(SceKernelModuleInfo));
+        ksceKernelMemcpyKernelToUser(info, &kinfo, sizeof(SceKernelModuleInfo));
     }
 
     EXIT_SYSCALL(state);
@@ -237,7 +224,6 @@ int kpsp2shell_get_module_info(SceUID pid, SceUID uid, SceKernelModuleInfo *info
 }
 
 int kpsp2shell_get_module_list(SceUID pid, int flags1, int flags2, SceUID *modids, size_t *num) {
-
     size_t count = 256;
     SceUID kmodids[256];
 
@@ -247,10 +233,10 @@ int kpsp2shell_get_module_list(SceUID pid, int flags1, int flags2, SceUID *modid
     memset(kmodids, 0, sizeof(SceUID) * 256);
     int res = ksceKernelGetModuleList(pid, flags1, flags2, kmodids, &count);
     if (res >= 0) {
-        ksceKernelMemcpyKernelToUser((uintptr_t) modids, &kmodids, sizeof(SceUID) * 256);
-        ksceKernelMemcpyKernelToUser((uintptr_t) num, &count, sizeof(size_t));
+        ksceKernelMemcpyKernelToUser(modids, &kmodids, sizeof(SceUID) * 256);
+        ksceKernelMemcpyKernelToUser(num, &count, sizeof(size_t));
     } else {
-        ksceKernelMemcpyKernelToUser((uintptr_t) num, &count, sizeof(size_t));
+        ksceKernelMemcpyKernelToUser(num, &count, sizeof(size_t));
     }
 
     EXIT_SYSCALL(state);
@@ -259,7 +245,6 @@ int kpsp2shell_get_module_list(SceUID pid, int flags1, int flags2, SceUID *modid
 }
 
 void set_hooks() {
-
     uint32_t state;
     ENTER_SYSCALL(state);
 
@@ -269,7 +254,7 @@ void set_hooks() {
             "SceIofilemgr",
             0xF2FF276E,
             0x34EFD876,
-            _sceIoWrite);
+            sceIoWrite_hook);
     //LOG("hook: sceIoWrite: 0x%08X\n", g_hooks[0]);
 
     g_hooks[1] = taiHookFunctionExportForKernel(
@@ -278,7 +263,7 @@ void set_hooks() {
             "SceProcessmgr",
             0x2DD91812,
             0xE5AA625C,
-            _sceKernelGetStdout);
+            sceKernelGetStdout_hook);
     //LOG("hook: sceKernelGetStdout: 0x%08X\n", g_hooks[1]);
 
     g_hooks[2] = taiHookFunctionExportForKernel(
@@ -287,7 +272,7 @@ void set_hooks() {
             "SceSysmem",
             0x88758561, // SceDebugForDriver
             0x391B74B7, // ksceDebugPrintf
-            _kDebugPrintf);
+            ksceDebugPrintf_hook);
     //LOG("hook: _printf: 0x%08X\n", g_hooks[2]);
 
     g_hooks[3] = taiHookFunctionExportForKernel(
@@ -296,14 +281,13 @@ void set_hooks() {
             "SceSysmem",
             0x88758561, // SceDebugForDriver
             0x02B04343, // ksceDebugPrintf2
-            _kDebugPrintf2);
+            ksceDebugPrintf2_hook);
     //LOG("hook: _printf2: 0x%08X\n", g_hooks[3]);
 
     EXIT_SYSCALL(state);
 }
 
 void delete_hooks() {
-
     for (int i = 0; i < MAX_HOOKS; i++) {
         if (g_hooks[i] >= 0)
             taiHookReleaseForKernel(g_hooks[i], ref_hooks[i]);
@@ -313,15 +297,11 @@ void delete_hooks() {
 void _start() __attribute__ ((weak, alias ("module_start")));
 
 int module_start(SceSize argc, const void *args) {
-
     set_hooks();
-
     return SCE_KERNEL_START_SUCCESS;
 }
 
 int module_stop(SceSize argc, const void *args) {
-
     delete_hooks();
-
     return SCE_KERNEL_STOP_SUCCESS;
 }

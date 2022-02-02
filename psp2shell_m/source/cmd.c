@@ -358,7 +358,7 @@ static void cmd_memw(const char *address_str, const char *data_str) {
     unsigned int uid = 0;
 
     SceUID ids[256];
-    int count = 256;
+    SceSize count = 256;
     SceKernelModuleInfo moduleInfo;
 
     int res = sceKernelGetModuleList(0xFF, ids, &count);
@@ -377,7 +377,7 @@ static void cmd_memw(const char *address_str, const char *data_str) {
                     if (address >= (unsigned int) moduleInfo.segments[j].vaddr
                         && address <
                            (unsigned int) moduleInfo.segments[j].vaddr + (unsigned int) moduleInfo.segments[j].memsz) {
-                        uid = moduleInfo.handle;
+                        uid = moduleInfo.modid;
                         segment = j;
                         offset = address - (unsigned int) moduleInfo.segments[j].vaddr;
                         break;

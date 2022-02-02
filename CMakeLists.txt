@@ -10,6 +10,8 @@ include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
 include("$ENV{VITASDK}/share/vita.toolchain.cmake" REQUIRED)
 message("${CMAKE_TOOLCHAIN_FILE}")
 
+project(psp2shell)
+
 # set build date variable
 execute_process(COMMAND "date" "+%Y.%m.%d" OUTPUT_VARIABLE BUILD_DATE OUTPUT_STRIP_TRAILING_WHITESPACE)
 
