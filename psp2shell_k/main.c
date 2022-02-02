@@ -252,8 +252,8 @@ void set_hooks() {
             KERNEL_PID,
             &ref_hooks[0],
             "SceIofilemgr",
-            0xF2FF276E,
-            0x34EFD876,
+            0xF2FF276E, // SceIofilemgr
+            0x34EFD876, // sceIoWrite
             sceIoWrite_hook);
     //LOG("hook: sceIoWrite: 0x%08X\n", g_hooks[0]);
 
@@ -261,8 +261,8 @@ void set_hooks() {
             KERNEL_PID,
             &ref_hooks[1],
             "SceProcessmgr",
-            0x2DD91812,
-            0xE5AA625C,
+            0x2DD91812, // SceProcessmgr
+            0xE5AA625C, // sceKernelGetStdout
             sceKernelGetStdout_hook);
     //LOG("hook: sceKernelGetStdout: 0x%08X\n", g_hooks[1]);
 
