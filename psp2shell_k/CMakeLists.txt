@@ -23,6 +23,7 @@ target_link_libraries(${PROJECT_NAME}
         SceIofilemgrForDriver_stub
         SceNetPsForDriver_stub
         SceModulemgrForKernel_stub
+        SceDebugForDriver_stub
         k
         gcc
         )

@@ -21,7 +21,10 @@
 #include <psp2kern/kernel/cpu.h>
 #include <psp2kern/io/fcntl.h>
 #include <taihen.h>
+#include <psp2kern/kernel/threadmgr/thread.h>
+#include <psp2kern/net/net.h>
 
+#if 0
 #include "psp2shell_k.h"
 
 #define CHUNK_SIZE 2048
@@ -293,15 +296,100 @@ void delete_hooks() {
             taiHookReleaseForKernel(g_hooks[i], ref_hooks[i]);
     }
 }
+#endif
 
 void _start() __attribute__ ((weak, alias ("module_start")));
 
+static int quit = 0;
+
+static int sock = 0;
+
+SceUID tid = 0;
+
+int p2s_netInit() {
+
+    SceNetSockaddrIn server;
+    server.sin_family = SCE_NET_AF_INET;
+    server.sin_port = ksceNetHtons((unsigned short) 4444);
+    server.sin_addr.s_addr = ksceNetHtonl(SCE_NET_INADDR_ANY);
+
+    sock = ksceNetSocket("server", SCE_NET_AF_INET, SCE_NET_SOCK_STREAM, 0);
+    ksceDebugPrintf("ksceNetSocket: sock = %i\n", sock);
+
+    // bind
+    if (ksceNetBind(sock, (SceNetSockaddr *) &server, sizeof(server)) < 0) {
+        ksceDebugPrintf("sceNetBind failed\n");
+        return -1;
+    }
+
+    // listen
+    if (ksceNetListen(sock, 128) < 0) {
+        ksceDebugPrintf("sceNetListen failed\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int thread_wait_cmd(SceSize args, void *argp) {
+
+    ksceKernelDelayThread(2 * 1000 * 1000);
+
+    char buf[64];
+
+    ksceDebugPrintf("p2s_netInit\n");
+    p2s_netInit();
+
+    ksceDebugPrintf("thread_wait_cmd: entering main loop\n");
+
+    SceNetSockaddrIn clientAddress;
+    unsigned int c = sizeof(clientAddress);
+
+    while (!quit) {
+
+        ksceDebugPrintf("thread_wait_cmd: waiting for client\n");
+        int client_sock = ksceNetAccept(sock, (SceNetSockaddr *) &clientAddress, &c);
+        ksceDebugPrintf("thread_wait_cmd: client_sock: %i\n", client_sock);
+
+        if (client_sock >= 0) {
+            ksceDebugPrintf("thread_wait_cmd: ksceNetRecvfrom\n");
+            ksceNetRecvfrom(client_sock, buf, 2, 0, NULL, 0);
+            ksceDebugPrintf("thread_wait_cmd: ksceNetSendto\n");
+            ksceNetSendto(client_sock, "ok", 2, 0, NULL, 0);
+            ksceDebugPrintf("thread_wait_cmd: quit\n");
+        }
+        quit = 1;
+    }
+
+    return 0;
+}
+
 int module_start(SceSize argc, const void *args) {
-    set_hooks();
+    //set_hooks();
+
+    ksceDebugPrintf("ksceKernelCreateThread\n");
+    tid = ksceKernelCreateThread(
+            "kp2s_test", thread_wait_cmd, 0x40, 0x10000, 0, 0, 0);
+    ksceDebugPrintf("ksceKernelCreateThread: thid = %i\n", tid);
+    if (tid >= 0) {
+        ksceDebugPrintf("ksceKernelStartThread\n");
+        ksceKernelStartThread(tid, 0, NULL);
+    }
+
     return SCE_KERNEL_START_SUCCESS;
 }
 
 int module_stop(SceSize argc, const void *args) {
-    delete_hooks();
+    //delete_hooks();
+
+    quit = 1;
+    ksceNetSocketClose(sock);
+    if (tid >= 0) {
+        ksceKernelWaitThreadEnd(tid, NULL, NULL);
+        ksceKernelDeleteThread(tid);
+    }
+
+
     return SCE_KERNEL_STOP_SUCCESS;
 }
