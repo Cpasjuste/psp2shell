@@ -18,41 +18,32 @@
 
 #ifndef LIBMODULE_H
 #define LIBMODULE_H
-#ifdef MODULE
 
 #include <libk/string.h>
 #include <libk/stdlib.h>
-#include <libk/stdio.h>
-#include <libk/stdarg.h>
 
-#ifdef __VITA_KERNEL__
-
-#include <psp2kern/types.h>
-#include <psp2kern/net/net.h>
-#include <psp2kern/kernel/sysmem.h>
-
-#else
-
+#ifndef __KERNEL__
 #include <psp2/kernel/sysmem.h>
 #include <psp2/io/fcntl.h>
 #include <psp2/types.h>
 #include <psp2/power.h>
 #include <psp2/appmgr.h>
 
-#endif
+#else
 
-#ifdef DEBUG
-int sceClibPrintf(const char *, ...);
-#define printf sceClibPrintf
-#endif
-
-#ifdef __VITA_KERNEL__
-
+#include <psp2kern/types.h>
+#include <psp2kern/net/net.h>
+#include <psp2kern/kernel/sysmem.h>
 #include <psp2kern/kernel/threadmgr.h>
 #include <psp2kern/kernel/processmgr.h>
 #include <psp2kern/kernel/modulemgr.h>
 #include <psp2kern/io/fcntl.h>
 #include <psp2kern/io/stat.h>
+#include <psp2kern/power.h>
+
+#define printf ksceDebugPrintf
+
+#define scePowerRequestColdReset kscePowerRequestColdReset
 
 #define sceKernelStartModule ksceKernelStartModule
 
@@ -67,6 +58,7 @@ int sceClibPrintf(const char *, ...);
 #define sceKernelStartThread ksceKernelStartThread
 #define sceKernelDelayThread ksceKernelDelayThread
 #define sceKernelExitDeleteThread ksceKernelExitDeleteThread
+
 #define sceIoOpen ksceIoOpen
 #define sceIoRead ksceIoRead
 #define sceIoWrite ksceIoWrite
@@ -75,6 +67,12 @@ int sceClibPrintf(const char *, ...);
 #define sceIoRename ksceIoRename
 #define sceIoRemove ksceIoRemove
 #define sceIoMkdir ksceIoMkdir
+#define sceIoGetstat ksceIoGetstat
+#define sceIoDopen ksceIoDopen
+#define sceIoDread ksceIoDread
+#define sceIoDclose ksceIoDclose
+#define sceIoRmdir ksceIoRmdir
+#define sceIoDevctl ksceIoDevctl
 
 #define sceNetSocketClose ksceNetSocketClose
 #define sceNetSocket ksceNetSocket
@@ -88,12 +86,10 @@ int sceClibPrintf(const char *, ...);
 
 #endif
 
-void *malloc(size_t size);
-
-void free(void *p);
+//void *malloc(size_t size);
+//void free(void *p);
 
 #define strcasecmp strcmp
 #define strncasecmp strncmp
 
-#endif // MODULE
 #endif //LIBMODULE_H

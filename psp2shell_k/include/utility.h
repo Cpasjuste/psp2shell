@@ -19,8 +19,6 @@
 #ifndef UTILITY_H
 #define UTILITY_H
 
-#include <psp2/rtc.h>
-
 void p2s_log_write(const char *msg);
 
 #define LOG(...) \
@@ -49,9 +47,9 @@ int p2s_bind_port(int sock, int port);
 
 int p2s_get_sock(int sock);
 
-int p2s_recvall(int sock, void *buffer, int size, int flags);
+size_t p2s_receive_all(int sock, void *buffer, size_t size, int flags);
 
-ssize_t p2s_recv_file(int sock, SceUID fd, long size);
+size_t p2s_receive_file(int sock, SceUID fd, size_t size);
 
 int p2s_hasEndSlash(char *path);
 

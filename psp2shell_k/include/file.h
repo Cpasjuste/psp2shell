@@ -19,7 +19,7 @@
 #ifndef __FILE_H__
 #define __FILE_H__
 
-#ifdef __VITA_KERNEL__
+#ifdef __KERNEL__
 #include <psp2kern/types.h>
 #endif
 

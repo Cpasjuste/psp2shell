@@ -1,11 +1,7 @@
 #ifndef _P2S_H_
 #define _P2S_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include "../psp2shell_k/psp2shell_k.h"
+#include "psp2shell_k.h"
 
 #define P2S_ERR_SOCKET      0x80000001
 #define P2S_ERR_INVALID_CMD 0x80000002
@@ -90,9 +86,5 @@ void p2s_cmd_send_long(int sock, int cmdType, long value);
 int p2s_cmd_to_string(char *buffer, P2S_CMD *c);
 
 int p2s_cmd_to_cmd(P2S_CMD *c, const char *buffer);
-
-#ifdef __cplusplus
-}
-#endif // __cplusplus
 
 #endif // _P2S_H_

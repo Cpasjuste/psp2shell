@@ -16,18 +16,12 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <vitasdk.h>
-#include <taihen.h>
-#include <libk/string.h>
-#include <libk/stdio.h>
-#include <libk/stdlib.h>
-#include <file.h>
-
-#include "psp2shell.h"
-#include "module.h"
-#include "thread.h"
-#include "main.h"
+#include "psp2shell_k.h"
+#include "libmodule.h"
 #include "utility.h"
+#include "module.h"
+
+#include <libk/stdio.h>
 
 static void cmd_reset();
 
@@ -43,7 +37,7 @@ static void toAbsolutePath(s_FileList *fileList, char *path) {
     }
 }
 
-static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
+static size_t cmd_put(s_client *client, long size, char *name, char *dst) {
 
     char new_path[MAX_PATH_LENGTH];
     memset(new_path, 0, MAX_PATH_LENGTH);
@@ -71,7 +65,7 @@ static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
 
     p2s_cmd_send(client->cmd_sock, CMD_OK);
 
-    ssize_t received = p2s_recv_file(client->cmd_sock, fd, size);
+    size_t received = p2s_receive_all(client->cmd_sock, fd, size);
     s_close(fd);
 
     PRINT_OK("received `%s` to `%s` (%i)\n\n", name, new_path, received);
@@ -80,7 +74,7 @@ static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
 }
 
 static int cmd_mount(char *tid) {
-#ifndef MODULE
+#ifndef __KERNEL__
     int res = sceAppMgrAppMount(tid);
     if (res != 0) {
         PRINT_ERR("could not mount title: %s (err=%i)\n", tid, res);
@@ -91,7 +85,7 @@ static int cmd_mount(char *tid) {
 }
 
 static int cmd_umount(char *device) {
-
+#ifndef __KERNEL__
     // hack to close all open files descriptors before umount
     // from 0x40010000 to 0x43ff00ff
     int i, j;
@@ -108,12 +102,12 @@ static int cmd_umount(char *device) {
         PRINT_ERR("could not umount device: %s (err=%x)\n", device, res);
         return -1;
     }
-
+#endif
     return 0;
 }
 
 static void cmd_title() {
-
+#ifndef __KERNEL__
     char name[256];
     char id[16];
 
@@ -125,10 +119,11 @@ static void cmd_title() {
         PRINT_OK("\n\n\tname: SceShell\n\tpid: 0x%08X\n\n",
                  sceKernelGetProcessId());
     }
+#endif
 }
 
 static void cmd_load(int sock, long size, const char *tid) {
-
+#ifndef __KERNEL__
     char path[256];
 
     sceAppMgrDestroyOtherApp();
@@ -153,6 +148,7 @@ static void cmd_load(int sock, long size, const char *tid) {
     } else {
         PRINT_ERR("reload failed, received size < 0\n");
     }
+#endif
 }
 
 static void cmd_reload(int sock, long size) {
@@ -348,7 +344,7 @@ static void cmd_memr(const char *address_str, const char *size_str) {
 }
 
 static void cmd_memw(const char *address_str, const char *data_str) {
-
+#ifndef __KERNEL__
     unsigned int address = strtoul(address_str, NULL, 16);
     unsigned int size = strlen(data_str) / 8;
 
@@ -398,6 +394,7 @@ static void cmd_memw(const char *address_str, const char *data_str) {
         taiInjectData(uid, segment, offset, &data, 4);
         offset += 4;
     }
+#endif
 }
 
 static void cmd_reboot() {
@@ -406,7 +403,6 @@ static void cmd_reboot() {
 }
 
 void p2s_cmd_parse(s_client *client, P2S_CMD *cmd) {
-
     switch (cmd->type) {
 
         case CMD_CD:
@@ -524,7 +520,9 @@ void p2s_cmd_parse(s_client *client, P2S_CMD *cmd) {
             break;
 
         case CMD_THLS:
+#ifndef __KERNEL__
             ps_threadList();
+#endif
             break;
 
         default:

@@ -5,7 +5,7 @@
 #ifndef PROJECT_P2S_MSG_H
 #define PROJECT_P2S_MSG_H
 
-#include "../psp2shell_k/psp2shell_k.h"
+#include "psp2shell_k.h"
 
 #define P2S_ERR_SOCKET      0x80000001
 #define P2S_ERR_INVALID_MSG 0x80000002

@@ -16,18 +16,9 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <psp2/kernel/processmgr.h>
-#include <psp2/kernel/modulemgr.h>
-#include <taihen.h>
-
-#include "../include/utility.h"
-#include "../include/psp2shell.h"
-#include "../include/module.h"
-#include "../include/libmodule.h"
-
-#ifndef DEBUG
-#include "../../psp2shell_k/psp2shell_k.h"
-#endif
+#include "psp2shell_k.h"
+#include "libmodule.h"
+#include "module.h"
 
 static void printModuleInfoFull(SceKernelModuleInfo *moduleInfo) {
     PRINT_OK("module_name: %s\n", moduleInfo->module_name);

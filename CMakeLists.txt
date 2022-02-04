@@ -19,8 +19,8 @@ execute_process(COMMAND "date" "+%Y.%m.%d" OUTPUT_VARIABLE BUILD_DATE OUTPUT_STR
 add_subdirectory(psp2shell_k)
 
 # main module
-add_subdirectory(psp2shell_m)
-add_dependencies(psp2shell_m psp2shell_k-stubs)
+#add_subdirectory(psp2shell_m)
+#add_dependencies(psp2shell_m psp2shell_k-stubs)
 
 #add_subdirectory(psp2shell_loader)
 #add_subdirectory(psp2shell_cli) # external project for now, else cross-compile problem
