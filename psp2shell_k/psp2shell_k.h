@@ -5,8 +5,8 @@
 
 #ifdef __PSP2__
 
+#include <stdbool.h>
 #include <psp2/kernel/modulemgr.h>
-#include <libk/stdbool.h>
 
 #define P2S_MSG_LEN 256
 #define MSG_MAX 64

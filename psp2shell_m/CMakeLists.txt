@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
 
-include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
-include("$ENV{VITASDK}/share/vita.toolchain.cmake" REQUIRED)
-
 project(psp2shell_m)
 
 # set build date variable
@@ -23,7 +20,7 @@ set(INC_FILES
         include
         )
 
-set(CFLAGS -Wall -O2 -std=c99 -D__PSP2__ -DMODULE
+set(CFLAGS -Wall -O3 -std=c99 -D__PSP2__ -DMODULE
         -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format
         -Wno-strict-aliasing -Wno-attributes -ffreestanding
         -DVERSION=\"${BUILD_DATE}\"

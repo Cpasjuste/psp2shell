@@ -3,12 +3,11 @@ cmake_minimum_required(VERSION 3.0)
 
 # set vitasdk path variable
 if (NOT DEFINED ENV{VITASDK})
-    set(ENV{VITASDK} "/usr/local/vitasdk")
+    message(FATAL_ERROR "Please define VITASDK to point to your SDK path!")
 endif ()
 set(VITASDK $ENV{VITASDK})
-include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
-include("$ENV{VITASDK}/share/vita.toolchain.cmake" REQUIRED)
-message("${CMAKE_TOOLCHAIN_FILE}")
+set(CMAKE_TOOLCHAIN_FILE "${VITASDK}/share/vita.toolchain.cmake" CACHE PATH "toolchain file")
+include("${VITASDK}/share/vita.cmake" REQUIRED)
 
 project(psp2shell)
 
@@ -22,7 +21,7 @@ add_subdirectory(psp2shell_k)
 add_subdirectory(psp2shell_m)
 add_dependencies(psp2shell_m psp2shell_k-stubs)
 
-#add_subdirectory(psp2shell_loader)
+#add_subdirectory(psp2shell_loader) # module loader for testing purpose
 #add_subdirectory(psp2shell_cli) # external project for now, else cross-compile problem
 
 add_custom_target(release
