@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "../psp2shell_k/psp2shell_k.h"
+//#include "../psp2shell_k/psp2shell_k.h"
 
 #define P2S_ERR_SOCKET      0x80000001
 #define P2S_ERR_INVALID_CMD 0x80000002

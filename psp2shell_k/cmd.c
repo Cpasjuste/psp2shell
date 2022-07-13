@@ -16,23 +16,32 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <vitasdk.h>
+#include <string.h>
+#include <stdio.h>
+#include <psp2common/kernel/iofilemgr.h>
+//#include <vitasdk.h>
 #include <taihen.h>
-#include <libk/string.h>
-#include <libk/stdio.h>
-#include <libk/stdlib.h>
-#include <file.h>
+#include <psp2kern/kernel/threadmgr/misc.h>
+#include <psp2kern/kernel/threadmgr/thread.h>
+#include <stdlib.h>
+#include <psp2kern/power.h>
+//#include <libk/string.h>
+//#include <libk/stdio.h>
+//#include <libk/stdlib.h>
 
-#include "psp2shell.h"
-#include "module.h"
-#include "thread.h"
-#include "main.h"
+#include "file.h"
+//#include "psp2shell.h"
+//#include "module.h"
+//#include "thread.h"
+//#include "main.h"
+#include "psp2shell_k.h"
 #include "utility.h"
+#include "net.h"
+#include "module.h"
 
 static void cmd_reset();
 
 static void toAbsolutePath(s_FileList *fileList, char *path) {
-
     p2s_removeEndSlash(path);
 
     char *p = strrchr(path, ':');
@@ -43,8 +52,7 @@ static void toAbsolutePath(s_FileList *fileList, char *path) {
     }
 }
 
-static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
-
+static size_t cmd_put(s_client *client, long size, char *name, char *dst) {
     char new_path[MAX_PATH_LENGTH];
     memset(new_path, 0, MAX_PATH_LENGTH);
 
@@ -58,8 +66,8 @@ static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
 
     // if dest is a directory, append source filename
     if (s_isDir(new_path)) {
-        strcat(new_path, "/");
-        strcat(new_path, name);
+        strncat(new_path, "/", MAX_PATH_LENGTH);
+        strncat(new_path, name, MAX_PATH_LENGTH);
     }
 
     SceUID fd = s_open(new_path, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
@@ -71,7 +79,7 @@ static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
 
     p2s_cmd_send(client->cmd_sock, CMD_OK);
 
-    ssize_t received = p2s_recv_file(client->cmd_sock, fd, size);
+    size_t received = p2s_recv_file(client->cmd_sock, fd, size);
     s_close(fd);
 
     PRINT_OK("received `%s` to `%s` (%i)\n\n", name, new_path, received);
@@ -80,7 +88,9 @@ static ssize_t cmd_put(s_client *client, long size, char *name, char *dst) {
 }
 
 static int cmd_mount(char *tid) {
-#ifndef MODULE
+#ifdef __VITA_KERNEL__
+    PRINT_ERR("TODO: cmd_mount\n");
+#else
     int res = sceAppMgrAppMount(tid);
     if (res != 0) {
         PRINT_ERR("could not mount title: %s (err=%i)\n", tid, res);
@@ -91,14 +101,16 @@ static int cmd_mount(char *tid) {
 }
 
 static int cmd_umount(char *device) {
-
+#ifdef __VITA_KERNEL__
+    PRINT_ERR("TODO: cmd_umount\n");
+#else
     // hack to close all open files descriptors before umount
     // from 0x40010000 to 0x43ff00ff
     int i, j;
     for (j = 0x10000; j < 0x4000000; j += 0x10000) {
         for (i = 0x01; i < 0x100; i += 2) {
-            sceIoClose(0x40000000 + j + i);
-            sceIoDclose(0x40000000 + j + i);
+            ksceIoClose(0x40000000 + j + i);
+            ksceIoDclose(0x40000000 + j + i);
         };
     }
 
@@ -108,12 +120,12 @@ static int cmd_umount(char *device) {
         PRINT_ERR("could not umount device: %s (err=%x)\n", device, res);
         return -1;
     }
+#endif
 
     return 0;
 }
 
 static void cmd_title() {
-
     char name[256];
     char id[16];
 
@@ -122,17 +134,18 @@ static void cmd_title() {
         PRINT_OK("\n\n\tname: %s\n\tid: %s\n\tpid: 0x%08X\n\n",
                  name, id, p2s_get_running_app_pid());
     } else {
-        PRINT_OK("\n\n\tname: SceShell\n\tpid: 0x%08X\n\n",
-                 sceKernelGetProcessId());
+        PRINT_OK("\n\n\tname: SceShell\n\tpid: 0x%08X\n\n", ksceKernelGetProcessId());
     }
 }
 
 static void cmd_load(int sock, long size, const char *tid) {
-
+#ifdef __VITA_KERNEL__
+    PRINT_ERR("TODO: cmd_load\n");
+#else
     char path[256];
 
     sceAppMgrDestroyOtherApp();
-    sceKernelDelayThread(1000 * 1000);
+    ksceKernelDelayThread(1000 * 1000);
 
     sprintf(path, "ux0:/app/%s/eboot.bin", tid);
 
@@ -145,7 +158,7 @@ static void cmd_load(int sock, long size, const char *tid) {
 
     p2s_cmd_send(sock, CMD_OK);
 
-    ssize_t received = p2s_recv_file(sock, fd, size);
+    size_t received = p2s_recv_file(sock, fd, size);
     s_close(fd);
 
     if (received > 0) {
@@ -153,10 +166,10 @@ static void cmd_load(int sock, long size, const char *tid) {
     } else {
         PRINT_ERR("reload failed, received size < 0\n");
     }
+#endif
 }
 
 static void cmd_reload(int sock, long size) {
-
     char tid[16];
 
     if (p2s_get_running_app_title_id(tid) != 0) {
@@ -175,10 +188,9 @@ static void cmd_reset() {
 }
 
 static void cmd_cd(s_client *client, char *path) {
-
     char oldPath[1024];
     memset(oldPath, 0, 1024);
-    strncpy(oldPath, path, 1024);
+    strncpy(oldPath, path, 1023);
 
     p2s_removeEndSlash(path);
     p2s_removeEndSlash(client->fileList.path);
@@ -193,14 +205,14 @@ static void cmd_cd(s_client *client, char *path) {
                 if (strlen(client->fileList.path) - ((p + 1) - client->fileList.path) > 0) {
                     p[1] = '\0';
                 } else {
-                    strcpy(client->fileList.path, HOME_PATH);
+                    strncpy(client->fileList.path, HOME_PATH, MAX_PATH_LENGTH - 1);
                 }
             } else {
-                strcpy(client->fileList.path, HOME_PATH);
+                strncpy(client->fileList.path, HOME_PATH, MAX_PATH_LENGTH - 1);
             }
         }
     } else if (s_exist(path)) {
-        strcpy(client->fileList.path, path);
+        strncpy(client->fileList.path, path, MAX_PATH_LENGTH - 1);
     } else {
         char tmp[MAX_PATH_LENGTH];
         snprintf(tmp, MAX_PATH_LENGTH, "%s/%s", client->fileList.path, path);
@@ -220,7 +232,6 @@ static void cmd_cd(s_client *client, char *path) {
 }
 
 static void cmd_ls(s_client *client, char *path) {
-
     s_FileList fileList;
     int res, i;
 
@@ -240,7 +251,6 @@ static void cmd_ls(s_client *client, char *path) {
     }
 
     res = s_fileListGetEntries(&fileList, fileList.path);
-
     if (res < 0) {
         PRINT_ERR("directory does not exist: %s\n", fileList.path);
         s_fileListEmpty(&fileList);
@@ -254,7 +264,7 @@ static void cmd_ls(s_client *client, char *path) {
     for (i = 0; i < strlen(fileList.path); i++) {
         strcat(msg, "-");
     }
-    sprintf(msg + strlen(msg), "\n%s\n", fileList.path);
+    snprintf(msg + strlen(msg), msg_size, "\n%s\n", fileList.path);
     for (i = 0; i < strlen(fileList.path); i++) {
         strcat(msg, "-");
     }
@@ -277,7 +287,6 @@ static void cmd_pwd(s_client *client) {
 }
 
 static void cmd_mv(s_client *client, char *src, char *dst) {
-
     char new_src[MAX_PATH_LENGTH];
     char new_dst[MAX_PATH_LENGTH];
 
@@ -296,7 +305,6 @@ static void cmd_mv(s_client *client, char *src, char *dst) {
 }
 
 static void cmd_rm(s_client *client, char *file) {
-
     char new_path[MAX_PATH_LENGTH];
     strncpy(new_path, file, MAX_PATH_LENGTH);
 
@@ -315,7 +323,6 @@ static void cmd_rm(s_client *client, char *file) {
 }
 
 static void cmd_rmdir(s_client *client, char *path) {
-
     char new_path[MAX_PATH_LENGTH];
     strncpy(new_path, path, MAX_PATH_LENGTH);
     toAbsolutePath(&client->fileList, new_path);
@@ -329,46 +336,39 @@ static void cmd_rmdir(s_client *client, char *path) {
 }
 
 static void cmd_memr(const char *address_str, const char *size_str) {
-
     unsigned int address = strtoul(address_str, NULL, 16);
     unsigned int size = strtoul(size_str, NULL, 16);
     unsigned int max = address + size;
-
     unsigned int *addr = (unsigned int *) address;
 
     while ((unsigned int) addr < max) {
-
         psp2shell_print_color(COL_HEX, "0x%08X: %08X %08X %08X %08X\n",
-                              addr,
-                              addr[0], addr[1], addr[2], addr[3]
+                              addr, addr[0], addr[1], addr[2], addr[3]
         );
-
         addr += 4;
     }
 }
 
 static void cmd_memw(const char *address_str, const char *data_str) {
-
     unsigned int address = strtoul(address_str, NULL, 16);
     unsigned int size = strlen(data_str) / 8;
 
     // try to find module segment by address
     int segment = -1;
     unsigned int offset = 0;
-    unsigned int uid = 0;
-
+    SceUID uid = 0;
     SceUID ids[256];
     SceSize count = 256;
     SceKernelModuleInfo moduleInfo;
 
-    int res = sceKernelGetModuleList(0xFF, ids, &count);
+    int res = ksceKernelGetModuleList(KERNEL_PID, 0xFF, 1, ids, &count);
     if (res != 0) {
         return;
     } else {
         for (int i = 0; i < count; i++) {
             memset(&moduleInfo, 0, sizeof(SceKernelModuleInfo));
             moduleInfo.size = sizeof(SceKernelModuleInfo);
-            res = sceKernelGetModuleInfo(ids[i], &moduleInfo);
+            res = ksceKernelGetModuleInfo(KERNEL_PID, ids[i], &moduleInfo);
             if (res >= 0) {
                 for (int j = 0; j < 4; j++) {
                     if (moduleInfo.segments[j].memsz <= 0) {
@@ -395,20 +395,19 @@ static void cmd_memw(const char *address_str, const char *data_str) {
         char tmp[8];
         strncpy(tmp, data_str + (i * 8), 8);
         unsigned int data = strtoul(tmp, NULL, 16);
-        taiInjectData(uid, segment, offset, &data, 4);
+        // TODO: verify KERNEL_PID
+        taiInjectDataForKernel(KERNEL_PID, uid, segment, offset, &data, 4);
         offset += 4;
     }
 }
 
 static void cmd_reboot() {
     psp2shell_exit();
-    scePowerRequestColdReset();
+    kscePowerRequestColdReset();
 }
 
 void p2s_cmd_parse(s_client *client, P2S_CMD *cmd) {
-
     switch (cmd->type) {
-
         case CMD_CD:
             cmd_cd(client, cmd->args[0]);
             break;
@@ -524,7 +523,8 @@ void p2s_cmd_parse(s_client *client, P2S_CMD *cmd) {
             break;
 
         case CMD_THLS:
-            ps_threadList();
+            //ps_threadList();
+            PRINT_ERR("TODO: CMD_THLS\n");
             break;
 
         default:

@@ -43,16 +43,6 @@ int p2s_get_running_app_name(char *name);
 
 int p2s_get_running_app_title_id(char *title_id);
 
-int p2s_netInit();
-
-int p2s_bind_port(int sock, int port);
-
-int p2s_get_sock(int sock);
-
-int p2s_recvall(int sock, void *buffer, int size, int flags);
-
-ssize_t p2s_recv_file(int sock, SceUID fd, long size);
-
 int p2s_hasEndSlash(char *path);
 
 int p2s_removeEndSlash(char *path);

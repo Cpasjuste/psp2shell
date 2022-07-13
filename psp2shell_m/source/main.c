@@ -1,6 +1,6 @@
 /*
 	PSP2SHELL
-	Copyright (C) 2016, Cpasjuste
+	Copyright (C) 2016, cpasjuste
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -16,6 +16,37 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <psp2common/types.h>
+#include <psp2/kernel/modulemgr.h>
+#include <psp2/appmgr.h>
+
+int sceClibPrintf(const char *, ...);
+
+#define printf sceClibPrintf
+
+SceUID p2s_get_running_app_pid() {
+    SceUID pid = -1;
+    SceUID ids[20];
+
+    int count = sceAppMgrGetRunningAppIdListForShell(ids, 20);
+    if (count > 0) {
+        pid = sceAppMgrGetProcessIdByAppIdForShell(ids[0]);
+    }
+
+    return pid;
+}
+
+void _start() __attribute__ ((weak, alias ("module_start")));
+
+int module_start(SceSize argc, const void *args) {
+    return SCE_KERNEL_START_SUCCESS;
+}
+
+int module_stop(SceSize argc, const void *args) {
+    return SCE_KERNEL_STOP_SUCCESS;
+}
+
+#if 0
 #include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/modulemgr.h>
 #include <psp2/net/net.h>
@@ -354,3 +385,4 @@ void psp2shell_exit() {
         sceKernelDeleteThread(thid_kbuf);
     }
 }
+#endif

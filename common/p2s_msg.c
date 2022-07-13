@@ -4,16 +4,15 @@
 
 #ifdef __PSP2__
 
-#include <psp2/net/net.h>
-#include <libk/stdio.h>
-#include <libk/string.h>
-#include <libk/stdlib.h>
-#include <libk/stdbool.h>
-#include <libk/stdarg.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 #include <sys/types.h>
+#include <psp2kern/net/net.h>
 
-#define send sceNetSend
-#define recv sceNetRecv
+#define send ksceNetSend
+#define recv ksceNetRecv
 
 #ifdef DEBUG
 
@@ -36,7 +35,6 @@ int sceClibPrintf(const char *, ...);
 #include "p2s_msg.h"
 
 int p2s_msg_receive(int sock, P2S_MSG *msg) {
-
     char buffer[P2S_SIZE_MSG];
     memset(buffer, 0, P2S_SIZE_MSG);
 
@@ -58,7 +56,6 @@ int p2s_msg_receive(int sock, P2S_MSG *msg) {
 }
 
 void p2s_msg_send(int sock, int color, const char *msg) {
-
     size_t len = strlen(msg) + 2;
     char buffer[len];
     memset(buffer, 0, len);
@@ -67,7 +64,6 @@ void p2s_msg_send(int sock, int color, const char *msg) {
 }
 
 int p2s_msg_send_msg(int sock, P2S_MSG *msg) {
-
     char buffer[P2S_SIZE_MSG];
 
     if (p2s_msg_to_string(buffer, msg) == 0) {
@@ -79,20 +75,18 @@ int p2s_msg_send_msg(int sock, P2S_MSG *msg) {
 }
 
 int p2s_msg_to_string(char *buffer, P2S_MSG *cmd) {
-
     if (!buffer || !cmd) {
         return -1;
     }
 
     memset(buffer, 0, P2S_SIZE_MSG);
-    sprintf(buffer, "%i", cmd->color);
+    snprintf(buffer, P2S_SIZE_MSG, "%i", cmd->color);
     snprintf(buffer + 2, P2S_SIZE_MSG - 2, "%s", cmd->buffer);
 
     return 0;
 }
 
 int p2s_msg_to_msg(P2S_MSG *msg, const char *buffer) {
-
     if (!msg || !buffer) {
         return -1;
     }

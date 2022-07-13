@@ -17,17 +17,21 @@
 */
 
 #ifdef __PSP2__
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <stdarg.h>
+#include <psp2kern/net/net.h>
+//#include <libk/stdio.h>
+//#include <libk/string.h>
+//#include <libk/stdlib.h>
+//#include <libk/stdbool.h>
+//#include <libk/stdarg.h>
+//#include <sys/types.h>
 
-#include <psp2/net/net.h>
-#include <libk/stdio.h>
-#include <libk/string.h>
-#include <libk/stdlib.h>
-#include <libk/stdbool.h>
-#include <libk/stdarg.h>
-#include <sys/types.h>
-
-#define send sceNetSend
-#define recv sceNetRecv
+#define send ksceNetSend
+#define recv ksceNetRecv
 
 #ifdef DEBUG
 
@@ -50,7 +54,6 @@ int sceClibPrintf(const char *, ...);
 #include "p2s_cmd.h"
 
 int p2s_cmd_receive(int sock, P2S_CMD *cmd) {
-
     char buffer[P2S_SIZE_CMD];
     memset(buffer, 0, P2S_SIZE_CMD);
 
@@ -68,7 +71,6 @@ int p2s_cmd_receive(int sock, P2S_CMD *cmd) {
 }
 
 int p2s_cmd_wait_result(int sock) {
-
     char buffer[P2S_SIZE_CMD];
     memset(buffer, 0, P2S_SIZE_CMD);
 
@@ -90,7 +92,6 @@ int p2s_cmd_wait_result(int sock) {
 }
 
 size_t p2s_cmd_receive_buffer(int sock, void *buffer, size_t size) {
-
     ssize_t len;
     size_t left = size;
 
@@ -112,7 +113,6 @@ size_t p2s_cmd_receive_buffer(int sock, void *buffer, size_t size) {
 }
 
 void p2s_cmd_send(int sock, int cmdType) {
-
     char buffer[4];
     memset(buffer, 0, 4);
     snprintf(buffer, 4, "%i", cmdType);
@@ -120,7 +120,6 @@ void p2s_cmd_send(int sock, int cmdType) {
 }
 
 void p2s_cmd_send_cmd(int sock, P2S_CMD *cmd) {
-
     char buffer[P2S_SIZE_CMD];
     memset(buffer, 0, P2S_SIZE_CMD);
 
@@ -130,7 +129,6 @@ void p2s_cmd_send_cmd(int sock, P2S_CMD *cmd) {
 }
 
 void p2s_cmd_send_fmt(int sock, const char *fmt, ...) {
-
     char buffer[P2S_SIZE_CMD];
     memset(buffer, 0, P2S_SIZE_CMD);
     va_list args;
@@ -142,7 +140,6 @@ void p2s_cmd_send_fmt(int sock, const char *fmt, ...) {
 }
 
 void p2s_cmd_send_string(int sock, int cmdType, const char *value) {
-
     char buffer[P2S_SIZE_STRING + 6];
     memset(buffer, 0, P2S_SIZE_STRING + 6);
     snprintf(buffer, P2S_SIZE_STRING + 6, "%i\"%s\"", cmdType, value);
@@ -150,7 +147,6 @@ void p2s_cmd_send_string(int sock, int cmdType, const char *value) {
 }
 
 void p2s_cmd_send_int(int sock, int cmdType, int value) {
-
     char buffer[16];
     memset(buffer, 0, 16);
     snprintf(buffer, 16, "%i\"%i\"", cmdType, value);
@@ -158,7 +154,6 @@ void p2s_cmd_send_int(int sock, int cmdType, int value) {
 }
 
 void p2s_cmd_send_long(int sock, int cmdType, long value) {
-
     char buffer[32];
     memset(buffer, 0, 32);
     snprintf(buffer, 32, "%i\"%ld\"", cmdType, value);
@@ -166,13 +161,12 @@ void p2s_cmd_send_long(int sock, int cmdType, long value) {
 }
 
 int p2s_cmd_to_string(char *buffer, P2S_CMD *cmd) {
-
     if (!buffer || !cmd) {
         return -1;
     }
 
     memset(buffer, 0, P2S_SIZE_CMD);
-    sprintf(buffer, "%i", cmd->type);
+    snprintf(buffer, P2S_SIZE_CMD, "%i", cmd->type);
     for (int i = 0; i < P2S_MAX_ARGS; i++) {
         snprintf(buffer + strlen(buffer), P2S_SIZE_CMD, "\"%s", cmd->args[i]);
     }
@@ -182,7 +176,6 @@ int p2s_cmd_to_string(char *buffer, P2S_CMD *cmd) {
 }
 
 int p2s_cmd_to_cmd(P2S_CMD *cmd, const char *buffer) {
-
     if (!cmd || !buffer) {
         return -1;
     }
@@ -205,7 +198,6 @@ int p2s_cmd_to_cmd(P2S_CMD *cmd, const char *buffer) {
     }
 
     const char *start = NULL, *end = buffer;
-
     for (int i = 0; i < P2S_MAX_ARGS; i++) {
 
         start = strstr(end, "\"");

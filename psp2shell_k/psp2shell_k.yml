@@ -1,4 +1,4 @@
-psp2shell_k:
+psp2shell_k_test:
     attributes: 0
     version:
         major: 1
@@ -6,12 +6,3 @@ psp2shell_k:
     main:
         start: module_start
         stop: module_stop
-    modules:
-        psp2shell_k:
-            syscall: true
-            functions:
-              - kpsp2shell_wait_buffer
-              - kpsp2shell_set_ready
-              - kpsp2shell_get_module_info
-              - kpsp2shell_get_module_list
-              - kpsp2shell_dump_module

@@ -1,4 +1,4 @@
-psp2shell_m:
+psp2shell_m_test:
   attributes: 0
   version:
     major: 1
@@ -6,4 +6,8 @@ psp2shell_m:
   main:
     start: module_start
     stop: module_stop
-    exit: module_exit
+  modules:
+    psp2shell_m_test:
+      #syscall: true
+      functions:
+        - p2s_get_running_app_pid

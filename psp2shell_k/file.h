@@ -19,13 +19,7 @@
 #ifndef __FILE_H__
 #define __FILE_H__
 
-#ifdef __VITA_KERNEL__
-#include <psp2kern/types.h>
-#endif
-
-#define BOOL int
-#define TRUE 1
-#define FALSE 0
+#include <stdbool.h>
 
 #define MAX_PATH_LENGTH 256
 #define MAX_NAME_LENGTH 256
@@ -36,15 +30,6 @@
 
 #define HOME_PATH "root"
 #define DIR_UP ".."
-
-#ifndef _PSP2_IO_DEVCTL_H_
-typedef struct {
-    uint64_t max_size;
-    uint64_t free_size;
-    uint32_t cluster_size;
-    void *unk;
-} SceIoDevInfo;
-#endif
 
 enum FileTypes {
     FILE_TYPE_UNKNOWN,
@@ -83,7 +68,7 @@ typedef struct s_FileListEntry {
     struct s_FileListEntry *next;
     struct s_FileListEntry *previous;
     char name[MAX_NAME_LENGTH];
-    int name_length;
+    size_t name_length;
     int is_folder;
     int type;
     SceOff size;
@@ -101,9 +86,9 @@ typedef struct {
     int folders;
 } s_FileList;
 
-BOOL s_exist(char *path);
+bool s_exist(char *path);
 
-BOOL s_isDir(char *path);
+bool s_isDir(char *path);
 
 SceUID s_open(const char *file, int flags, SceMode mode);
 

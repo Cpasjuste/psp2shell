@@ -16,34 +16,23 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __VITA_KERNEL__ // TODO
-
-#ifndef __VITA_KERNEL__
-
-#include <psp2/io/dirent.h>
-#include <psp2/io/fcntl.h>
-#include <psp2/io/devctl.h>
-
-#endif
-#ifndef MODULE
-
-#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
-#else
+#include <psp2kern/io/dirent.h>
+#include <psp2kern/io/fcntl.h>
+#include <psp2kern/io/devctl.h>
+#include <psp2kern/io/stat.h>
 
-#include "../include/libmodule.h"
-
-#endif
-
-#include "../include/file.h"
-#include "../include/utility.h"
-//#include "../include/taipool.h"
+#include "psp2shell_k.h"
+#include "file.h"
+#include "utility.h"
 #include "p2s_cmd.h"
 
 #define SCE_ERROR_ERRNO_EEXIST 0x80010011
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define strcasecmp strcmp
+#define strncasecmp strncmp
 
 static char *mount_points[] = {
         "app0:",
@@ -64,57 +53,45 @@ static char *mount_points[] = {
 
 #define N_MOUNT_POINTS (sizeof(mount_points) / sizeof(char **))
 
-BOOL s_isDir(char *path) {
-#ifdef __VITA_KERNEL__
-    return FALSE;
-#else
+bool s_isDir(char *path) {
     SceIoStat stat;
     memset(&stat, 0, sizeof(SceIoStat));
-    int res = sceIoGetstat(path, &stat);
+    int res = ksceIoGetstat(path, &stat);
     if (res < 0)
         return FALSE;
 
     return SCE_S_ISDIR(stat.st_mode) == 1;
-#endif
 }
 
-BOOL s_exist(char *path) {
-#ifdef __VITA_KERNEL__
-    return FALSE;
-#else
+bool s_exist(char *path) {
     SceIoStat stat;
     memset(&stat, 0, sizeof(SceIoStat));
-    int res = sceIoGetstat(path, &stat);
+    int res = ksceIoGetstat(path, &stat);
     if (res < 0)
         return FALSE;
     return TRUE;
-#endif
 }
 
 SceUID s_open(const char *file, int flags, SceMode mode) {
-    return sceIoOpen(file, flags, mode);
+    return ksceIoOpen(file, flags, mode);
 }
 
 void s_close(SceUID fd) {
-    sceIoClose(fd);
+    ksceIoClose(fd);
 }
 
 int s_getFileSize(char *pInputFileName) {
-    SceUID fd = sceIoOpen(pInputFileName, SCE_O_RDONLY, 0);
-    if (fd < 0)
-        return fd;
+    SceUID fd = ksceIoOpen(pInputFileName, SCE_O_RDONLY, 0);
+    if (fd < 0) return fd;
 
-    int fileSize = (int) sceIoLseek(fd, 0, SCE_SEEK_END);
+    int fileSize = (int) ksceIoLseek(fd, 0, SCE_SEEK_END);
+    ksceIoClose(fd);
 
-    sceIoClose(fd);
     return fileSize;
 }
 
 int s_getPathInfo(char *path, uint64_t *size, uint32_t *folders, uint32_t *files) {
-#ifdef __VITA_KERNEL__
-    return -1;
-#else
-    SceUID dfd = sceIoDopen(path);
+    SceUID dfd = ksceIoDopen(path);
     if (dfd >= 0) {
         int res = 0;
 
@@ -122,7 +99,7 @@ int s_getPathInfo(char *path, uint64_t *size, uint32_t *folders, uint32_t *files
             SceIoDirent dir;
             memset(&dir, 0, sizeof(SceIoDirent));
 
-            res = sceIoDread(dfd, &dir);
+            res = ksceIoDread(dfd, &dir);
             if (res > 0) {
                 if (strcmp(dir.d_name, ".") == 0 || strcmp(dir.d_name, "..") == 0)
                     continue;
@@ -135,7 +112,7 @@ int s_getPathInfo(char *path, uint64_t *size, uint32_t *folders, uint32_t *files
                 if (SCE_S_ISDIR(dir.d_stat.st_mode)) {
                     int ret = s_getPathInfo(new_path, size, folders, files);
                     if (ret <= 0) {
-                        sceIoDclose(dfd);
+                        ksceIoDclose(dfd);
                         return ret;
                     }
                 } else {
@@ -148,35 +125,26 @@ int s_getPathInfo(char *path, uint64_t *size, uint32_t *folders, uint32_t *files
             }
         } while (res > 0);
 
-        sceIoDclose(dfd);
-
-        if (folders)
-            (*folders)++;
+        ksceIoDclose(dfd);
+        if (folders) (*folders)++;
     } else {
         if (size) {
             SceIoStat stat;
             memset(&stat, 0, sizeof(SceIoStat));
 
-            int res = sceIoGetstat(path, &stat);
-            if (res < 0)
-                return res;
-
+            int res = ksceIoGetstat(path, &stat);
+            if (res < 0) return res;
             (*size) += stat.st_size;
         }
 
-        if (files)
-            (*files)++;
+        if (files) (*files)++;
     }
 
     return 1;
-#endif
 }
 
 int s_removePath(char *path, s_FileProcessParam *param) {
-#ifdef __VITA_KERNEL__
-    return -1;
-#else
-    SceUID dfd = sceIoDopen(path);
+    SceUID dfd = ksceIoDopen(path);
     if (dfd >= 0) {
         int res = 0;
 
@@ -184,7 +152,7 @@ int s_removePath(char *path, s_FileProcessParam *param) {
             SceIoDirent dir;
             memset(&dir, 0, sizeof(SceIoDirent));
 
-            res = sceIoDread(dfd, &dir);
+            res = ksceIoDread(dfd, &dir);
             if (res > 0) {
                 if (strcmp(dir.d_name, ".") == 0 || strcmp(dir.d_name, "..") == 0)
                     continue;
@@ -197,13 +165,13 @@ int s_removePath(char *path, s_FileProcessParam *param) {
                 if (SCE_S_ISDIR(dir.d_stat.st_mode)) {
                     int ret = s_removePath(new_path, param);
                     if (ret <= 0) {
-                        sceIoDclose(dfd);
+                        ksceIoDclose(dfd);
                         return ret;
                     }
                 } else {
-                    int ret = sceIoRemove(new_path);
+                    int ret = ksceIoRemove(new_path);
                     if (ret < 0) {
-                        sceIoDclose(dfd);
+                        ksceIoDclose(dfd);
                         return ret;
                     }
 
@@ -215,7 +183,7 @@ int s_removePath(char *path, s_FileProcessParam *param) {
                             param->SetProgress(param->value ? *param->value : 0, param->max);
 
                         if (param->cancelHandler && param->cancelHandler()) {
-                            sceIoDclose(dfd);
+                            ksceIoDclose(dfd);
                             return 0;
                         }
                     }
@@ -223,9 +191,9 @@ int s_removePath(char *path, s_FileProcessParam *param) {
             }
         } while (res > 0);
 
-        sceIoDclose(dfd);
+        ksceIoDclose(dfd);
 
-        int ret = sceIoRmdir(path);
+        int ret = ksceIoRmdir(path);
         if (ret < 0)
             return ret;
 
@@ -241,7 +209,7 @@ int s_removePath(char *path, s_FileProcessParam *param) {
             }
         }
     } else {
-        int ret = sceIoRemove(path);
+        int ret = ksceIoRemove(path);
         if (ret < 0)
             return ret;
 
@@ -259,7 +227,6 @@ int s_removePath(char *path, s_FileProcessParam *param) {
     }
 
     return 1;
-#endif
 }
 
 int s_copyFile(char *src_path, char *dst_path, s_FileProcessParam *param) {
@@ -274,14 +241,14 @@ int s_copyFile(char *src_path, char *dst_path, s_FileProcessParam *param) {
         return -2;
     }
 
-    SceUID fdsrc = sceIoOpen(src_path, SCE_O_RDONLY, 0);
-    if (fdsrc < 0)
-        return fdsrc;
+    SceUID src = ksceIoOpen(src_path, SCE_O_RDONLY, 0);
+    if (src < 0)
+        return src;
 
-    SceUID fddst = sceIoOpen(dst_path, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
-    if (fddst < 0) {
-        sceIoClose(fdsrc);
-        return fddst;
+    SceUID dst = ksceIoOpen(dst_path, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
+    if (dst < 0) {
+        ksceIoClose(src);
+        return dst;
     }
 
     //char buf[TRANSFER_SIZE];
@@ -292,12 +259,11 @@ int s_copyFile(char *src_path, char *dst_path, s_FileProcessParam *param) {
     memset(buf, 0, P2S_SIZE_DATA);
 
     int read;
-    while ((read = sceIoRead(fdsrc, buf, P2S_SIZE_DATA)) > 0) {
-        int res = sceIoWrite(fddst, buf, (SceSize) read);
+    while ((read = ksceIoRead(src, buf, P2S_SIZE_DATA)) > 0) {
+        int res = ksceIoWrite(dst, buf, (SceSize) read);
         if (res < 0) {
-
-            sceIoClose(fddst);
-            sceIoClose(fdsrc);
+            ksceIoClose(dst);
+            ksceIoClose(src);
             p2s_free(buf);
 
             return res;
@@ -312,8 +278,8 @@ int s_copyFile(char *src_path, char *dst_path, s_FileProcessParam *param) {
 
             if (param->cancelHandler && param->cancelHandler()) {
 
-                sceIoClose(fddst);
-                sceIoClose(fdsrc);
+                ksceIoClose(dst);
+                ksceIoClose(src);
                 p2s_free(buf);
 
                 return 0;
@@ -321,17 +287,14 @@ int s_copyFile(char *src_path, char *dst_path, s_FileProcessParam *param) {
         }
     }
 
-    sceIoClose(fddst);
-    sceIoClose(fdsrc);
+    ksceIoClose(dst);
+    ksceIoClose(src);
     p2s_free(buf);
 
     return 1;
 }
 
 int s_copyPath(char *src_path, char *dst_path, s_FileProcessParam *param) {
-#ifdef __VITA_KERNEL__
-    return -1;
-#else
     // The source and destination paths are identical
     if (strcasecmp(src_path, dst_path) == 0) {
         return -1;
@@ -343,11 +306,11 @@ int s_copyPath(char *src_path, char *dst_path, s_FileProcessParam *param) {
         return -2;
     }
 
-    SceUID dfd = sceIoDopen(src_path);
+    SceUID dfd = ksceIoDopen(src_path);
     if (dfd >= 0) {
-        int ret = sceIoMkdir(dst_path, 0777);
+        int ret = ksceIoMkdir(dst_path, 0777);
         if (ret < 0 && ret != SCE_ERROR_ERRNO_EEXIST) {
-            sceIoDclose(dfd);
+            ksceIoDclose(dfd);
             return ret;
         }
 
@@ -359,7 +322,7 @@ int s_copyPath(char *src_path, char *dst_path, s_FileProcessParam *param) {
                 param->SetProgress(param->value ? *param->value : 0, param->max);
 
             if (param->cancelHandler && param->cancelHandler()) {
-                sceIoDclose(dfd);
+                ksceIoDclose(dfd);
                 return 0;
             }
         }
@@ -370,7 +333,7 @@ int s_copyPath(char *src_path, char *dst_path, s_FileProcessParam *param) {
             SceIoDirent dir;
             memset(&dir, 0, sizeof(SceIoDirent));
 
-            res = sceIoDread(dfd, &dir);
+            res = ksceIoDread(dfd, &dir);
             if (res > 0) {
                 if (strcmp(dir.d_name, ".") == 0 || strcmp(dir.d_name, "..") == 0)
                     continue;
@@ -394,25 +357,21 @@ int s_copyPath(char *src_path, char *dst_path, s_FileProcessParam *param) {
                 }
 
                 if (ret <= 0) {
-                    sceIoDclose(dfd);
+                    ksceIoDclose(dfd);
                     return ret;
                 }
             }
         } while (res > 0);
 
-        sceIoDclose(dfd);
+        ksceIoDclose(dfd);
     } else {
         return s_copyFile(src_path, dst_path, param);
     }
 
     return 1;
-#endif
 }
 
 int s_movePath(char *src_path, char *dst_path, int flags, s_FileProcessParam *param) {
-#ifdef __VITA_KERNEL__
-    return -1;
-#else
     // The source and destination paths are identical
     if (strcasecmp(src_path, dst_path) == 0) {
         return -1;
@@ -424,19 +383,19 @@ int s_movePath(char *src_path, char *dst_path, int flags, s_FileProcessParam *pa
         return -2;
     }
 
-    int res = sceIoRename(src_path, dst_path);
+    int res = ksceIoRename(src_path, dst_path);
     if (res == SCE_ERROR_ERRNO_EEXIST && flags & (MOVE_INTEGRATE | MOVE_REPLACE)) {
         // Src stat
         SceIoStat src_stat;
         memset(&src_stat, 0, sizeof(SceIoStat));
-        res = sceIoGetstat(src_path, &src_stat);
+        res = ksceIoGetstat(src_path, &src_stat);
         if (res < 0)
             return res;
 
         // Dst stat
         SceIoStat dst_stat;
         memset(&dst_stat, 0, sizeof(SceIoStat));
-        res = sceIoGetstat(dst_path, &dst_stat);
+        res = ksceIoGetstat(dst_path, &dst_stat);
         if (res < 0)
             return res;
 
@@ -450,9 +409,9 @@ int s_movePath(char *src_path, char *dst_path, int flags, s_FileProcessParam *pa
 
         // Replace file
         if (!src_is_dir && !dst_is_dir && flags & MOVE_REPLACE) {
-            sceIoRemove(dst_path);
+            ksceIoRemove(dst_path);
 
-            res = sceIoRename(src_path, dst_path);
+            res = ksceIoRename(src_path, dst_path);
             if (res < 0)
                 return res;
 
@@ -461,7 +420,7 @@ int s_movePath(char *src_path, char *dst_path, int flags, s_FileProcessParam *pa
 
         // Integrate directory
         if (src_is_dir && dst_is_dir && flags & MOVE_INTEGRATE) {
-            SceUID dfd = sceIoDopen(src_path);
+            SceUID dfd = ksceIoDopen(src_path);
             if (dfd < 0)
                 return dfd;
 
@@ -469,7 +428,7 @@ int s_movePath(char *src_path, char *dst_path, int flags, s_FileProcessParam *pa
                 SceIoDirent dir;
                 memset(&dir, 0, sizeof(SceIoDirent));
 
-                res = sceIoDread(dfd, &dir);
+                res = ksceIoDread(dfd, &dir);
                 if (res > 0) {
                     if (strcmp(dir.d_name, ".") == 0 || strcmp(dir.d_name, "..") == 0)
                         continue;
@@ -490,21 +449,20 @@ int s_movePath(char *src_path, char *dst_path, int flags, s_FileProcessParam *pa
                     int ret = s_movePath(new_src_path, new_dst_path, flags, param);
 
                     if (ret <= 0) {
-                        sceIoDclose(dfd);
+                        ksceIoDclose(dfd);
                         return ret;
                     }
                 }
             } while (res > 0);
 
-            sceIoDclose(dfd);
+            ksceIoDclose(dfd);
 
             // Integrated, now remove this directory
-            sceIoRmdir(src_path);
+            ksceIoRmdir(src_path);
         }
     }
 
     return 1;
-#endif
 }
 
 typedef struct {
@@ -623,25 +581,20 @@ void s_fileListEmpty(s_FileList *list) {
 }
 
 int s_fileListGetMountPointEntries(s_FileList *list) {
-#ifdef __VITA_KERNEL__
-    return -1;
-#else
-    int i;
-
-    for (i = 0; i < N_MOUNT_POINTS; i++) {
+    for (int i = 0; i < N_MOUNT_POINTS; i++) {
         if (mount_points[i]) {
             SceIoStat stat;
             memset(&stat, 0, sizeof(SceIoStat));
-            if (sceIoGetstat(mount_points[i], &stat) >= 0) {
+            if (ksceIoGetstat(mount_points[i], &stat) >= 0) {
                 s_FileListEntry *entry = p2s_malloc(sizeof(s_FileListEntry));
-                strcpy(entry->name, mount_points[i]);
+                strncpy(entry->name, mount_points[i], MAX_NAME_LENGTH - 1);
                 entry->name_length = strlen(entry->name);
                 entry->is_folder = 1;
                 entry->type = FILE_TYPE_UNKNOWN;
 
                 SceIoDevInfo info;
                 memset(&info, 0, sizeof(SceIoDevInfo));
-                int res = sceIoDevctl(entry->name, 0x3001, 0, 0, &info, sizeof(SceIoDevInfo));
+                int res = ksceIoDevctl(entry->name, 0x3001, 0, 0, &info, sizeof(SceIoDevInfo));
                 if (res >= 0) {
                     entry->size = info.free_size;
                     entry->size2 = info.max_size;
@@ -651,28 +604,22 @@ int s_fileListGetMountPointEntries(s_FileList *list) {
                 }
 
                 memcpy(&entry->time, &stat.st_ctime, sizeof(SceDateTime));
-
                 s_fileListAddEntry(list, entry, SORT_BY_NAME_AND_FOLDER);
-
                 list->folders++;
             }
         }
     }
 
     return 0;
-#endif
 }
 
 int s_fileListGetDirectoryEntries(s_FileList *list, char *path) {
-#ifdef __VITA_KERNEL__
-    return -1;
-#else
-    SceUID dfd = sceIoDopen(path);
+    SceUID dfd = ksceIoDopen(path);
     if (dfd < 0)
         return dfd;
 
     s_FileListEntry *entry = p2s_malloc(sizeof(s_FileListEntry));
-    strcpy(entry->name, DIR_UP);
+    strncpy(entry->name, DIR_UP, MAX_NAME_LENGTH - 1);
     entry->name_length = strlen(entry->name);
     entry->is_folder = 1;
     entry->type = FILE_TYPE_UNKNOWN;
@@ -683,14 +630,13 @@ int s_fileListGetDirectoryEntries(s_FileList *list, char *path) {
     do {
         SceIoDirent dir;
         memset(&dir, 0, sizeof(SceIoDirent));
-
-        res = sceIoDread(dfd, &dir);
+        res = ksceIoDread(dfd, &dir);
         if (res > 0) {
             if (strcmp(dir.d_name, ".") == 0 || strcmp(dir.d_name, "..") == 0)
                 continue;
 
             entry = p2s_malloc(sizeof(s_FileListEntry));
-            strcpy(entry->name, dir.d_name);
+            strncpy(entry->name, dir.d_name, MAX_NAME_LENGTH);
 
             entry->is_folder = SCE_S_ISDIR(dir.d_stat.st_mode);
             if (entry->is_folder) {
@@ -711,10 +657,9 @@ int s_fileListGetDirectoryEntries(s_FileList *list, char *path) {
         }
     } while (res > 0);
 
-    sceIoDclose(dfd);
+    ksceIoDclose(dfd);
 
     return 0;
-#endif
 }
 
 int s_fileListGetEntries(s_FileList *list, char *path) {
@@ -723,5 +668,3 @@ int s_fileListGetEntries(s_FileList *list, char *path) {
     }
     return s_fileListGetDirectoryEntries(list, path);
 }
-
-#endif

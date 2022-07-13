@@ -7,13 +7,13 @@ execute_process(COMMAND "date" "+%Y.%m.%d" OUTPUT_VARIABLE BUILD_DATE OUTPUT_STR
 
 set(SRC_FILES
         source/main.c
-        source/cmd.c
-        source/utility.c
-        source/file.c
-        source/module.c
-        source/thread.c
-        ../common/p2s_cmd.c
-        ../common/p2s_msg.c
+        #source/cmd.c
+        #source/utility.c
+        #source/file.c
+        #source/module.c
+        #source/thread.c
+        #../common/p2s_cmd.c
+        #../common/p2s_msg.c
         )
 set(INC_FILES
         ../common
@@ -32,24 +32,24 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${INC_FILES})
 target_compile_options(${PROJECT_NAME} PRIVATE ${CFLAGS} -DMODULE)
 
 set(LDFLAGS
-        taihen_stub
-        SceLibKernel_stub
-        SceKernelThreadMgr_stub
-        SceKernelModulemgr_stub
-        SceSysmodule_stub
-        SceSysmem_stub
-        SceIofilemgr_stub
-        SceNet_stub_weak
-        SceNetCtl_stub_weak
+        #taihen_stub
+        #SceLibKernel_stub
+        #SceKernelThreadMgr_stub
+        #SceKernelModulemgr_stub
+        #SceSysmodule_stub
+        #SceSysmem_stub
+        #SceIofilemgr_stub
+        #SceNet_stub_weak
+        #SceNetCtl_stub_weak
         SceAppMgr_stub
-        ScePower_stub
-        k
-        gcc
+        #ScePower_stub
+        #k
+        #gcc
         -nostdlib
         )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    list(APPEND LDFLAGS ${CMAKE_BINARY_DIR}/psp2shell_k/psp2shell_k-stubs/libpsp2shell_k_stub.a)
+    #list(APPEND LDFLAGS ${CMAKE_BINARY_DIR}/psp2shell_k/psp2shell_k-stubs/libpsp2shell_k_stub.a)
 endif ()
 
 target_link_libraries(${PROJECT_NAME} ${LDFLAGS})
@@ -57,3 +57,5 @@ target_link_libraries(${PROJECT_NAME} ${LDFLAGS})
 vita_create_self(${PROJECT_NAME}.suprx ${PROJECT_NAME}
         CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/psp2shell_m.yml
         UNSAFE)
+vita_create_stubs(${PROJECT_NAME}-stubs ${PROJECT_NAME}
+        ${CMAKE_CURRENT_SOURCE_DIR}/psp2shell_m.yml KERNEL)
