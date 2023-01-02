@@ -36,6 +36,9 @@ static bool ready = false;
 
 static kp2s_msg kmsg_list[MSG_MAX];
 
+int (* _ksceKernelGetModuleList)(SceUID pid, int flags1, int flags2, SceUID *modids, size_t *num);
+int (* _ksceKernelGetModuleInfo)(SceUID pid, SceUID modid, SceKernelModuleInfo *info);
+
 static void kp2s_add_msg(int len, const char *msg) {
     for (int i = 0; i < MSG_MAX; i++) {
         if (kmsg_list[i].len <= 0) {
@@ -169,7 +172,7 @@ int kpsp2shell_dump_module(SceUID pid, SceUID uid, const char *dst) {
         kid = uid;
     }
 
-    ret = ksceKernelGetModuleInfo(pid, kid, &kinfo);
+    ret = _ksceKernelGetModuleInfo(pid, kid, &kinfo);
 
     if (ret >= 0) {
 
@@ -213,7 +216,7 @@ int kpsp2shell_get_module_info(SceUID pid, SceUID uid, SceKernelModuleInfo *info
         kid = uid;
     }
 
-    ret = ksceKernelGetModuleInfo(pid, kid, &kinfo);
+    ret = _ksceKernelGetModuleInfo(pid, kid, &kinfo);
     if (ret >= 0) {
         ksceKernelMemcpyKernelToUser(info, &kinfo, sizeof(SceKernelModuleInfo));
     }
@@ -231,7 +234,7 @@ int kpsp2shell_get_module_list(SceUID pid, int flags1, int flags2, SceUID *modid
     ENTER_SYSCALL(state);
 
     memset(kmodids, 0, sizeof(SceUID) * 256);
-    int res = ksceKernelGetModuleList(pid, flags1, flags2, kmodids, &count);
+    int res = _ksceKernelGetModuleList(pid, flags1, flags2, kmodids, &count);
     if (res >= 0) {
         ksceKernelMemcpyKernelToUser(modids, &kmodids, sizeof(SceUID) * 256);
         ksceKernelMemcpyKernelToUser(num, &count, sizeof(size_t));
@@ -294,9 +297,37 @@ void delete_hooks() {
     }
 }
 
+int set_modulemgr_funcs() {
+     // 3.60
+    int res = module_get_export_func(KERNEL_PID, "SceKernelModulemgr", TAI_ANY_LIBRARY,
+                                     0x97CF7B4E, (uintptr_t *)&_ksceKernelGetModuleList);
+    
+    // 3.63 - 3.74
+    if (res < 0)
+        res = module_get_export_func(KERNEL_PID, "SceKernelModulemgr", TAI_ANY_LIBRARY,
+                                     0xB72C75A4, (uintptr_t *)&_ksceKernelGetModuleList);
+
+    if (res < 0)
+        return res;
+
+    // 3.60
+    res = module_get_export_func(KERNEL_PID, "SceKernelModulemgr", TAI_ANY_LIBRARY,
+                                 0xD269F915, (uintptr_t *)&_ksceKernelGetModuleInfo);
+
+    // 3.63 - 3.74
+    if (res < 0)
+        res = module_get_export_func(KERNEL_PID, "SceKernelModulemgr", TAI_ANY_LIBRARY,
+                                     0xDAA90093, (uintptr_t *)&_ksceKernelGetModuleInfo);
+
+    return res;
+}
+
 void _start() __attribute__ ((weak, alias ("module_start")));
 
 int module_start(SceSize argc, const void *args) {
+    if (set_modulemgr_funcs() < 0)
+        return SCE_KERNEL_START_FAILED; 
+    
     set_hooks();
     return SCE_KERNEL_START_SUCCESS;
 }
