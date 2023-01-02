@@ -9,12 +9,9 @@ add_definitions(-DRELEASE)
 add_executable(${PROJECT_NAME} main.c)
 target_link_libraries(${PROJECT_NAME}
         taihenForKernel_stub
-        SceLibKernel_stub
+        taihenModuleUtils_stub
         SceSysmemForDriver_stub
-        SceThreadmgrForDriver_stub
         SceIofilemgrForDriver_stub
-        SceNetPsForDriver_stub
-        SceModulemgrForKernel_stub
         SceSysclibForDriver_stub
         )
 

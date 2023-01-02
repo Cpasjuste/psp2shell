@@ -37,15 +37,6 @@
 #define HOME_PATH "root"
 #define DIR_UP ".."
 
-#ifndef _PSP2_IO_DEVCTL_H_
-typedef struct {
-    uint64_t max_size;
-    uint64_t free_size;
-    uint32_t cluster_size;
-    void *unk;
-} SceIoDevInfo;
-#endif
-
 enum FileTypes {
     FILE_TYPE_UNKNOWN,
     FILE_TYPE_BMP,

@@ -6,7 +6,11 @@
 #ifdef __PSP2__
 
 #include <stdbool.h>
+#ifdef __VITA_KERNEL__
+#include <psp2kern/kernel/modulemgr.h>
+#else
 #include <psp2/kernel/modulemgr.h>
+#endif
 
 #define P2S_MSG_LEN 256
 #define MSG_MAX 64
