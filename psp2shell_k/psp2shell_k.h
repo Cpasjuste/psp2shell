@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #ifdef __VITA_KERNEL__
 #include <psp2kern/kernel/modulemgr.h>
+extern int module_get_export_func(SceUID pid, const char *modname, uint32_t libnid, uint32_t funcnid, uintptr_t *func);
 #else
 #include <psp2/kernel/modulemgr.h>
 #endif

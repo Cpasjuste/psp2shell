@@ -35,6 +35,7 @@
 
 #include <psp2/kernel/sysmem.h>
 #include <psp2/io/fcntl.h>
+#include <psp2/io/stat.h>
 #include <psp2/types.h>
 #include <psp2/power.h>
 #include <psp2/appmgr.h>
